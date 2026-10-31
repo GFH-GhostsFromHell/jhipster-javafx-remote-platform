@@ -24,12 +24,14 @@ import java.nio.file.Files;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class RemoteDesktopApp extends Application {
     private final PortalClient portal = new PortalClient();
     private final ObjectMapper json = new ObjectMapper();
     private final CloudStatusControl cloudStatus = new CloudStatusControl();
+    private final UpdateService updater = new UpdateService();
     private Stage stage;
     private String currentUsername;
     private String currentPassword;
@@ -110,11 +112,18 @@ public class RemoteDesktopApp extends Application {
         String avatarData = account.path("avatarData").isNull()?null:account.path("avatarData").asText(null);
 
         BorderPane page = new BorderPane(); page.setStyle("-fx-background-color:#f4f7fb;");
-        HBox top = new HBox(14); top.setAlignment(Pos.CENTER_LEFT); top.setPadding(new Insets(14,22,14,22)); top.setStyle("-fx-background-color:linear-gradient(to right,#0f172a,#17365d);");
+        HBox top = new HBox(12); top.setAlignment(Pos.CENTER_LEFT); top.setPadding(new Insets(14,22,14,22)); top.setStyle("-fx-background-color:linear-gradient(to right,#0f172a,#17365d);");
         Label brand = new Label("Remote JavaFX Client"); brand.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
+        Label version = new Label("v" + updater.currentVersion()); version.setStyle("-fx-text-fill:#bfdbfe;-fx-font-size:11px;");
         Region push = new Region(); HBox.setHgrow(push,Priority.ALWAYS);
-        Button logout = new Button("Sign out"); logout.setOnAction(e->{currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
-        top.getChildren().addAll(brand,push,new HBox(cloudStatus),logout); page.setTop(top);
+        Button update = new Button("Checking updates…");
+        update.setVisible(false); update.setManaged(false);
+        update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:9;-fx-padding:8 12;");
+        Button logout = new Button("Sign out"); logout.setStyle("-fx-background-color:rgba(255,255,255,.12);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.25);-fx-border-radius:9;-fx-background-radius:9;-fx-padding:8 12;");
+        logout.setOnAction(e->{currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
+        HBox cloudBox = new HBox(cloudStatus); cloudBox.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:10;-fx-padding:5 8;");
+        top.getChildren().addAll(brand,version,push,update,cloudBox,logout); page.setTop(top);
+        checkForUpdates(update);
 
         VBox content = new VBox(18); content.setPadding(new Insets(26));
         HBox profile = new HBox(18); profile.setAlignment(Pos.CENTER_LEFT); profile.setPadding(new Insets(22)); profile.setStyle("-fx-background-color:white;-fx-background-radius:17;-fx-border-color:#e7edf5;-fx-border-radius:17;");
@@ -123,8 +132,52 @@ public class RemoteDesktopApp extends Application {
         Label featureTitle = new Label("Your enabled features"); featureTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
         TilePane featuresPane = new TilePane(); featuresPane.setHgap(12); featuresPane.setVgap(12); featuresPane.setPrefColumns(2);
         Iterator<Map.Entry<String, JsonNode>> it=root.path("features").fields(); while(it.hasNext()){Map.Entry<String,JsonNode> f=it.next(); if(f.getValue().asBoolean(false)){Button b=new Button("✓  "+pretty(f.getKey())); b.setPrefWidth(320); b.setAlignment(Pos.CENTER_LEFT); b.setStyle("-fx-background-color:white;-fx-text-fill:#14213d;-fx-font-weight:bold;-fx-background-radius:13;-fx-border-color:#e2e8f0;-fx-border-radius:13;-fx-padding:16 18;"); featuresPane.getChildren().add(b);}}
+        if(featuresPane.getChildren().isEmpty()){Label none=new Label("No features are enabled for this account."); none.setStyle("-fx-text-fill:#64748b;"); featuresPane.getChildren().add(none);}
         content.getChildren().addAll(profile,featureTitle,featuresPane);
-        ScrollPane scroll=new ScrollPane(content); scroll.setFitToWidth(true); page.setCenter(scroll); stage.setScene(new Scene(page,960,650));
+        ScrollPane scroll=new ScrollPane(content); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:#f4f7fb;-fx-background-color:#f4f7fb;"); page.setCenter(scroll); stage.setScene(new Scene(page,960,650));
+    }
+
+    private void checkForUpdates(Button button) {
+        CompletableFuture.supplyAsync(() -> {
+            try { return updater.check(); }
+            catch (Exception e) { return null; }
+        }).thenAccept(info -> Platform.runLater(() -> {
+            if (info == null || !info.updateAvailable()) return;
+            button.setText("Update available · v" + info.latestVersion() + " — Update app");
+            button.setVisible(true); button.setManaged(true);
+            button.setOnAction(e -> installUpdate(info, button));
+        }));
+    }
+
+    private void installUpdate(UpdateService.UpdateInfo info, Button button) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.initOwner(stage);
+        confirm.setTitle("Update Remote JavaFX Client");
+        confirm.setHeaderText("Update to version " + info.latestVersion() + "?");
+        confirm.setContentText("The installer will download, verify its SHA-256 checksum, close this app, install the update, and relaunch the client. Windows may ask for permission.");
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) return;
+
+        button.setDisable(true); button.setText("Downloading update…");
+        CompletableFuture.supplyAsync(() -> {
+            try { return updater.downloadAndVerify(info); }
+            catch (Exception ex) { throw new RuntimeException(ex); }
+        }).whenComplete((msi, err) -> Platform.runLater(() -> {
+            if (err != null) {
+                button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app");
+                Throwable c = err.getCause()==null?err:err.getCause();
+                new Alert(Alert.AlertType.ERROR, "Update failed: " + (c.getMessage()==null?c.toString():c.getMessage())).showAndWait();
+                return;
+            }
+            try {
+                button.setText("Installing update…");
+                updater.launchInstallerAndRelaunch(msi);
+                Platform.exit();
+            } catch (Exception ex) {
+                button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app");
+                new Alert(Alert.AlertType.ERROR, "Could not launch updater: " + ex.getMessage()).showAndWait();
+            }
+        }));
     }
 
     private void showProfileDialog() {
@@ -147,7 +200,7 @@ public class RemoteDesktopApp extends Application {
         change.setOnAction(e->{Map<String,String> payload=Map.of("currentPassword",current.getText(),"newPassword",next.getText()); change.setDisable(true); CompletableFuture.runAsync(()->{try{portal.changePassword(currentUsername,currentPassword,json.writeValueAsString(payload));}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((v,err)->Platform.runLater(()->{change.setDisable(false); if(err!=null){Throwable c=err.getCause()==null?err:err.getCause();passStatus.setText(c.getMessage());return;} currentPassword=next.getText(); current.clear(); next.clear(); passStatus.setText("Password changed.");}));});
 
         box.getChildren().addAll(new Label("Profile picture"),avatarWrap,photoName,photoButtons,new Separator(),fieldLabel("Display name"),name,fieldLabel("Email"),email,save,status,new Separator(),new Label("Change password"),current,next,change,passStatus);
-        d.getDialogPane().setContent(new ScrollPane(box)); d.showAndWait();
+        ScrollPane pane=new ScrollPane(box); pane.setFitToWidth(true); d.getDialogPane().setContent(pane); d.showAndWait();
     }
 
     private static Node avatarNode(String name,String dataUrl,double size){StackPane holder=new StackPane(); holder.setMinSize(size,size); holder.setMaxSize(size,size); Circle bg=new Circle(size/2,Color.web("#2563eb")); Label initials=new Label(initials(name)); initials.setStyle("-fx-text-fill:white;-fx-font-size:"+(size*.31)+"px;-fx-font-weight:bold;"); holder.getChildren().addAll(bg,initials); Image image=decodeImage(dataUrl); if(image!=null){ImageView iv=new ImageView(image); iv.setFitWidth(size); iv.setFitHeight(size); iv.setPreserveRatio(false); iv.setClip(new Circle(size/2,size/2,size/2)); holder.getChildren().add(iv);} return holder;}
