@@ -28,18 +28,52 @@ public final class PortalClient {
     }
 
     public String bootstrap(String username, String password) throws Exception {
-        String basic = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-        HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + "/api/client/bootstrap"))
+        return authorizedGet("/api/client/bootstrap", username, password);
+    }
+
+    public String profile(String username, String password) throws Exception {
+        return authorizedGet("/api/profile", username, password);
+    }
+
+    public String updateProfile(String username, String password, String jsonBody) throws Exception {
+        return authorizedJson("/api/profile", "PUT", username, password, jsonBody);
+    }
+
+    public String changePassword(String username, String password, String jsonBody) throws Exception {
+        return authorizedJson("/api/profile/password", "PUT", username, password, jsonBody);
+    }
+
+    private String authorizedGet(String path, String username, String password) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(Duration.ofSeconds(150))
-            .header("Authorization", "Basic " + basic)
+            .header("Authorization", basic(username, password))
             .GET()
             .build();
-        HttpResponse<String> res = sendWithRetry(req, 3, 3000);
+        return bodyOrThrow(sendWithRetry(req, 3, 3000));
+    }
+
+    private String authorizedJson(String path, String method, String username, String password, String jsonBody) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + path))
+            .timeout(Duration.ofSeconds(150))
+            .header("Authorization", basic(username, password))
+            .header("Content-Type", "application/json")
+            .method(method, HttpRequest.BodyPublishers.ofString(jsonBody == null ? "{}" : jsonBody, StandardCharsets.UTF_8))
+            .build();
+        return bodyOrThrow(sendWithRetry(req, 3, 3000));
+    }
+
+    private static String basic(String username, String password) {
+        String token = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+        return "Basic " + token;
+    }
+
+    private static String bodyOrThrow(HttpResponse<String> res) {
         if (res.statusCode() == 401 || res.statusCode() == 403) {
             throw new SecurityException("Invalid username/password or account disabled");
         }
-        if (res.statusCode() != 200) {
-            throw new IllegalStateException("Portal returned HTTP " + res.statusCode());
+        if (res.statusCode() < 200 || res.statusCode() >= 300) {
+            String detail = res.body() == null || res.body().isBlank() ? "" : ": " + res.body();
+            throw new IllegalStateException("Portal returned HTTP " + res.statusCode() + detail);
         }
         return res.body();
     }
