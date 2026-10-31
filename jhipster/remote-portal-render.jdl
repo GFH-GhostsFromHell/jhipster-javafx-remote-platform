@@ -1,0 +1,169 @@
+application {
+  config {
+    baseName remotePortal
+    applicationType monolith
+    authenticationType jwt
+    packageName com.example.remoteportal
+    clientFramework angular
+    buildTool maven
+    databaseType sql
+    devDatabaseType h2Disk
+    prodDatabaseType postgresql
+    cacheProvider caffeine
+    websocket spring-websocket
+    enableTranslation true
+    nativeLanguage en
+    languages [en]
+  }
+  entities *
+}
+
+entity Organization {
+  name String required,
+  code String required unique,
+  active Boolean required
+}
+
+entity OrganizationMembership {
+  orgRole String required,
+  active Boolean required
+}
+
+entity ManagedDevice {
+  deviceId UUID required unique,
+  hostname String,
+  operatingSystem String,
+  architecture String,
+  agentVersion String,
+  clientVersion String,
+  lastSeen Instant,
+  status DeviceStatus required,
+  configVersion Long
+}
+
+entity Product {
+  name String required,
+  code String required unique,
+  active Boolean required
+}
+
+entity Plan {
+  name String required,
+  code String required unique,
+  active Boolean required
+}
+
+entity Feature {
+  featureKey String required unique,
+  name String required,
+  description TextBlob,
+  category String,
+  serverEnforced Boolean required,
+  clientVisible Boolean required,
+  minimumClientVersion String,
+  active Boolean required
+}
+
+entity PlanFeature {
+  enabled Boolean required
+}
+
+entity Subscription {
+  startDate Instant required,
+  endDate Instant,
+  active Boolean required,
+  maxDevices Integer
+}
+
+entity UserFeatureOverride {
+  state FeatureOverrideState required,
+  updatedAt Instant required,
+  updatedBy String
+}
+
+entity DeviceFeatureOverride {
+  state FeatureOverrideState required,
+  updatedAt Instant required,
+  updatedBy String
+}
+
+entity ConfigurationProfile {
+  name String required,
+  configVersion Long required,
+  active Boolean required
+}
+
+entity ConfigurationValue {
+  configKey String required,
+  configValue TextBlob,
+  valueType String
+}
+
+entity ApplicationRelease {
+  version String required,
+  releaseChannel ReleaseChannel required,
+  artifactName String required,
+  artifactUrl String required,
+  artifactHash String required,
+  signature String,
+  mandatory Boolean required,
+  publishedAt Instant
+}
+
+entity InstalledApplication {
+  version String,
+  installedAt Instant,
+  healthy Boolean,
+  lastHealthCheck Instant
+}
+
+entity AuditEvent {
+  eventType String required,
+  actor String,
+  targetType String,
+  targetId String,
+  details TextBlob,
+  createdAt Instant required
+}
+
+enum DeviceStatus {
+  ONLINE,
+  OFFLINE,
+  DISABLED,
+  BLOCKED
+}
+
+enum FeatureOverrideState {
+  INHERIT,
+  ENABLED,
+  DISABLED
+}
+
+enum ReleaseChannel {
+  DEVELOPMENT,
+  BETA,
+  STABLE
+}
+
+relationship ManyToOne {
+  OrganizationMembership{organization(name)} to Organization,
+  OrganizationMembership{user(login)} to User,
+  UserFeatureOverride{user(login)} to User,
+  ManagedDevice{organization(name)} to Organization,
+  Plan{product(name)} to Product,
+  PlanFeature{plan(name)} to Plan,
+  PlanFeature{feature(name)} to Feature,
+  Subscription{organization(name)} to Organization,
+  Subscription{plan(name)} to Plan,
+  UserFeatureOverride{feature(name)} to Feature,
+  DeviceFeatureOverride{device(hostname)} to ManagedDevice,
+  DeviceFeatureOverride{feature(name)} to Feature,
+  ConfigurationProfile{organization(name)} to Organization,
+  ConfigurationValue{profile(name)} to ConfigurationProfile,
+  InstalledApplication{device(hostname)} to ManagedDevice,
+  InstalledApplication{release(version)} to ApplicationRelease
+}
+
+dto * with mapstruct
+service * with serviceClass
+paginate AuditEvent with pagination
