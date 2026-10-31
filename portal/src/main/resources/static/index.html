@@ -1,6 +1,33 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Remote JavaFX Portal</title><style>body{font-family:system-ui;margin:0;background:#f5f7fb;color:#172033}header{background:#172033;color:white;padding:20px 28px}main{max-width:1050px;margin:28px auto;padding:0 18px}.card{background:white;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 4px 20px #00000012}.row{display:flex;gap:12px;flex-wrap:wrap}input,select,button,.download{padding:10px 12px;border:1px solid #cbd2df;border-radius:8px;font:inherit}button,.download{cursor:pointer;background:#172033;color:white;text-decoration:none;display:inline-block}.ok{color:#5ce28a;font-weight:700}.feature{display:grid;grid-template-columns:1fr 150px 120px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #eee}@media(max-width:650px){.feature{grid-template-columns:1fr}}</style></head><body><header><h1>Remote JavaFX Management Portal</h1><div id="cloud">☁ Checking cloud…</div></header><main><div class="card"><h2>Desktop Client</h2><p>Download the latest Windows installer. The client connects to this cloud portal and signs in with a client account.</p><a class="download" href="https://github.com/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases/latest/download/RemoteJavaFXClient-Setup.msi">Download Windows Desktop Client (.msi)</a></div><div class="card"><h2>Admin feature access</h2><p>Sign in when prompted, then enter a desktop username to edit feature access.</p><div class="row"><input id="username" value="bryn"><button onclick="loadFeatures()">Load user</button></div><div id="features"></div></div><div class="card"><h2>Client configuration</h2><div class="row"><input id="key" placeholder="config key, e.g. theme"><input id="value" placeholder="value"><button onclick="saveConfig()">Save</button></div><pre id="config"></pre></div></main><script>
-async function api(url,opt={}){const r=await fetch(url,opt);if(r.status===401){location.href='/login';throw 0}if(!r.ok)throw new Error(await r.text());return r.json()}
-async function health(){try{let h=await (await fetch('/api/public/client-health')).json();cloud.innerHTML='☁ <span class="ok">Cloud Connected</span> · API '+h.apiVersion}catch(e){cloud.textContent='☁ Cloud Offline'}}health();
-async function loadFeatures(){let u=username.value;let d=await api('/api/admin/users/'+encodeURIComponent(u)+'/features');features.innerHTML='';for(let [k,v] of Object.entries(d.effective)){let state=d.overrides[k]||'INHERIT';let div=document.createElement('div');div.className='feature';div.innerHTML=`<b>${k}</b><select><option>INHERIT</option><option>ENABLED</option><option>DISABLED</option></select><span>${v?'✓ Enabled':'✕ Disabled'}</span>`;let s=div.querySelector('select');s.value=state;s.onchange=async()=>{await api('/api/admin/users/'+encodeURIComponent(u)+'/features',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({featureKey:k,state:s.value})});loadFeatures()};features.appendChild(div)} config.textContent=JSON.stringify(await api('/api/admin/users/'+encodeURIComponent(u)+'/configuration'),null,2)}
-async function saveConfig(){let u=username.value;await api('/api/admin/users/'+encodeURIComponent(u)+'/configuration',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key.value,value:value.value})});loadFeatures()}
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Remote JavaFX Portal</title>
+<style>
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#14213d;background:#eef2f7}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#0f172a,#1e3a5f 55%,#2b6cb0)}.shell{width:min(940px,92vw);display:grid;grid-template-columns:1.1fr .9fr;background:white;border-radius:24px;overflow:hidden;box-shadow:0 24px 70px #0005}.hero{padding:54px;background:#0f2745;color:white}.hero h1{font-size:38px;margin:0 0 14px}.hero p{line-height:1.6;color:#dbeafe}.pill{display:inline-block;padding:7px 11px;border:1px solid #ffffff33;border-radius:999px;background:#ffffff12;margin-top:18px}.login{padding:54px}.login h2{margin:0 0 6px}.muted{color:#64748b}.field{margin:18px 0}.field label{display:block;font-weight:600;margin-bottom:7px}.field input{width:100%;padding:13px 14px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}.button{width:100%;padding:13px;border:0;border-radius:10px;background:#1d4ed8;color:white;font-weight:700;font-size:16px;cursor:pointer}.error{display:none;background:#fff1f2;color:#be123c;padding:10px 12px;border-radius:9px;margin:14px 0}.cloud{margin-top:20px;font-size:14px}.ok{color:#16a34a}.bad{color:#dc2626}@media(max-width:760px){.shell{grid-template-columns:1fr}.hero{padding:34px}.login{padding:34px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="hero">
+    <div class="pill">Remote JavaFX Platform</div>
+    <h1>Your apps, users and subscriptions in one place.</h1>
+    <p>Sign in to manage your account, update your profile and password, view your subscription tier, or administer client users and feature access.</p>
+    <div id="cloud" class="cloud">☁ Checking cloud service…</div>
+  </section>
+  <section class="login">
+    <h2>Sign in</h2>
+    <p class="muted">Use your portal or desktop-client account.</p>
+    <div id="error" class="error">The username or password was not accepted.</div>
+    <form method="post" action="/login">
+      <div class="field"><label for="username">Username</label><input id="username" name="username" autocomplete="username" required autofocus></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+      <button class="button" type="submit">Sign in to portal</button>
+    </form>
+  </section>
+</div>
+<script>
+if(new URLSearchParams(location.search).has('error'))document.getElementById('error').style.display='block';
+(async()=>{const el=document.getElementById('cloud');try{const r=await fetch('/api/public/client-health');if(!r.ok)throw 0;const h=await r.json();el.innerHTML='☁ <span class="ok">Cloud connected</span> · API '+h.apiVersion}catch(e){el.innerHTML='☁ <span class="bad">Cloud waking or offline</span>'}})();
+</script>
+</body></html>
