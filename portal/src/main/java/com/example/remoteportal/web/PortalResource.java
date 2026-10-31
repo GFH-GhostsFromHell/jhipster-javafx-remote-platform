@@ -21,7 +21,7 @@ public class PortalResource {
 
   @GetMapping("/api/public/client-health")
   public Map<String,Object> publicHealth(){
-    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.3.0");
+    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.4.0");
   }
 
   @GetMapping("/api/client/status")
@@ -60,11 +60,11 @@ public class PortalResource {
     }
   }
 
-  public record ProfileUpdate(String displayName,String email){}
+  public record ProfileUpdate(String displayName,String email,String avatarData){}
 
   @PutMapping("/api/profile")
   public Map<String,Object> updateProfile(Principal p,@RequestBody ProfileUpdate update){
-    accounts.updateProfile(p.getName(), update.displayName(), update.email());
+    accounts.updateProfile(p.getName(), update.displayName(), update.email(), update.avatarData());
     return accounts.get(p.getName());
   }
 
