@@ -23,3 +23,8 @@ app:
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:change-me-now}
+  client:
+    seed:
+      username: ${CLIENT_USERNAME:bryn}
+      password: ${CLIENT_PASSWORD:CHANGE_ME_CLIENT_2026}
+      display-name: ${CLIENT_DISPLAY_NAME:Bryn Flewelling}
