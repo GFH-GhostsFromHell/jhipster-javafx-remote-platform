@@ -131,10 +131,38 @@ public class RemoteDesktopApp extends Application {
 
         Label featureTitle = new Label("Your enabled features"); featureTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
         TilePane featuresPane = new TilePane(); featuresPane.setHgap(12); featuresPane.setVgap(12); featuresPane.setPrefColumns(2);
-        Iterator<Map.Entry<String, JsonNode>> it=root.path("features").fields(); while(it.hasNext()){Map.Entry<String,JsonNode> f=it.next(); if(f.getValue().asBoolean(false)){Button b=new Button("✓  "+pretty(f.getKey())); b.setPrefWidth(320); b.setAlignment(Pos.CENTER_LEFT); b.setStyle("-fx-background-color:white;-fx-text-fill:#14213d;-fx-font-weight:bold;-fx-background-radius:13;-fx-border-color:#e2e8f0;-fx-border-radius:13;-fx-padding:16 18;"); featuresPane.getChildren().add(b);}}
+        Iterator<Map.Entry<String, JsonNode>> it=root.path("features").fields();
+        while(it.hasNext()){
+            Map.Entry<String,JsonNode> f=it.next();
+            if(f.getValue().asBoolean(false)){
+                String key=f.getKey();
+                Button b=new Button("✓  "+pretty(key));
+                b.setPrefWidth(320); b.setAlignment(Pos.CENTER_LEFT);
+                b.setStyle("-fx-background-color:white;-fx-text-fill:#14213d;-fx-font-weight:bold;-fx-background-radius:13;-fx-border-color:#e2e8f0;-fx-border-radius:13;-fx-padding:16 18;");
+                b.setOnAction(e->showFeature(key));
+                featuresPane.getChildren().add(b);
+            }
+        }
         if(featuresPane.getChildren().isEmpty()){Label none=new Label("No features are enabled for this account."); none.setStyle("-fx-text-fill:#64748b;"); featuresPane.getChildren().add(none);}
         content.getChildren().addAll(profile,featureTitle,featuresPane);
         ScrollPane scroll=new ScrollPane(content); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:#f4f7fb;-fx-background-color:#f4f7fb;"); page.setCenter(scroll); stage.setScene(new Scene(page,960,650));
+    }
+
+    private void showFeature(String key) {
+        BorderPane page = new BorderPane();
+        page.setStyle("-fx-background-color:#f4f7fb;");
+        HBox top = new HBox(12); top.setAlignment(Pos.CENTER_LEFT); top.setPadding(new Insets(14,22,14,22)); top.setStyle("-fx-background-color:linear-gradient(to right,#0f172a,#17365d);");
+        Button back = new Button("← Back"); back.setStyle("-fx-background-color:rgba(255,255,255,.12);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.25);-fx-border-radius:9;-fx-background-radius:9;-fx-padding:8 12;");
+        back.setOnAction(e -> showMain(currentBootstrap));
+        Label title = new Label(pretty(key)); title.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
+        Region push = new Region(); HBox.setHgrow(push, Priority.ALWAYS);
+        HBox cloudBox = new HBox(cloudStatus); cloudBox.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:10;-fx-padding:5 8;");
+        top.getChildren().addAll(back,title,push,cloudBox);
+        page.setTop(top);
+        Node feature = FeatureViews.create(key,currentBootstrap,portal,stage);
+        ScrollPane scroll = new ScrollPane(feature); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:#f4f7fb;-fx-background-color:#f4f7fb;");
+        page.setCenter(scroll);
+        stage.setScene(new Scene(page,960,650));
     }
 
     private void checkForUpdates(Button button) {
