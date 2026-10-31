@@ -8,4 +8,4 @@ WORKDIR /app
 COPY --from=build /workspace/target/remote-portal-*.jar /app/app.jar
 ENV SERVER_PORT=10000
 EXPOSE 10000
-ENTRYPOINT ["sh","-c","if [ -n \"${DATABASE_URL:-}\" ]; then export SPRING_DATASOURCE_URL=\"$(printf '%s' \"$DATABASE_URL\" | sed 's#^postgresql://#jdbc:postgresql://#')\"; export SPRING_DATASOURCE_DRIVER=org.postgresql.Driver; fi; exec java -Dserver.port=${SERVER_PORT:-10000} -jar /app/app.jar"]
+ENTRYPOINT ["sh","-c","exec java -Dserver.port=${SERVER_PORT:-10000} -jar /app/app.jar"]
