@@ -21,7 +21,7 @@ public class PortalResource {
 
   @GetMapping("/api/public/client-health")
   public Map<String,Object> publicHealth(){
-    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.2.0");
+    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.3.0");
   }
 
   @GetMapping("/api/client/status")
@@ -36,16 +36,14 @@ public class PortalResource {
   }
 
   @PostMapping("/api/client/login")
-  public Map<String,Object> login(Principal p){
-    return bootstrap(p);
-  }
+  public Map<String,Object> login(Principal p){ return bootstrap(p); }
 
   @GetMapping("/api/client/bootstrap")
   public Map<String,Object> bootstrap(Principal p){
     String u=p.getName();
     Map<String,Object> account;
     try { account=accounts.get(u); }
-    catch(Exception ex) { account=Map.of("username",u,"displayName",u,"enabled",true); }
+    catch(Exception ex) { account=Map.of("username",u,"displayName",u,"enabled",true,"subscriptionTier","ADMIN"); }
     return Map.of(
       "user",account,
       "features",store.effective(u),
@@ -54,24 +52,51 @@ public class PortalResource {
     );
   }
 
+  @GetMapping("/api/profile")
+  public Map<String,Object> profile(Principal p){
+    try { return accounts.get(p.getName()); }
+    catch(Exception ex) {
+      return Map.of("username",p.getName(),"displayName",p.getName(),"email","","enabled",true,"subscriptionTier","ADMIN");
+    }
+  }
+
+  public record ProfileUpdate(String displayName,String email){}
+
+  @PutMapping("/api/profile")
+  public Map<String,Object> updateProfile(Principal p,@RequestBody ProfileUpdate update){
+    accounts.updateProfile(p.getName(), update.displayName(), update.email());
+    return accounts.get(p.getName());
+  }
+
+  public record PasswordChange(String currentPassword,String newPassword){}
+
+  @PutMapping("/api/profile/password")
+  public Map<String,Object> changePassword(Principal p,@RequestBody PasswordChange update){
+    accounts.changePassword(p.getName(), update.currentPassword(), update.newPassword());
+    return Map.of("changed",true);
+  }
+
   @GetMapping("/api/admin/features")
   public List<String> features(){return PortalStore.FEATURES;}
+
+  @GetMapping("/api/admin/tiers")
+  public List<String> tiers(){return ClientAccountStore.TIERS;}
 
   @GetMapping("/api/admin/users")
   public List<Map<String,Object>> users(){return accounts.list();}
 
-  public record UserUpdate(String displayName,String password,Boolean enabled){}
+  public record UserUpdate(String displayName,String email,String password,Boolean enabled,String subscriptionTier){}
 
   @PutMapping("/api/admin/users/{username}")
   public Map<String,Object> upsertUser(@PathVariable String username,@RequestBody UserUpdate update){
     boolean enabled=update.enabled()==null || update.enabled();
-    accounts.upsert(username,update.displayName(),update.password(),enabled);
+    accounts.upsert(username,update.displayName(),update.email(),update.password(),enabled,update.subscriptionTier());
     return accounts.get(username);
   }
 
   @GetMapping("/api/admin/users/{username}/features")
   public Map<String,Object> userFeatures(@PathVariable String username){
-    return Map.of("username",username,"overrides",store.overrides(username),"effective",store.effective(username));
+    return Map.of("username",username,"subscriptionTier",accounts.tier(username),"overrides",store.overrides(username),"effective",store.effective(username));
   }
 
   public record FeatureUpdate(String featureKey,String state){}
