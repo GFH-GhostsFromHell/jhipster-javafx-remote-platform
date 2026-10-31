@@ -1,0 +1,1 @@
+Placeholder favicon resource; replace with binary favicon.ico in a normal git checkout if desired.
