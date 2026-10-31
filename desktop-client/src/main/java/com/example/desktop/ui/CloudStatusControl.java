@@ -1,6 +1,6 @@
 package com.example.desktop.ui;
 
-import com.example.shared.CloudConnectionState;
+import com.example.desktop.CloudConnectionState;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
@@ -17,7 +17,7 @@ public final class CloudStatusControl extends HBox {
         setPadding(new Insets(4, 8, 4, 8));
         getChildren().addAll(symbol, text);
         Tooltip.install(this, details);
-        setState(CloudConnectionState.CONNECTING, "Checking the JHipster cloud API");
+        setState(CloudConnectionState.CONNECTING, "Checking the cloud API");
     }
 
     public void setState(CloudConnectionState state, String detail) {
