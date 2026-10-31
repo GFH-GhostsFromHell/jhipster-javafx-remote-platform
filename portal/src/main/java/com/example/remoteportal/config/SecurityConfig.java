@@ -32,13 +32,19 @@ public class SecurityConfig {
 
   @Bean
   SecurityFilterChain filter(HttpSecurity http) throws Exception {
-    http.csrf(csrf->csrf.ignoringRequestMatchers("/api/**"))
+    http.csrf(csrf->csrf.ignoringRequestMatchers("/api/**", "/login", "/logout"))
       .authorizeHttpRequests(a->a
         .requestMatchers("/", "/index.html", "/management/health", "/actuator/health", "/api/public/**").permitAll()
         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-        .requestMatchers("/api/client/**").hasAnyRole("CLIENT", "ADMIN")
+        .requestMatchers("/api/client/**", "/api/profile/**", "/portal.html").hasAnyRole("CLIENT", "ADMIN")
         .anyRequest().authenticated())
-      .formLogin(Customizer.withDefaults())
+      .formLogin(f->f
+        .loginPage("/")
+        .loginProcessingUrl("/login")
+        .defaultSuccessUrl("/portal.html", true)
+        .failureUrl("/?error=1")
+        .permitAll())
+      .logout(l->l.logoutUrl("/logout").logoutSuccessUrl("/").permitAll())
       .httpBasic(Customizer.withDefaults());
     return http.build();
   }
