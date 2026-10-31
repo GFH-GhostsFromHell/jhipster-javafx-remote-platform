@@ -1,0 +1,1 @@
+JavaFX clients call /api/public/client-health before sign-in and /api/client/status plus /api/client/bootstrap after sign-in.
