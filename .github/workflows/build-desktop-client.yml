@@ -1,0 +1,72 @@
+name: Build Windows Desktop Client
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'desktop-client/**'
+      - '.github/workflows/build-desktop-client.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-msi:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build client and collect dependencies
+        shell: pwsh
+        run: mvn -B clean package
+
+      - name: Create MSI with jpackage
+        shell: pwsh
+        run: |
+          $version = "0.1.${{ github.run_number }}"
+          New-Item -ItemType Directory -Force -Path target/installer | Out-Null
+          jpackage `
+            --type msi `
+            --name RemoteJavaFXClient `
+            --app-version $version `
+            --vendor "Remote JavaFX Platform" `
+            --description "Managed JavaFX desktop client" `
+            --input target/jpackage-input `
+            --main-jar remote-javafx-client-0.1.0.jar `
+            --main-class com.example.desktop.RemoteDesktopApp `
+            --dest target/installer `
+            --win-menu `
+            --win-shortcut `
+            --win-dir-chooser
+          $msi = Get-ChildItem target/installer/*.msi | Select-Object -First 1
+          Copy-Item $msi.FullName target/installer/RemoteJavaFXClient-Setup.msi
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemoteJavaFXClient-Windows
+          path: desktop-client/target/installer/RemoteJavaFXClient-Setup.msi
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "client-v0.1.${{ github.run_number }}"
+          gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
+            --repo "${{ github.repository }}" `
+            --title "Desktop Client 0.1.${{ github.run_number }}" `
+            --notes "Windows MSI build of the managed JavaFX desktop client. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+            --latest
