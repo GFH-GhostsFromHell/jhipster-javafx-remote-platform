@@ -37,12 +37,13 @@ public class ClientAccountStore {
     db.execute("create table if not exists client_account (username varchar(255) primary key, display_name varchar(255), password_hash varchar(255) not null, enabled boolean not null)");
     db.execute("alter table client_account add column if not exists email varchar(255)");
     db.execute("alter table client_account add column if not exists subscription_tier varchar(20) default 'TIER_1'");
+    db.execute("alter table client_account add column if not exists avatar_data text");
     db.update("update client_account set subscription_tier='TIER_1' where subscription_tier is null or subscription_tier='' ");
 
     Integer count = db.queryForObject("select count(*) from client_account where lower(username)=lower(?)", Integer.class, seedUsername);
     if (count != null && count == 0) {
-      db.update("insert into client_account(username,display_name,password_hash,enabled,email,subscription_tier) values(?,?,?,?,?,?)",
-          seedUsername, seedDisplayName, encoder.encode(seedPassword), true, null, "TIER_1");
+      db.update("insert into client_account(username,display_name,password_hash,enabled,email,subscription_tier,avatar_data) values(?,?,?,?,?,?,?)",
+          seedUsername, seedDisplayName, encoder.encode(seedPassword), true, null, "TIER_1", null);
     }
   }
 
@@ -59,13 +60,28 @@ public class ClientAccountStore {
   }
 
   public List<Map<String,Object>> list() {
-    return db.query("select username,display_name,email,enabled,subscription_tier from client_account order by username", (rs,row) -> accountMap(rs));
+    return db.query("select username,display_name,email,enabled,subscription_tier from client_account order by username", (rs,row) -> {
+      Map<String,Object> m = new LinkedHashMap<>();
+      m.put("username", rs.getString("username"));
+      m.put("displayName", rs.getString("display_name"));
+      m.put("email", rs.getString("email"));
+      m.put("enabled", rs.getBoolean("enabled"));
+      m.put("subscriptionTier", rs.getString("subscription_tier"));
+      return m;
+    });
   }
 
   public Map<String,Object> get(String username) {
-    return db.query("select username,display_name,email,enabled,subscription_tier from client_account where lower(username)=lower(?)", rs -> {
+    return db.query("select username,display_name,email,enabled,subscription_tier,avatar_data from client_account where lower(username)=lower(?)", rs -> {
       if (!rs.next()) throw new UsernameNotFoundException(username);
-      return accountMap(rs);
+      Map<String,Object> m = new LinkedHashMap<>();
+      m.put("username", rs.getString("username"));
+      m.put("displayName", rs.getString("display_name"));
+      m.put("email", rs.getString("email"));
+      m.put("enabled", rs.getBoolean("enabled"));
+      m.put("subscriptionTier", rs.getString("subscription_tier"));
+      m.put("avatarData", rs.getString("avatar_data"));
+      return m;
     }, username);
   }
 
@@ -89,13 +105,14 @@ public class ClientAccountStore {
       }
     } else {
       if (password == null || password.isBlank()) throw new IllegalArgumentException("Password required for new client account");
-      db.update("insert into client_account(username,display_name,email,password_hash,enabled,subscription_tier) values(?,?,?,?,?,?)",
-          username, displayName, email, encoder.encode(password), enabled, normalizedTier);
+      db.update("insert into client_account(username,display_name,email,password_hash,enabled,subscription_tier,avatar_data) values(?,?,?,?,?,?,?)",
+          username, displayName, email, encoder.encode(password), enabled, normalizedTier, null);
     }
   }
 
-  public void updateProfile(String username, String displayName, String email) {
-    int n = db.update("update client_account set display_name=?,email=? where lower(username)=lower(?)", displayName, email, username);
+  public void updateProfile(String username, String displayName, String email, String avatarData) {
+    if (avatarData != null && avatarData.length() > 2_500_000) throw new IllegalArgumentException("Profile picture is too large");
+    int n = db.update("update client_account set display_name=?,email=?,avatar_data=? where lower(username)=lower(?)", displayName, email, avatarData, username);
     if (n == 0) throw new UsernameNotFoundException(username);
   }
 
@@ -105,16 +122,6 @@ public class ClientAccountStore {
     if (hashes.isEmpty()) throw new UsernameNotFoundException(username);
     if (currentPassword == null || !encoder.matches(currentPassword, hashes.getFirst())) throw new IllegalArgumentException("Current password is incorrect");
     db.update("update client_account set password_hash=? where lower(username)=lower(?)", encoder.encode(newPassword), username);
-  }
-
-  private static Map<String,Object> accountMap(java.sql.ResultSet rs) throws java.sql.SQLException {
-    Map<String,Object> m = new LinkedHashMap<>();
-    m.put("username", rs.getString("username"));
-    m.put("displayName", rs.getString("display_name"));
-    m.put("email", rs.getString("email"));
-    m.put("enabled", rs.getBoolean("enabled"));
-    m.put("subscriptionTier", rs.getString("subscription_tier"));
-    return m;
   }
 
   private static String normalizeTier(String tier) {
