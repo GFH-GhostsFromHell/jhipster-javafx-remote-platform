@@ -1,0 +1,13 @@
+# Render runtime image for a generated JHipster portal.
+# Before deploying, run scripts/prepare-render-portal.sh to generate ./portal.
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
+COPY portal/ /workspace/
+RUN chmod +x mvnw && ./mvnw -Pprod -DskipTests clean package
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /workspace/target/*.jar /app/app.jar
+ENV SERVER_PORT=10000
+EXPOSE 10000
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${SERVER_PORT:-10000} -jar /app/app.jar"]
