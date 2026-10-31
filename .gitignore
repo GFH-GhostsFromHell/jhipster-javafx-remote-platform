@@ -1,0 +1,10 @@
+.idea/
+.vscode/
+.DS_Store
+*.iml
+*.log
+.env
+.env.*
+!deploy/render/.env.example
+**/target/
+**/node_modules/
