@@ -45,7 +45,7 @@ jobs:
             --description "Managed JavaFX desktop client" `
             --input target/jpackage-input `
             --main-jar remote-javafx-client-0.1.0.jar `
-            --main-class com.example.desktop.RemoteDesktopApp `
+            --main-class com.example.desktop.Launcher `
             --dest target/installer `
             --win-menu `
             --win-shortcut `
@@ -68,5 +68,5 @@ jobs:
           gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
             --repo "${{ github.repository }}" `
             --title "Desktop Client 0.1.${{ github.run_number }}" `
-            --notes "Windows MSI build of the managed JavaFX desktop client. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+            --notes "Windows MSI build of the managed JavaFX desktop client. Uses a plain Java launcher to avoid JavaFX runtime startup issues. Default cloud portal: https://remote-javafx-portal.onrender.com" `
             --latest
