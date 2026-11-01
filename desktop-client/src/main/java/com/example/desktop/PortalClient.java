@@ -26,7 +26,10 @@ public final class PortalClient {
     public String calculatorEditions(String username,String password) throws Exception{return authorizedGet("/api/calculators/editions",username,password);}
     public String transformerCalculator(String username,String password,String body) throws Exception{return calc("transformer",username,password,body);}
     public String motorCalculator(String username,String password,String body) throws Exception{return calc("motor",username,password,body);}
+    public String refrigerationCalculator(String username,String password,String body) throws Exception{return calc("refrigeration",username,password,body);}
     public String multiMotorCalculator(String username,String password,String body) throws Exception{return calc("multi-motor",username,password,body);}
+    public String capacitorBankCalculator(String username,String password,String body) throws Exception{return calc("capacitor-bank",username,password,body);}
+    public String welderCalculator(String username,String password,String body) throws Exception{return calc("welder",username,password,body);}
     public String tapCalculator(String username,String password,String body) throws Exception{return calc("tap",username,password,body);}
     public String conduitFillCalculator(String username,String password,String body) throws Exception{return calc("conduit-fill",username,password,body);}
     public String boxFillCalculator(String username,String password,String body) throws Exception{return calc("box-fill",username,password,body);}
