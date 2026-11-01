@@ -2,6 +2,7 @@ package com.example.remoteportal.web;
 
 import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.ElectricalCalculatorService;
+import com.example.remoteportal.service.WorksheetCalculatorService;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.*;
@@ -9,12 +10,18 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/calculators")
 public class CalculatorResource {
-  private final ElectricalCalculatorService calculators; private final ClientAccountStore accounts;
-  public CalculatorResource(ElectricalCalculatorService calculators,ClientAccountStore accounts){this.calculators=calculators;this.accounts=accounts;}
+  private final ElectricalCalculatorService calculators; private final WorksheetCalculatorService worksheets; private final ClientAccountStore accounts;
+  public CalculatorResource(ElectricalCalculatorService calculators,WorksheetCalculatorService worksheets,ClientAccountStore accounts){this.calculators=calculators;this.worksheets=worksheets;this.accounts=accounts;}
   @GetMapping("/editions") public List<Map<String,Object>> editions(){return calculators.editions();}
   @GetMapping("/catalog") public Map<String,Object> catalog(Principal p){String tier;try{tier=accounts.tier(p.getName());}catch(Exception ex){tier="ADMIN";}return calculators.catalog(tier);}
   public record TransformerRequest(Double kva,Double primaryVoltage,Double secondaryVoltage,Integer phases,Double designFactor,Double primaryOcpdFactor,Double secondaryOcpdFactor,String edition){}
   @PostMapping("/transformer") public Map<String,Object> transformer(@RequestBody TransformerRequest r){return calculators.transformer(n(r.kva()),n(r.primaryVoltage()),n(r.secondaryVoltage()),r.phases()==null?3:r.phases(),d(r.designFactor(),1.25),d(r.primaryOcpdFactor(),1.25),d(r.secondaryOcpdFactor(),1.25),edition(r.edition()));}
+  public record DryTransformerWorksheetRequest(Double kva,Double primaryVoltage,Double secondaryVoltage,Integer phases){}
+  @PostMapping("/transformer-dry-worksheet") public Map<String,Object> dryTransformer(@RequestBody DryTransformerWorksheetRequest r){return worksheets.dryTransformer(n(r.kva()),n(r.primaryVoltage()),n(r.secondaryVoltage()),r.phases()==null?3:r.phases());}
+  public record HvTransformerWorksheetRequest(Double mva,Double primaryKv,Double secondaryKv,String protection,Double protectionFactor,String material,String wiringMethod,String voltageClass){}
+  @PostMapping("/transformer-hv-worksheet") public Map<String,Object> hvTransformer(@RequestBody HvTransformerWorksheetRequest r){return worksheets.hvTransformer(n(r.mva()),n(r.primaryKv()),n(r.secondaryKv()),r.protection()==null?"BREAKER":r.protection(),d(r.protectionFactor(),3.0),r.material(),r.wiringMethod(),r.voltageClass());}
+  public record CapacitorWorksheetRequest(Double kvar,Double voltage,Integer phases){}
+  @PostMapping("/capacitor-worksheet") public Map<String,Object> capacitorWorksheet(@RequestBody CapacitorWorksheetRequest r){return worksheets.capacitorKvar(n(r.kvar()),n(r.voltage()),r.phases()==null?3:r.phases());}
   public record MotorRequest(Double flc,Double conductorFactor,Double overloadFactor,Double ocpdFactor,Double disconnectFactor,String edition){}
   @PostMapping("/motor") public Map<String,Object> motor(@RequestBody MotorRequest r){return calculators.motor(n(r.flc()),d(r.conductorFactor(),1.25),d(r.overloadFactor(),1.15),d(r.ocpdFactor(),1.75),d(r.disconnectFactor(),1.15),edition(r.edition()));}
   public record RefrigerationRequest(Double rla,Double mca,Double mocp,Double conductorFactor,Double ocpdFactor,Double overloadFactor,String edition){}
