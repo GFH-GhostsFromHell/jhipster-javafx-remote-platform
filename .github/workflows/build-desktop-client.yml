@@ -3,7 +3,7 @@ name: Build Windows Desktop Client
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, development/functionality ]
     paths:
       - 'desktop-client/**'
       - '.github/workflows/build-desktop-client.yml'
@@ -65,9 +65,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "client-v0.1.${{ github.run_number }}"
-          gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
-            --repo "${{ github.repository }}" `
-            --title "Desktop Client 0.1.${{ github.run_number }}" `
-            --notes "Windows MSI build of the managed JavaFX desktop client with in-app update support. Default cloud portal: https://remote-javafx-portal.onrender.com" `
-            --latest
+          $version = "0.1.${{ github.run_number }}"
+          if ("${{ github.ref_name }}" -eq "development/functionality") {
+            $tag = "client-dev-v$version"
+            gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
+              --repo "${{ github.repository }}" `
+              --target "development/functionality" `
+              --title "Desktop Client DEV $version" `
+              --notes "Development preview build. Includes the first functionality modules and in-app update support. Uses the live cloud portal." `
+              --prerelease
+          } else {
+            $tag = "client-v$version"
+            gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
+              --repo "${{ github.repository }}" `
+              --title "Desktop Client $version" `
+              --notes "Windows MSI build of the managed JavaFX desktop client with in-app update support. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+              --latest
+          }

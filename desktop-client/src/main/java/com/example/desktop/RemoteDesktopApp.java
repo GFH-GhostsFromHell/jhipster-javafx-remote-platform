@@ -131,76 +131,67 @@ public class RemoteDesktopApp extends Application {
 
         Label featureTitle = new Label("Your enabled features"); featureTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
         TilePane featuresPane = new TilePane(); featuresPane.setHgap(12); featuresPane.setVgap(12); featuresPane.setPrefColumns(2);
-        Iterator<Map.Entry<String, JsonNode>> it=root.path("features").fields(); while(it.hasNext()){Map.Entry<String,JsonNode> f=it.next(); if(f.getValue().asBoolean(false)){Button b=new Button("✓  "+pretty(f.getKey())); b.setPrefWidth(320); b.setAlignment(Pos.CENTER_LEFT); b.setStyle("-fx-background-color:white;-fx-text-fill:#14213d;-fx-font-weight:bold;-fx-background-radius:13;-fx-border-color:#e2e8f0;-fx-border-radius:13;-fx-padding:16 18;"); featuresPane.getChildren().add(b);}}
+        Iterator<Map.Entry<String, JsonNode>> it=root.path("features").fields();
+        while(it.hasNext()){
+            Map.Entry<String,JsonNode> f=it.next();
+            if(f.getValue().asBoolean(false)){
+                String key=f.getKey();
+                Button b=new Button("✓  "+pretty(key));
+                b.setPrefWidth(320); b.setAlignment(Pos.CENTER_LEFT);
+                b.setStyle("-fx-background-color:white;-fx-text-fill:#14213d;-fx-font-weight:bold;-fx-background-radius:13;-fx-border-color:#e2e8f0;-fx-border-radius:13;-fx-padding:16 18;");
+                b.setOnAction(e->showFeature(key));
+                featuresPane.getChildren().add(b);
+            }
+        }
         if(featuresPane.getChildren().isEmpty()){Label none=new Label("No features are enabled for this account."); none.setStyle("-fx-text-fill:#64748b;"); featuresPane.getChildren().add(none);}
         content.getChildren().addAll(profile,featureTitle,featuresPane);
         ScrollPane scroll=new ScrollPane(content); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:#f4f7fb;-fx-background-color:#f4f7fb;"); page.setCenter(scroll); stage.setScene(new Scene(page,960,650));
     }
 
+    private void showFeature(String key) {
+        BorderPane page = new BorderPane(); page.setStyle("-fx-background-color:#f4f7fb;");
+        HBox top = new HBox(12); top.setAlignment(Pos.CENTER_LEFT); top.setPadding(new Insets(14,22,14,22)); top.setStyle("-fx-background-color:linear-gradient(to right,#0f172a,#17365d);");
+        Button back = new Button("← Back"); back.setStyle("-fx-background-color:rgba(255,255,255,.12);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.25);-fx-border-radius:9;-fx-background-radius:9;-fx-padding:8 12;");
+        back.setOnAction(e -> showMain(currentBootstrap));
+        Label title = new Label(pretty(key)); title.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
+        Region push = new Region(); HBox.setHgrow(push, Priority.ALWAYS);
+        HBox cloudBox = new HBox(cloudStatus); cloudBox.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:10;-fx-padding:5 8;");
+        top.getChildren().addAll(back,title,push,cloudBox); page.setTop(top);
+        Node feature = FeatureViews.create(key,currentBootstrap,portal,stage,currentUsername,currentPassword);
+        ScrollPane scroll = new ScrollPane(feature); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:#f4f7fb;-fx-background-color:#f4f7fb;"); page.setCenter(scroll);
+        stage.setScene(new Scene(page,960,650));
+    }
+
     private void checkForUpdates(Button button) {
-        CompletableFuture.supplyAsync(() -> {
-            try { return updater.check(); }
-            catch (Exception e) { return null; }
-        }).thenAccept(info -> Platform.runLater(() -> {
+        CompletableFuture.supplyAsync(() -> { try { return updater.check(); } catch (Exception e) { return null; } }).thenAccept(info -> Platform.runLater(() -> {
             if (info == null || !info.updateAvailable()) return;
-            button.setText("Update available · v" + info.latestVersion() + " — Update app");
-            button.setVisible(true); button.setManaged(true);
-            button.setOnAction(e -> installUpdate(info, button));
+            button.setText("Update available · v" + info.latestVersion() + " — Update app"); button.setVisible(true); button.setManaged(true); button.setOnAction(e -> installUpdate(info, button));
         }));
     }
 
     private void installUpdate(UpdateService.UpdateInfo info, Button button) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.initOwner(stage);
-        confirm.setTitle("Update Remote JavaFX Client");
-        confirm.setHeaderText("Update to version " + info.latestVersion() + "?");
-        confirm.setContentText("The installer will download, verify its SHA-256 checksum, close this app, install the update, and relaunch the client. Windows may ask for permission.");
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) return;
-
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION); confirm.initOwner(stage); confirm.setTitle("Update Remote JavaFX Client"); confirm.setHeaderText("Update to version " + info.latestVersion() + "?"); confirm.setContentText("The installer will download, verify its SHA-256 checksum, close this app, install the update, and relaunch the client. Windows may ask for permission.");
+        Optional<ButtonType> result = confirm.showAndWait(); if (result.isEmpty() || result.get() != ButtonType.OK) return;
         button.setDisable(true); button.setText("Downloading update…");
-        CompletableFuture.supplyAsync(() -> {
-            try { return updater.downloadAndVerify(info); }
-            catch (Exception ex) { throw new RuntimeException(ex); }
-        }).whenComplete((msi, err) -> Platform.runLater(() -> {
-            if (err != null) {
-                button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app");
-                Throwable c = err.getCause()==null?err:err.getCause();
-                new Alert(Alert.AlertType.ERROR, "Update failed: " + (c.getMessage()==null?c.toString():c.getMessage())).showAndWait();
-                return;
-            }
-            try {
-                button.setText("Installing update…");
-                updater.launchInstallerAndRelaunch(msi);
-                Platform.exit();
-            } catch (Exception ex) {
-                button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app");
-                new Alert(Alert.AlertType.ERROR, "Could not launch updater: " + ex.getMessage()).showAndWait();
-            }
+        CompletableFuture.supplyAsync(() -> { try { return updater.downloadAndVerify(info); } catch (Exception ex) { throw new RuntimeException(ex); } }).whenComplete((msi, err) -> Platform.runLater(() -> {
+            if (err != null) { button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app"); Throwable c = err.getCause()==null?err:err.getCause(); new Alert(Alert.AlertType.ERROR, "Update failed: " + (c.getMessage()==null?c.toString():c.getMessage())).showAndWait(); return; }
+            try { button.setText("Installing update…"); updater.launchInstallerAndRelaunch(msi); Platform.exit(); }
+            catch (Exception ex) { button.setDisable(false); button.setText("Update available · v" + info.latestVersion() + " — Update app"); new Alert(Alert.AlertType.ERROR, "Could not launch updater: " + ex.getMessage()).showAndWait(); }
         }));
     }
 
     private void showProfileDialog() {
-        JsonNode account=currentBootstrap.path("user");
-        Dialog<Void> d=new Dialog<>(); d.setTitle("Edit profile"); d.initOwner(stage); d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        JsonNode account=currentBootstrap.path("user"); Dialog<Void> d=new Dialog<>(); d.setTitle("Edit profile"); d.initOwner(stage); d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         VBox box=new VBox(12); box.setPadding(new Insets(12)); box.setPrefWidth(470);
-        TextField name=new TextField(account.path("displayName").asText("")); name.setStyle(INPUT);
-        TextField email=new TextField(account.path("email").asText("")); email.setStyle(INPUT);
-        Label photoName=new Label("Current profile picture");
-        final String[] avatarData={account.path("avatarData").isNull()?null:account.path("avatarData").asText(null)};
-        StackPane avatarWrap=new StackPane(avatarNode(name.getText(),avatarData[0],96));
-        Button choose=new Button("Choose picture"); Button remove=new Button("Remove picture");
+        TextField name=new TextField(account.path("displayName").asText("")); name.setStyle(INPUT); TextField email=new TextField(account.path("email").asText("")); email.setStyle(INPUT); Label photoName=new Label("Current profile picture");
+        final String[] avatarData={account.path("avatarData").isNull()?null:account.path("avatarData").asText(null)}; StackPane avatarWrap=new StackPane(avatarNode(name.getText(),avatarData[0],96)); Button choose=new Button("Choose picture"); Button remove=new Button("Remove picture");
         choose.setOnAction(e->{FileChooser fc=new FileChooser(); fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images","*.png","*.jpg","*.jpeg","*.webp")); var f=fc.showOpenDialog(stage); if(f!=null){try{byte[] bytes=Files.readAllBytes(f.toPath()); if(bytes.length>1_500_000) throw new IllegalArgumentException("Image is too large. Choose an image under 1.5 MB."); String type=Files.probeContentType(f.toPath()); if(type==null) type="image/jpeg"; avatarData[0]="data:"+type+";base64,"+Base64.getEncoder().encodeToString(bytes); avatarWrap.getChildren().setAll(avatarNode(name.getText(),avatarData[0],96)); photoName.setText(f.getName());}catch(Exception ex){new Alert(Alert.AlertType.ERROR,ex.getMessage()).showAndWait();}}});
-        remove.setOnAction(e->{avatarData[0]=null; avatarWrap.getChildren().setAll(avatarNode(name.getText(),null,96)); photoName.setText("No profile picture");});
-        HBox photoButtons=new HBox(8,choose,remove);
+        remove.setOnAction(e->{avatarData[0]=null; avatarWrap.getChildren().setAll(avatarNode(name.getText(),null,96)); photoName.setText("No profile picture");}); HBox photoButtons=new HBox(8,choose,remove);
         Button save=new Button("Save profile"); save.setStyle(PRIMARY); Label status=new Label();
         save.setOnAction(e->{save.setDisable(true); Map<String,Object> payload=Map.of("displayName",name.getText(),"email",email.getText(),"avatarData",avatarData[0]==null?"":avatarData[0]); CompletableFuture.supplyAsync(()->{try{return portal.updateProfile(currentUsername,currentPassword,json.writeValueAsString(payload));}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((body,err)->Platform.runLater(()->{save.setDisable(false); if(err!=null){Throwable c=err.getCause()==null?err:err.getCause();status.setText(c.getMessage());return;} try{JsonNode updated=json.readTree(body); ((com.fasterxml.jackson.databind.node.ObjectNode)currentBootstrap).set("user",updated); showMain(currentBootstrap); status.setText("Profile saved.");}catch(Exception ex){status.setText("Could not refresh profile.");}}));});
-
         PasswordField current=new PasswordField(); current.setPromptText("Current password"); current.setStyle(INPUT); PasswordField next=new PasswordField(); next.setPromptText("New password (8+ characters)"); next.setStyle(INPUT); Button change=new Button("Change password"); Label passStatus=new Label();
         change.setOnAction(e->{Map<String,String> payload=Map.of("currentPassword",current.getText(),"newPassword",next.getText()); change.setDisable(true); CompletableFuture.runAsync(()->{try{portal.changePassword(currentUsername,currentPassword,json.writeValueAsString(payload));}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((v,err)->Platform.runLater(()->{change.setDisable(false); if(err!=null){Throwable c=err.getCause()==null?err:err.getCause();passStatus.setText(c.getMessage());return;} currentPassword=next.getText(); current.clear(); next.clear(); passStatus.setText("Password changed.");}));});
-
-        box.getChildren().addAll(new Label("Profile picture"),avatarWrap,photoName,photoButtons,new Separator(),fieldLabel("Display name"),name,fieldLabel("Email"),email,save,status,new Separator(),new Label("Change password"),current,next,change,passStatus);
-        ScrollPane pane=new ScrollPane(box); pane.setFitToWidth(true); d.getDialogPane().setContent(pane); d.showAndWait();
+        box.getChildren().addAll(new Label("Profile picture"),avatarWrap,photoName,photoButtons,new Separator(),fieldLabel("Display name"),name,fieldLabel("Email"),email,save,status,new Separator(),new Label("Change password"),current,next,change,passStatus); ScrollPane pane=new ScrollPane(box); pane.setFitToWidth(true); d.getDialogPane().setContent(pane); d.showAndWait();
     }
 
     private static Node avatarNode(String name,String dataUrl,double size){StackPane holder=new StackPane(); holder.setMinSize(size,size); holder.setMaxSize(size,size); Circle bg=new Circle(size/2,Color.web("#2563eb")); Label initials=new Label(initials(name)); initials.setStyle("-fx-text-fill:white;-fx-font-size:"+(size*.31)+"px;-fx-font-weight:bold;"); holder.getChildren().addAll(bg,initials); Image image=decodeImage(dataUrl); if(image!=null){ImageView iv=new ImageView(image); iv.setFitWidth(size); iv.setFitHeight(size); iv.setPreserveRatio(false); iv.setClip(new Circle(size/2,size/2,size/2)); holder.getChildren().add(iv);} return holder;}
