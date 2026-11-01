@@ -17,79 +17,22 @@ public final class CalculatorHub {
     TabPane sections=new TabPane();
     sections.getTabs().addAll(
       sectionTab("Section 8 — Circuit Loading & Demand", ServiceCalculatorViews.create(portal,username,password)),
-      sectionTab("Section 12 — Wiring Methods", sectionPage(
-        "Section 12 — Wiring Methods",
-        "Raceway and box calculations used with wiring-method rules and tables.",
-        calculators.get("conduit"),calculators.get("box"))),
-      sectionTab("Section 14 — Protection & Control", sectionPage(
-        "Section 14 — Protection & Control",
-        "Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",
-        calculators.get("tap"))),
-      sectionTab("Section 26 — Electrical Equipment", sectionPage(
-        "Section 26 — Installation of Electrical Equipment",
-        "Transformer and capacitor-bank calculations. Results should still be checked against the exact equipment markings and applicable CEC rule/table.",
-        calculators.get("transformer"),calculators.get("capacitor"))),
-      sectionTab("Section 28 — Motors & Generators", sectionPage(
-        "Section 28 — Motors & Generators",
-        "Motor branch circuits, overloads, disconnects, multiple-motor feeders and refrigeration/compressor motor worksheets.",
-        calculators.get("motor"),calculators.get("multi-motor"),calculators.get("refrigeration"))),
-      sectionTab("Section 42 — Electric Welders", sectionPage(
-        "Section 42 — Electric Welders",
-        "Welder conductor, duty-cycle, group-demand and overcurrent worksheets.",
-        calculators.get("welder")))
+      sectionTab("Section 12 — Wiring Methods", sectionPage("Section 12 — Wiring Methods","Raceway and box calculations used with wiring-method rules and tables.",calculators.get("conduit"),calculators.get("box"))),
+      sectionTab("Section 14 — Protection & Control", sectionPage("Section 14 — Protection & Control","Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",calculators.get("tap"))),
+      sectionTab("Section 26 — Electrical Equipment", Section26Views.create(portal,username,password)),
+      sectionTab("Section 28 — Motors & Generators", sectionPage("Section 28 — Motors & Generators","Motor branch circuits, overloads, disconnects, multiple-motor feeders and refrigeration/compressor motor worksheets.",calculators.get("motor"),calculators.get("multi-motor"),calculators.get("refrigeration"))),
+      sectionTab("Section 42 — Electric Welders", sectionPage("Section 42 — Electric Welders","Welder conductor, duty-cycle, group-demand and overcurrent worksheets.",calculators.get("welder")))
     );
     sections.getSelectionModel().selectFirst();
 
     VBox root=new VBox();
-    Label title=new Label("CEC 2024 Calculator Sections");
-    title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
-    Label subtitle=new Label("Choose the CEC section first, then choose the calculator inside that section. This keeps the app organized the same way you use the Code book.");
-    subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
-    VBox header=new VBox(5,title,subtitle);header.setPadding(new Insets(18,22,10,22));
-    VBox.setVgrow(sections,Priority.ALWAYS);
-    root.getChildren().addAll(header,sections);
-    return root;
+    Label title=new Label("CEC 2024 Calculator Sections");title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
+    Label subtitle=new Label("Choose the CEC section first, then work through the calculation in the same order used in the practice worksheets.");subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
+    VBox header=new VBox(5,title,subtitle);header.setPadding(new Insets(18,22,10,22));VBox.setVgrow(sections,Priority.ALWAYS);root.getChildren().addAll(header,sections);return root;
   }
 
   private static Tab sectionTab(String title,Node content){Tab t=new Tab(title,content);t.setClosable(false);return t;}
-
-  private static Node sectionPage(String title,String description,TitledPane... panes){
-    VBox body=new VBox(12);body.setPadding(new Insets(18));
-    Label h=new Label(title);h.setStyle("-fx-font-size:20px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
-    Label d=new Label(description);d.setWrapText(true);d.setStyle("-fx-text-fill:#64748b;");
-    Accordion accordion=new Accordion();
-    for(TitledPane p:panes)if(p!=null)accordion.getPanes().add(p);
-    if(!accordion.getPanes().isEmpty())accordion.setExpandedPane(accordion.getPanes().get(0));
-    body.getChildren().addAll(h,d,new Separator(),accordion);
-    ScrollPane scroll=new ScrollPane(body);scroll.setFitToWidth(true);scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);return scroll;
-  }
-
-  private static Map<String,TitledPane> extractCalculators(Node root){
-    Map<String,TitledPane> found=new LinkedHashMap<>();
-    findAccordionPanes(root,found);
-    return found;
-  }
-
-  private static void findAccordionPanes(Node node,Map<String,TitledPane> found){
-    if(node instanceof Accordion a){
-      List<TitledPane> copy=new ArrayList<>(a.getPanes());
-      a.getPanes().clear();
-      for(TitledPane p:copy){
-        String title=p.getText()==null?"":p.getText().toLowerCase(Locale.ROOT);
-        if(title.startsWith("service demand"))continue;
-        if(title.startsWith("transformer"))found.put("transformer",p);
-        else if(title.startsWith("motor —"))found.put("motor",p);
-        else if(title.startsWith("refrigeration"))found.put("refrigeration",p);
-        else if(title.startsWith("multiple motors"))found.put("multi-motor",p);
-        else if(title.startsWith("capacitor"))found.put("capacitor",p);
-        else if(title.startsWith("welder"))found.put("welder",p);
-        else if(title.startsWith("taps"))found.put("tap",p);
-        else if(title.startsWith("conduit"))found.put("conduit",p);
-        else if(title.startsWith("box fill"))found.put("box",p);
-      }
-    }
-    if(node instanceof Parent p){
-      for(Node child:new ArrayList<>(p.getChildrenUnmodifiable()))findAccordionPanes(child,found);
-    }
-  }
+  private static Node sectionPage(String title,String description,TitledPane... panes){VBox body=new VBox(12);body.setPadding(new Insets(18));Label h=new Label(title);h.setStyle("-fx-font-size:20px;-fx-font-weight:bold;-fx-text-fill:#14213d;");Label d=new Label(description);d.setWrapText(true);d.setStyle("-fx-text-fill:#64748b;");Accordion accordion=new Accordion();for(TitledPane p:panes)if(p!=null)accordion.getPanes().add(p);if(!accordion.getPanes().isEmpty())accordion.setExpandedPane(accordion.getPanes().get(0));body.getChildren().addAll(h,d,new Separator(),accordion);ScrollPane scroll=new ScrollPane(body);scroll.setFitToWidth(true);scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);return scroll;}
+  private static Map<String,TitledPane> extractCalculators(Node root){Map<String,TitledPane> found=new LinkedHashMap<>();findAccordionPanes(root,found);return found;}
+  private static void findAccordionPanes(Node node,Map<String,TitledPane> found){if(node instanceof Accordion a){List<TitledPane> copy=new ArrayList<>(a.getPanes());a.getPanes().clear();for(TitledPane p:copy){String title=p.getText()==null?"":p.getText().toLowerCase(Locale.ROOT);if(title.startsWith("service demand"))continue;if(title.startsWith("transformer"))found.put("transformer",p);else if(title.startsWith("motor —"))found.put("motor",p);else if(title.startsWith("refrigeration"))found.put("refrigeration",p);else if(title.startsWith("multiple motors"))found.put("multi-motor",p);else if(title.startsWith("capacitor"))found.put("capacitor",p);else if(title.startsWith("welder"))found.put("welder",p);else if(title.startsWith("taps"))found.put("tap",p);else if(title.startsWith("conduit"))found.put("conduit",p);else if(title.startsWith("box fill"))found.put("box",p);}}if(node instanceof Parent p){for(Node child:new ArrayList<>(p.getChildrenUnmodifiable()))findAccordionPanes(child,found);}}
 }
