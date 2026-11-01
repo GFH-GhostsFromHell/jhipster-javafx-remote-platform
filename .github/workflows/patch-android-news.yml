@@ -1,0 +1,41 @@
+name: Patch Android electrical news
+
+on:
+  push:
+    branches: [ development/functionality ]
+    paths:
+      - '.github/workflows/patch-android-news.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: development/functionality
+      - name: Replace Android news placeholder
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-client/app/src/main/java/com/gfh/electricalworkbench/MainActivity.kt')
+          x=p.read_text(encoding='utf-8')
+          old='''        ElectricalCard {\n            Text("News & Product Updates", fontWeight = FontWeight.Bold)\n            Spacer(Modifier.height(5.dp))\n            Text("A placeholder for future CEC study updates, calculator releases and app announcements.", color = TextSecondary, fontSize = 13.sp)\n        }'''
+          new='''        ElectricalCard {\n            Text("CEC 2024 & Ontario Code News", color = ElectricCyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)\n            Spacer(Modifier.height(6.dp))\n            Text("Newest ESA OESC public bulletins and CEC/OESC notices, sorted newest to oldest with app-generated severity colours.", color = TextSecondary, fontSize = 13.sp, lineHeight = 18.sp)\n            Spacer(Modifier.height(12.dp))\n            Button(onClick = { onOpenWeb("/news.html") }, modifier = Modifier.fillMaxWidth()) {\n                Icon(Icons.Default.Launch, null)\n                Spacer(Modifier.width(8.dp))\n                Text("Open code news & bulletins", fontWeight = FontWeight.Bold)\n            }\n        }'''
+          if new not in x:
+              if old not in x: raise SystemExit('Android news placeholder marker not found')
+              x=x.replace(old,new,1)
+          p.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit Android news integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-client/app/src/main/java/com/gfh/electricalworkbench/MainActivity.kt
+          git diff --cached --quiet && exit 0
+          git commit -m "Connect Android dashboard to electrical news feed"
+          git push origin HEAD:development/functionality
