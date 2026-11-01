@@ -23,6 +23,7 @@ public final class CalculatorHub {
     sections.setStyle("-fx-background-color:#edf3f8;-fx-open-tab-animation:none;-fx-close-tab-animation:none;");
     sections.getTabs().addAll(
       sectionTab("02  General Rules", Section2Views.create()),
+      sectionTab("04  Conductors / Busbars", Section4Views.create()),
       sectionTab("08  Service & Demand", ServiceCalculatorViews.create(portal,username,password)),
       sectionTab("12  Wiring Methods", Section12Views.create(calculators.get("conduit"),calculators.get("box"))),
       sectionTab("14  Protection & Control", sectionPage("Section 14 — Protection & Control","Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",calculators.get("tap"))),
