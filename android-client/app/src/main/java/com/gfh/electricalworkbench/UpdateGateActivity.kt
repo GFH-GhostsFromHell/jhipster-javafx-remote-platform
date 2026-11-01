@@ -5,8 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -29,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONObject
@@ -52,6 +55,16 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private const val UPDATE_BASE_URL = "https://remote-javafx-portal.onrender.com"
+
+private val GateNavy = Color(0xFF06111F)
+private val GatePanel = Color(0xFF0D2438)
+private val GatePanelStrong = Color(0xFF102D45)
+private val GateCyan = Color(0xFF22D3EE)
+private val GateBlue = Color(0xFF3B82F6)
+private val GateText = Color(0xFFF8FBFF)
+private val GateSecondary = Color(0xFFD6E3EE)
+private val GateMuted = Color(0xFFB8C9D8)
+private val GateBorder = Color(0xFF365A75)
 
 class UpdateGateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,13 +106,13 @@ private sealed interface UpdateState {
 private fun UpdateGateTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = Color(0xFF22D3EE),
-            secondary = Color(0xFF3B82F6),
-            background = Color(0xFF06111F),
-            surface = Color(0xFF0A1C2F),
-            onPrimary = Color(0xFF06111F),
-            onBackground = Color(0xFFF1F5F9),
-            onSurface = Color(0xFFF1F5F9)
+            primary = GateCyan,
+            secondary = GateBlue,
+            background = GateNavy,
+            surface = GatePanel,
+            onPrimary = GateNavy,
+            onBackground = GateText,
+            onSurface = GateText
         ),
         content = content
     )
@@ -142,11 +155,11 @@ private fun UpdateGateScreen(
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF030712), Color(0xFF06111F), Color(0xFF0A3150))
+                    listOf(Color(0xFF020711), GateNavy, Color(0xFF0B3657))
                 )
             )
             .statusBarsPadding()
-            .padding(22.dp)
+            .padding(horizontal = 18.dp, vertical = 16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -156,16 +169,38 @@ private fun UpdateGateScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.Icon(
-                    Icons.Default.ElectricBolt,
-                    contentDescription = null,
-                    tint = Color(0xFF22D3EE),
-                    modifier = Modifier.size(34.dp)
-                )
-                Spacer(Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            Brush.linearGradient(listOf(GateCyan, GateBlue)),
+                            RoundedCornerShape(14.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.ElectricBolt,
+                        contentDescription = null,
+                        tint = GateNavy,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("ELECTRICAL WORKBENCH", fontWeight = FontWeight.Black, letterSpacing = 1.1.sp)
-                    Text("ANDROID UPDATE SERVICE", color = Color(0xFF22D3EE), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "ELECTRICAL WORKBENCH",
+                        color = GateText,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 17.sp,
+                        letterSpacing = 1.0.sp
+                    )
+                    Text(
+                        "ANDROID · UPDATE CHECK",
+                        color = GateCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.8.sp
+                    )
                 }
             }
 
@@ -173,60 +208,135 @@ private fun UpdateGateScreen(
 
             when (val current = state) {
                 UpdateState.Checking -> {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.height(15.dp))
-                    Text("Checking for updates…", fontWeight = FontWeight.Bold)
-                    Text("Installed version ${BuildConfig.VERSION_NAME}", color = Color(0xFFB6C4D4), fontSize = 12.sp)
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = GatePanelStrong),
+                        border = BorderStroke(1.dp, GateBorder),
+                        shape = RoundedCornerShape(22.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 22.dp, vertical = 26.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.CloudSync,
+                                contentDescription = null,
+                                tint = GateCyan,
+                                modifier = Modifier.size(34.dp)
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            CircularProgressIndicator(
+                                color = GateCyan,
+                                trackColor = Color(0xFF29475F),
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(38.dp)
+                            )
+                            Spacer(Modifier.height(18.dp))
+                            Text(
+                                "Checking for updates",
+                                color = GateText,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Black,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(7.dp))
+                            Text(
+                                "Installed version ${BuildConfig.VERSION_NAME}",
+                                color = GateSecondary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                "The app will continue to sign-in automatically when this check is complete.",
+                                color = GateMuted,
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
 
                 is UpdateState.Available -> {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xEE0B1E31)),
+                        colors = CardDefaults.cardColors(containerColor = GatePanelStrong),
+                        border = BorderStroke(1.dp, GateBorder),
                         shape = RoundedCornerShape(22.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(Modifier.padding(22.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                androidx.compose.material3.Icon(Icons.Default.SystemUpdate, null, tint = Color(0xFF22D3EE))
-                                Spacer(Modifier.width(10.dp))
+                                Icon(
+                                    Icons.Default.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = GateCyan,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                                Spacer(Modifier.width(11.dp))
                                 Column {
-                                    Text("Update available", fontSize = 24.sp, fontWeight = FontWeight.Black)
                                     Text(
-                                        "${BuildConfig.VERSION_NAME} → ${current.release.version}",
-                                        color = Color(0xFF22D3EE),
+                                        "Update available",
+                                        color = GateText,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Text(
+                                        "${BuildConfig.VERSION_NAME}  →  ${current.release.version}",
+                                        color = GateCyan,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                            Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(16.dp))
                             Text(
-                                "A newer Electrical Workbench Android build is available on the ${current.release.channel} channel.",
-                                color = Color(0xFFB6C4D4),
-                                lineHeight = 20.sp
+                                "A newer Electrical Workbench Android build is ready on the ${current.release.channel} channel.",
+                                color = GateSecondary,
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp
                             )
                             if (current.release.sizeBytes > 0) {
-                                Spacer(Modifier.height(5.dp))
-                                Text("Download size: ${formatBytes(current.release.sizeBytes)}", color = Color(0xFF8396A9), fontSize = 12.sp)
+                                Spacer(Modifier.height(7.dp))
+                                Text(
+                                    "Download size: ${formatBytes(current.release.sizeBytes)}",
+                                    color = GateMuted,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
-                            Spacer(Modifier.height(18.dp))
+                            Spacer(Modifier.height(20.dp))
                             Button(
                                 onClick = { onDownload(current.release.downloadUrl) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
                             ) {
-                                androidx.compose.material3.Icon(Icons.Default.Download, null)
+                                Icon(Icons.Default.Download, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
                                 Text("Download update", fontWeight = FontWeight.Bold)
                             }
-                            Spacer(Modifier.height(8.dp))
-                            OutlinedButton(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
-                                Text("Continue with current version")
+                            Spacer(Modifier.height(9.dp))
+                            OutlinedButton(
+                                onClick = onContinue,
+                                border = BorderStroke(1.dp, Color(0xFF6E8CA5)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                            ) {
+                                Text(
+                                    "Continue with current version",
+                                    color = GateText,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(14.dp))
                             Text(
-                                "Android requires you to approve installation of APK updates. The new APK must also be signed with the same signing key as the installed app.",
-                                color = Color(0xFF8396A9),
-                                fontSize = 11.sp,
-                                lineHeight = 16.sp
+                                "Android will ask you to approve installation of the APK. Updates must be signed with the same signing key as the installed app.",
+                                color = GateMuted,
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp
                             )
                         }
                     }
