@@ -22,6 +22,10 @@ public class CalculatorResource {
   @PostMapping("/transformer-hv-worksheet") public Map<String,Object> hvTransformer(@RequestBody HvTransformerWorksheetRequest r){return worksheets.hvTransformer(n(r.mva()),n(r.primaryKv()),n(r.secondaryKv()),r.protection()==null?"BREAKER":r.protection(),d(r.protectionFactor(),3.0),r.material(),r.wiringMethod(),r.voltageClass());}
   public record CapacitorWorksheetRequest(Double kvar,Double voltage,Integer phases){}
   @PostMapping("/capacitor-worksheet") public Map<String,Object> capacitorWorksheet(@RequestBody CapacitorWorksheetRequest r){return worksheets.capacitorKvar(n(r.kvar()),n(r.voltage()),r.phases()==null?3:r.phases());}
+  public record RefrigerationWorksheetRequest(Double rla,Double lra){}
+  @PostMapping("/refrigeration-worksheet") public Map<String,Object> refrigerationWorksheet(@RequestBody RefrigerationWorksheetRequest r){return worksheets.refrigeration(n(r.rla()),r.lra());}
+  public record WelderWorksheetRequest(Double kva,Double voltage,Double dutyFactor,String type,Double selectedConductorAmpacity){}
+  @PostMapping("/welder-worksheet") public Map<String,Object> welderWorksheet(@RequestBody WelderWorksheetRequest r){return worksheets.welder(n(r.kva()),n(r.voltage()),d(r.dutyFactor(),1),r.type()==null?"TRANSFORMER_ARC":r.type(),n(r.selectedConductorAmpacity()));}
   public record MotorRequest(Double flc,Double conductorFactor,Double overloadFactor,Double ocpdFactor,Double disconnectFactor,String edition){}
   @PostMapping("/motor") public Map<String,Object> motor(@RequestBody MotorRequest r){return calculators.motor(n(r.flc()),d(r.conductorFactor(),1.25),d(r.overloadFactor(),1.15),d(r.ocpdFactor(),1.75),d(r.disconnectFactor(),1.15),edition(r.edition()));}
   public record RefrigerationRequest(Double rla,Double mca,Double mocp,Double conductorFactor,Double ocpdFactor,Double overloadFactor,String edition){}
