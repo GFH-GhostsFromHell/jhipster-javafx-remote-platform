@@ -1,8 +1,15 @@
 package com.gfh.electricalworkbench
 
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -55,6 +62,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private const val UPDATE_BASE_URL = "https://remote-javafx-portal.onrender.com"
+private const val PREFS_NAME = "electrical_workbench_updates"
+private const val PREF_PENDING_DOWNLOAD = "pending_download_id"
 
 private val GateNavy = Color(0xFF06111F)
 private val GatePanel = Color(0xFF0D2438)
@@ -67,18 +76,105 @@ private val GateMuted = Color(0xFFB8C9D8)
 private val GateBorder = Color(0xFF365A75)
 
 class UpdateGateActivity : ComponentActivity() {
+    private val downloadReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
+            val completedId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+            val pendingId = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getLong(PREF_PENDING_DOWNLOAD, -1L)
+            if (completedId <= 0L || completedId != pendingId) return
+            continueInstall(completedId)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(downloadReceiver, filter)
+        }
         setContent {
             UpdateGateTheme {
                 UpdateGateScreen(
                     onContinue = { openMainApp() },
-                    onDownload = { url ->
-                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                    }
+                    onDownload = { release -> enqueueUpdate(release) }
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val pendingId = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getLong(PREF_PENDING_DOWNLOAD, -1L)
+        if (pendingId > 0L && canInstallPackages()) {
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            val query = DownloadManager.Query().setFilterById(pendingId)
+            manager.query(query)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) launchInstaller(pendingId)
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(downloadReceiver) }
+        super.onDestroy()
+    }
+
+    private fun enqueueUpdate(release: AndroidRelease) {
+        val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        val fileName = "ElectricalWorkbench-${release.version}.apk"
+        val request = DownloadManager.Request(Uri.parse(release.downloadUrl))
+            .setTitle("Electrical Workbench ${release.version}")
+            .setDescription("Downloading app update")
+            .setMimeType("application/vnd.android.package-archive")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(false)
+            .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, fileName)
+        val downloadId = manager.enqueue(request)
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .putLong(PREF_PENDING_DOWNLOAD, downloadId)
+            .apply()
+    }
+
+    private fun continueInstall(downloadId: Long) {
+        if (!canInstallPackages()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val settingsIntent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:$packageName")
+                )
+                startActivity(settingsIntent)
+                return
+            }
+        }
+        launchInstaller(downloadId)
+    }
+
+    private fun canInstallPackages(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()
+    }
+
+    private fun launchInstaller(downloadId: Long) {
+        val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        val uri = manager.getUriForDownloadedFile(downloadId) ?: return
+        val install = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(install)
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .remove(PREF_PENDING_DOWNLOAD)
+            .apply()
     }
 
     private fun openMainApp() {
@@ -121,7 +217,7 @@ private fun UpdateGateTheme(content: @Composable () -> Unit) {
 @Composable
 private fun UpdateGateScreen(
     onContinue: () -> Unit,
-    onDownload: (String) -> Unit
+    onDownload: (AndroidRelease) -> Unit
 ) {
     var state by remember { mutableStateOf<UpdateState>(UpdateState.Checking) }
 
@@ -308,14 +404,14 @@ private fun UpdateGateScreen(
                             }
                             Spacer(Modifier.height(20.dp))
                             Button(
-                                onClick = { onDownload(current.release.downloadUrl) },
+                                onClick = { onDownload(current.release) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(50.dp)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Download update", fontWeight = FontWeight.Bold)
+                                Text("Download & install update", fontWeight = FontWeight.Bold)
                             }
                             Spacer(Modifier.height(9.dp))
                             OutlinedButton(
@@ -333,7 +429,7 @@ private fun UpdateGateScreen(
                             }
                             Spacer(Modifier.height(14.dp))
                             Text(
-                                "Android will ask you to approve installation of the APK. Updates must be signed with the same signing key as the installed app.",
+                                "Electrical Workbench downloads the APK itself, then Android shows the required installation confirmation. Future APKs must use the same permanent signing key.",
                                 color = GateMuted,
                                 fontSize = 12.sp,
                                 lineHeight = 18.sp
