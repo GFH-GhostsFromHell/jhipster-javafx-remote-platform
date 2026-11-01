@@ -108,8 +108,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Electrical Workbench Android DEV ${APP_VERSION}" \
-            --notes "Development Android build of Electrical Workbench. Update channel: development. Signing mode: persistent." \
-            --prerelease
+            --notes "Development Android build of Electrical Workbench. Update channel: development. Signing mode: persistent."
 
       - name: Publish stable APK release
         if: github.ref == 'refs/heads/main' && env.PUBLISH_UPDATE == 'true'
@@ -123,4 +122,4 @@ jobs:
             --title "Electrical Workbench Android ${APP_VERSION}" \
             --notes "Android build of Electrical Workbench. Update channel: stable. Signing mode: persistent."
 
-# Trigger: first permanent-signing build after Actions secrets setup
+# Trigger: signed Android build with live ESA/OESC code news feed
