@@ -37,14 +37,18 @@ public final class Section12BoxFillView {
 
     calc.setOnAction(e->{try{
       double box=positive(n(capacity),"Box volume");
-      double conductors=0;int conductorCount=0;StringBuilder detail=new StringBuilder();
-      for(Row r:rows){int q=whole(r.qty,"Conductor quantity");if(q==0)continue;double each=ALLOWANCE.get(r.size.getValue()),vol=q*each;conductors+=vol;conductorCount+=q;detail.append(q).append(" × ").append(r.size.getValue()).append(" @ ").append(f(each)).append(" mL = ").append(f(vol)).append(" mL\n");}
+      double conductors=0;StringBuilder detail=new StringBuilder();
+      for(Row r:rows){
+        int q=whole(r.qty,"Conductor quantity");if(q==0)continue;
+        String conductorSize=key(r.size.getValue());double each=ALLOWANCE.get(conductorSize),vol=q*each;conductors+=vol;
+        detail.append(q).append(" × ").append(conductorSize).append(" @ ").append(f(each)).append(" mL = ").append(f(vol)).append(" mL\n");
+      }
       String largest=largest(rows);String devSize=resolve(deviceSize.getValue(),largest),connSize=resolve(connectorSize.getValue(),largest);
       int dev=whole(devices,"Device count"),caps=whole(connectors,"Connector count"),stud=whole(studs,"Stud/hickey count");double extra=nonNegative(n(deep),"Deep-device volume");
       int pairs=caps/2;double deviceVol=dev*2*ALLOWANCE.get(devSize),connectorVol=pairs*ALLOWANCE.get(connSize),studVol=stud*ALLOWANCE.get(devSize);
       double required=conductors+deviceVol+connectorVol+studVol+extra,remaining=box-required;boolean pass=remaining>=-1e-9;
       out.setText("CEC 2024 BOX FILL — RULE 12-3034 / TABLE 22\n\n"+
-        "INSULATED CONDUCTORS\n"+(detail.length()==0?"No insulated conductors entered\n":detail)+
+        "INSULATED CONDUCTORS\n"+(detail.length()==0?"No insulated conductors entered\n":detail.toString())+
         "Conductor subtotal = "+f(conductors)+" mL\n\n"+
         "ADJUSTMENTS\n"+
         "Flush devices: "+dev+" × 2 × "+devSize+" allowance ("+f(ALLOWANCE.get(devSize))+" mL) = "+f(deviceVol)+" mL\n"+
