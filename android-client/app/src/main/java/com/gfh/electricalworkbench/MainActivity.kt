@@ -12,6 +12,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +20,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -32,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Dashboard
@@ -47,12 +50,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -72,6 +77,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -93,6 +99,7 @@ private val ElectricBlue = Color(0xFF3B82F6)
 private val SafetyAmber = Color(0xFFF5B942)
 private val TextPrimary = Color(0xFFF1F5F9)
 private val TextSecondary = Color(0xFFB6C4D4)
+private val TextMuted = Color(0xFFA6B6C8)
 private val Good = Color(0xFF5EEAD4)
 
 class MainActivity : ComponentActivity() {
@@ -127,6 +134,7 @@ private fun WorkbenchTheme(content: @Composable () -> Unit) {
         background = Navy,
         surface = Navy2,
         surfaceVariant = Steel,
+        outline = Color(0xFF71869C),
         onPrimary = Navy,
         onSecondary = TextPrimary,
         onBackground = TextPrimary,
@@ -231,7 +239,9 @@ private fun LoginScreen(
                 )
             )
             .statusBarsPadding()
-            .padding(22.dp)
+            .navigationBarsPadding()
+            .imePadding()
+            .padding(horizontal = 18.dp, vertical = 14.dp)
     ) {
         Column(
             modifier = Modifier
@@ -249,31 +259,48 @@ private fun LoginScreen(
                 )
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("ELECTRICAL WORKBENCH", fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+                    Text(
+                        "ELECTRICAL WORKBENCH",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
                     Text("CEC 2024 · ANDROID", color = ElectricCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(Modifier.height(28.dp))
-            Text("Field-ready electrical tools.", fontSize = 30.sp, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Field-ready electrical tools.",
+                color = TextPrimary,
+                fontSize = 29.sp,
+                lineHeight = 34.sp,
+                fontWeight = FontWeight.Black
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 "Your calculator workspace, account and cloud tools in a clean mobile layout.",
                 color = TextSecondary,
                 lineHeight = 21.sp
             )
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xEE0B1E31)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF10263A)),
+                border = BorderStroke(1.dp, Color(0xFF29455E)),
                 shape = RoundedCornerShape(22.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(Modifier.padding(22.dp)) {
+                Column(Modifier.padding(20.dp)) {
                     Text("SECURE ACCOUNT ACCESS", color = ElectricCyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                     Spacer(Modifier.height(7.dp))
-                    Text("Sign in", fontSize = 25.sp, fontWeight = FontWeight.Bold)
-                    Text("Use the same account as the desktop and web portal.", color = TextSecondary, fontSize = 13.sp)
+                    Text("Sign in", color = TextPrimary, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Use the same account as the desktop and web portal.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
 
                     Spacer(Modifier.height(18.dp))
                     OutlinedTextField(
@@ -282,9 +309,10 @@ private fun LoginScreen(
                         label = { Text("Username") },
                         singleLine = true,
                         enabled = !loggingIn,
+                        colors = loginFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -292,49 +320,110 @@ private fun LoginScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         enabled = !loggingIn,
+                        colors = loginFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     if (!error.isNullOrBlank()) {
                         Spacer(Modifier.height(12.dp))
-                        Text(error, color = Color(0xFFFCA5A5), fontSize = 13.sp)
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF451D2A)),
+                            border = BorderStroke(1.dp, Color(0xFF7F3548)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                error,
+                                color = Color(0xFFFFCDD5),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(11.dp)
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = { onLogin(username.trim(), password) },
                         enabled = !loggingIn && username.isNotBlank() && password.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = ElectricBlue),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ElectricBlue,
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFF334155),
+                            disabledContentColor = Color(0xFFD5DEE8)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
                     ) {
                         if (loggingIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(19.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(19.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
                             Spacer(Modifier.width(10.dp))
-                            Text("Connecting…")
+                            Text("Connecting…", color = Color.White)
                         } else {
-                            Text("Sign in to Electrical Workbench", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Sign in to Electrical Workbench",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
 
                     Spacer(Modifier.height(15.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CloudDone, contentDescription = null, tint = if (cloudOk == true) Good else TextSecondary)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.CloudDone,
+                            contentDescription = null,
+                            tint = if (cloudOk == true) Good else TextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
-                        Text(cloudStatus, color = if (cloudOk == true) Good else TextSecondary, fontSize = 12.sp)
+                        Text(
+                            cloudStatus,
+                            color = if (cloudOk == true) Good else TextSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
                     }
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 "Google sign-in can be added to Android after an Android OAuth client is registered. The current build uses the existing secure portal credentials.",
-                color = Color(0xFF8396A9),
+                color = TextMuted,
                 fontSize = 11.sp,
                 lineHeight = 16.sp
             )
         }
     }
 }
+
+@Composable
+private fun loginFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = TextPrimary,
+    unfocusedTextColor = TextPrimary,
+    disabledTextColor = TextSecondary,
+    cursorColor = ElectricCyan,
+    focusedBorderColor = ElectricCyan,
+    unfocusedBorderColor = Color(0xFF71869C),
+    disabledBorderColor = Color(0xFF516579),
+    focusedLabelColor = ElectricCyan,
+    unfocusedLabelColor = Color(0xFFD6E0EA),
+    disabledLabelColor = TextSecondary,
+    focusedContainerColor = Color(0xFF0A1928),
+    unfocusedContainerColor = Color(0xFF0A1928),
+    disabledContainerColor = Color(0xFF0D1B29)
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -433,9 +522,15 @@ private fun DashboardScreen(session: Session, onOpenWeb: (String) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CloudDone, null, tint = Good)
                 Spacer(Modifier.width(10.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Cloud connected", fontWeight = FontWeight.Bold)
-                    Text(PORTAL_BASE_URL.removePrefix("https://"), color = TextSecondary, fontSize = 12.sp)
+                    Text(
+                        PORTAL_BASE_URL.removePrefix("https://"),
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -507,7 +602,7 @@ private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
 
         Text(
             "Future Android releases can move the most-used calculators to fully native screens one section at a time while keeping the same server calculation logic.",
-            color = Color(0xFF8396A9),
+            color = TextMuted,
             fontSize = 12.sp,
             lineHeight = 17.sp
         )
@@ -554,7 +649,15 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
         Column(Modifier.padding(16.dp)) {
             Text(label.uppercase(), color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
             Spacer(Modifier.height(4.dp))
-            Text(value, color = ElectricCyan, fontSize = 21.sp, fontWeight = FontWeight.Black)
+            Text(
+                value,
+                color = ElectricCyan,
+                fontSize = 19.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -602,13 +705,23 @@ private fun AuthenticatedWebScreen(session: Session, path: String, onClose: () -
         containerColor = Navy,
         topBar = {
             TopAppBar(
-                title = { Text("Electrical Workbench") },
+                title = {
+                    Text(
+                        "Electrical Workbench",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 navigationIcon = {
-                    OutlinedButton(onClick = onClose, modifier = Modifier.padding(start = 8.dp)) {
-                        Text("Back")
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy2)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Navy2,
+                    navigationIconContentColor = TextPrimary,
+                    titleContentColor = TextPrimary
+                )
             )
         }
     ) { padding ->
@@ -638,6 +751,7 @@ private fun AuthenticatedWebScreen(session: Session, path: String, onClose: () -
                                 settings.domStorageEnabled = true
                                 settings.allowFileAccess = false
                                 settings.allowContentAccess = false
+                                settings.textZoom = 105
                                 CookieManager.getInstance().setAcceptCookie(true)
                                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
                                 webViewClient = object : WebViewClient() {
@@ -651,6 +765,11 @@ private fun AuthenticatedWebScreen(session: Session, path: String, onClose: () -
                                             }
                                             true
                                         }
+                                    }
+
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        super.onPageFinished(view, url)
+                                        view?.let(::injectMobileWebCss)
                                     }
                                 }
                             }
@@ -670,6 +789,42 @@ private fun AuthenticatedWebScreen(session: Session, path: String, onClose: () -
             }
         }
     }
+}
+
+private fun injectMobileWebCss(webView: WebView) {
+    val css = """
+        @media (max-width: 700px) {
+          html, body { max-width: 100vw !important; overflow-x: hidden !important; }
+          .top { position: relative !important; top: 0 !important; flex-direction: column !important; align-items: stretch !important; gap: 10px !important; padding: 12px 14px !important; }
+          .top > div:last-child { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
+          .top a, .top button { flex: 1 1 130px !important; min-height: 44px !important; margin: 0 !important; text-align: center !important; white-space: normal !important; }
+          .brand { font-size: 18px !important; line-height: 1.2 !important; }
+          .shell { display: block !important; width: 100% !important; }
+          .nav { position: relative !important; top: 0 !important; min-height: auto !important; padding: 10px 8px !important; display: flex !important; overflow-x: auto !important; gap: 5px !important; border-right: 0 !important; }
+          .nav button { flex: 0 0 auto !important; min-height: 42px !important; white-space: nowrap !important; }
+          .main { padding: 12px !important; width: 100% !important; }
+          .tabs { gap: 6px !important; }
+          .tabs button { flex: 1 1 132px !important; min-height: 42px !important; white-space: normal !important; line-height: 1.2 !important; }
+          .workspace, .grid, .refgrid, .welder-row { grid-template-columns: minmax(0, 1fr) !important; }
+          .welder-row > *, .welder-row > div:last-child { grid-column: auto !important; }
+          .card, .ref { min-width: 0 !important; overflow-wrap: anywhere !important; }
+          .field input, .field select, .field textarea { min-width: 0 !important; width: 100% !important; font-size: 16px !important; }
+          .btn { width: 100% !important; min-height: 46px !important; margin-top: 4px !important; white-space: normal !important; }
+          .result { min-width: 0 !important; min-height: 220px !important; white-space: pre-wrap !important; overflow-wrap: anywhere !important; }
+        }
+    """
+    val script = """
+        (function() {
+          var id = 'electrical-workbench-mobile-fixes';
+          var existing = document.getElementById(id);
+          if (existing) existing.remove();
+          var style = document.createElement('style');
+          style.id = id;
+          style.textContent = `${css}`;
+          document.head.appendChild(style);
+        })();
+    """
+    webView.evaluateJavascript(script, null)
 }
 
 private fun parseSession(username: String, password: String, json: String): Session {
