@@ -475,7 +475,7 @@ private fun DashboardScreen(session: Session, onOpenWeb: (String) -> Unit) {
 @Composable
 private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
     val sections = listOf(
-        "General Rules", "Section 8 · Services & Demand", "Section 12 · Wiring Methods",
+        "General Rules", "Section 4 · Conductors / Busbars", "Section 8 · Services & Demand", "Section 12 · Wiring Methods",
         "Section 16 · Class 1 & Class 2", "Section 24 · Patient Care", "Section 26 · Electrical Equipment",
         "Section 28 · AC & DC Motors", "Section 32 · Fire Alarm", "Section 42 · Welders",
         "Conduit Bending", "Supports & Straps"
