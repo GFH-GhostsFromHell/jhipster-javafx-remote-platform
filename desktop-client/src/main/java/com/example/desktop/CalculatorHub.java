@@ -16,18 +16,21 @@ public final class CalculatorHub {
 
     TabPane sections=new TabPane();
     sections.getTabs().addAll(
+      sectionTab("Section 2 — General Rules", Section2Views.create()),
       sectionTab("Section 8 — Circuit Loading & Demand", ServiceCalculatorViews.create(portal,username,password)),
-      sectionTab("Section 12 — Wiring Methods", sectionPage("Section 12 — Wiring Methods","Raceway and box calculations used with wiring-method rules and tables.",calculators.get("conduit"),calculators.get("box"))),
+      sectionTab("Section 12 — Wiring Methods", Section12Views.create(calculators.get("conduit"),calculators.get("box"))),
       sectionTab("Section 14 — Protection & Control", sectionPage("Section 14 — Protection & Control","Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",calculators.get("tap"))),
+      sectionTab("Section 24 — Patient Care Areas", Section24Views.create()),
       sectionTab("Section 26 — Electrical Equipment", Section26Views.create(portal,username,password)),
       sectionTab("Section 28 — Motors & Generators", Section28Views.create(portal,username,password)),
+      sectionTab("Section 32 — Fire Alarm / Fire Pumps", Section32Views.create()),
       sectionTab("Section 42 — Electric Welders", Section42Views.create(portal,username,password))
     );
     sections.getSelectionModel().selectFirst();
 
     VBox root=new VBox();
     Label title=new Label("CEC 2024 Calculator Sections");title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
-    Label subtitle=new Label("Choose the CEC section first, then work through each calculation in the same order used in the practice worksheets.");subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
+    Label subtitle=new Label("Choose the CEC section first, then use the calculator, worksheet or quick-reference tool inside that section.");subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
     VBox header=new VBox(5,title,subtitle);header.setPadding(new Insets(18,22,10,22));VBox.setVgrow(sections,Priority.ALWAYS);root.getChildren().addAll(header,sections);return root;
   }
 
