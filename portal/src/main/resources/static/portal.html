@@ -2,98 +2,103 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Account Portal</title>
+<title>Electrical Calculator Portal</title>
 <style>
-:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#14213d;background:#f4f7fb}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#edf3fa 0,#f7f9fc 260px,#f7f9fc 100%);min-height:100vh}.topbar{background:linear-gradient(135deg,#0f172a,#17365d);color:white;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:0 8px 28px #0f172a22}.brand{font-size:21px;font-weight:800;letter-spacing:.2px}.topbar button{background:#ffffff18;color:white;border:1px solid #ffffff33;padding:9px 13px;border-radius:10px;cursor:pointer}.wrap{max-width:1180px;margin:28px auto;padding:0 18px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.card{background:white;border-radius:18px;padding:24px;box-shadow:0 10px 35px #0f172a0d;border:1px solid #e7edf5}.card h2,.card h3{margin-top:0}.muted{color:#64748b}.field{margin:13px 0}.field label{display:block;font-weight:650;margin-bottom:6px}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}.field input:focus,.field select:focus{outline:3px solid #2563eb18;border-color:#2563eb}.btn{padding:10px 15px;border:0;border-radius:10px;background:#1d4ed8;color:white;font-weight:700;cursor:pointer}.btn.secondary{background:#334155}.btn.ghost{background:#eff6ff;color:#1d4ed8}.btn.danger{background:#b91c1c}.status{min-height:22px;margin-top:10px;font-size:14px}.good{color:#15803d}.bad{color:#b91c1c}.profile-head{display:flex;gap:20px;align-items:center;padding-bottom:18px;border-bottom:1px solid #edf2f7;margin-bottom:16px}.avatar-wrap{position:relative;flex:0 0 auto}.avatar{width:104px;height:104px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:white;display:grid;place-items:center;font-size:32px;font-weight:800;border:5px solid white;box-shadow:0 8px 25px #1d4ed833}.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.avatar-edit{position:absolute;right:-4px;bottom:3px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0f2745;color:white;border:3px solid white;cursor:pointer;font-size:15px}.profile-meta h2{margin:0 0 4px}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#e8f0ff;color:#1d4ed8;font-size:12px;font-weight:800;margin-top:7px}.tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.tier{border:1px solid #dbe3ee;border-radius:14px;padding:17px;background:#fff}.tier.active{border:2px solid #2563eb;background:#eff6ff;box-shadow:0 7px 18px #2563eb14}.tier h3{margin:0 0 8px}.features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.feature{padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #eef2f7}.admin{display:none}.admin-user{border:1px solid #e2e8f0;border-radius:13px;padding:16px;margin:10px 0}.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.wide{grid-column:1/-1}.photo-help{font-size:12px;color:#64748b;margin-top:7px}@media(max-width:820px){.grid,.tier-row,.row{grid-template-columns:1fr}.features{grid-template-columns:1fr}.profile-head{align-items:flex-start}}
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#14213d;background:#f4f7fb;--nav:#0f172a;--blue:#1d4ed8;--muted:#64748b;--line:#e2e8f0}*{box-sizing:border-box}body{margin:0;background:#f6f8fc;min-height:100vh}.shell{display:grid;grid-template-columns:245px 1fr;min-height:100vh}.sidebar{background:linear-gradient(180deg,#0f172a,#172554);color:white;padding:24px 16px;display:flex;flex-direction:column;gap:20px}.brand{padding:0 10px}.brand strong{display:block;font-size:19px;line-height:1.2}.brand small{display:block;color:#94a3b8;margin-top:5px}.nav{display:grid;gap:7px}.nav button,.nav a{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:0;text-decoration:none;color:#dbeafe;background:transparent;padding:11px 12px;border-radius:11px;font:inherit;font-weight:650;cursor:pointer}.nav button:hover,.nav a:hover,.nav button.active{background:#ffffff15;color:white}.nav .icon{width:21px;text-align:center}.side-foot{margin-top:auto;border-top:1px solid #ffffff1f;padding:16px 10px 0;color:#cbd5e1;font-size:13px}.side-foot button{margin-top:10px;width:100%;border:1px solid #ffffff2f;background:#ffffff10;color:white;border-radius:9px;padding:9px;cursor:pointer}.main{min-width:0}.topbar{height:72px;background:white;border-bottom:1px solid #e5eaf1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:10}.topbar h1{font-size:20px;margin:0}.top-actions{display:flex;align-items:center;gap:9px}.top-actions a{padding:9px 12px;border-radius:9px;text-decoration:none;background:#eff6ff;color:#1d4ed8;font-weight:750}.wrap{max-width:1320px;margin:0 auto;padding:28px}.view{display:none}.view.active{display:block}.hero{background:linear-gradient(135deg,#172554,#1d4ed8 58%,#3b82f6);color:white;border-radius:22px;padding:30px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;box-shadow:0 16px 36px #1d4ed827}.hero h2{font-size:28px;margin:0 0 8px}.hero p{margin:0;color:#dbeafe;max-width:720px;line-height:1.55}.hero .btn{background:white;color:#1d4ed8}.card{background:white;border:1px solid #e6ebf2;border-radius:18px;padding:22px;box-shadow:0 8px 28px #0f172a0a}.card h2,.card h3{margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}.stat{background:white;border:1px solid #e6ebf2;border-radius:16px;padding:18px}.stat .label{color:var(--muted);font-size:13px;font-weight:700}.stat .value{font-size:24px;font-weight:850;margin-top:7px}.stat .sub{font-size:12px;color:#94a3b8;margin-top:4px}.muted{color:var(--muted)}.section-title{display:flex;justify-content:space-between;align-items:end;gap:15px;margin:26px 0 12px}.section-title h2{margin:0;font-size:19px}.placeholder{border:1px dashed #cbd5e1;background:#f8fafc;border-radius:14px;padding:18px}.placeholder b{display:block;margin-bottom:5px}.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.quick{padding:16px;border-radius:14px;border:1px solid #dbe5f0;background:#fff;text-decoration:none;color:#14213d}.quick:hover{border-color:#93c5fd;background:#f8fbff}.quick strong{display:block}.quick span{display:block;color:var(--muted);font-size:13px;margin-top:5px}.field{margin:13px 0}.field label{display:block;font-weight:650;margin-bottom:6px}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}.field input:focus,.field select:focus{outline:3px solid #2563eb18;border-color:#2563eb}.btn{display:inline-block;padding:10px 15px;border:0;border-radius:10px;background:var(--blue);color:white;font-weight:750;cursor:pointer;text-decoration:none}.btn.secondary{background:#334155}.btn.ghost{background:#eff6ff;color:#1d4ed8}.status{min-height:22px;margin-top:10px;font-size:14px}.good{color:#15803d}.bad{color:#b91c1c}.profile-head{display:flex;gap:20px;align-items:center;padding-bottom:18px;border-bottom:1px solid #edf2f7;margin-bottom:16px}.avatar-wrap{position:relative;flex:0 0 auto}.avatar{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:white;display:grid;place-items:center;font-size:32px;font-weight:800;border:5px solid white;box-shadow:0 8px 25px #1d4ed833}.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.avatar-edit{position:absolute;right:-4px;bottom:3px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0f2745;color:white;border:3px solid white;cursor:pointer}.profile-meta h2{margin:0 0 4px}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#e8f0ff;color:#1d4ed8;font-size:12px;font-weight:800;margin-top:7px}.tier-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.tier{border:1px solid #dbe3ee;border-radius:14px;padding:17px;background:#fff}.tier.active{border:2px solid #2563eb;background:#eff6ff;box-shadow:0 7px 18px #2563eb14}.tier h3{margin:0 0 8px}.features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.feature{padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #eef2f7}.admin{display:none}.admin-user{border:1px solid #e2e8f0;border-radius:13px;padding:16px;margin:10px 0}.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.photo-help{font-size:12px;color:#64748b;margin-top:7px}.pill{display:inline-block;background:#ecfdf5;color:#047857;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800}.empty-list{display:grid;gap:10px}.empty-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #eef2f7}.empty-row:last-child{border-bottom:0}.empty-row small{color:#94a3b8}.disabled-link{opacity:.55;cursor:default}.disabled-link:hover{background:white;border-color:#dbe5f0}@media(max-width:1000px){.shell{grid-template-columns:1fr}.sidebar{position:static;padding:14px}.brand{display:none}.nav{grid-template-columns:repeat(4,1fr)}.nav button,.nav a{justify-content:center}.nav .label{display:none}.side-foot{display:none}.topbar{padding:0 18px}.wrap{padding:20px}.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr}}@media(max-width:620px){.stats,.tier-row,.row,.features{grid-template-columns:1fr}.nav{grid-template-columns:repeat(3,1fr)}.top-actions a{display:none}}
 </style>
 </head>
 <body>
-<header class="topbar"><div><div class="brand">Remote JavaFX Portal</div><div id="who" style="font-size:13px;color:#cbd5e1">Loading account…</div></div><button onclick="logout()">Sign out</button></header>
-<main class="wrap">
-  <div class="grid">
-    <section class="card">
-      <div class="profile-head">
-        <div class="avatar-wrap">
-          <div id="avatar" class="avatar"><span id="avatarInitials">?</span></div>
-          <label class="avatar-edit" title="Change profile picture">✎<input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><strong>Electrical Calculator Portal</strong><small>CEC 2024 tools & workspace</small></div>
+    <nav class="nav">
+      <button class="active" data-view="dashboard" onclick="showView('dashboard',this)"><span class="icon">⌂</span><span class="label">Dashboard</span></button>
+      <a href="/calculators.html"><span class="icon">∑</span><span class="label">CEC Calculators</span></a>
+      <button data-view="profile" onclick="showView('profile',this)"><span class="icon">◉</span><span class="label">Profile & Settings</span></button>
+      <button id="adminNav" class="admin" data-view="admin" onclick="showView('admin',this)"><span class="icon">⚙</span><span class="label">Administration</span></button>
+    </nav>
+    <div class="side-foot"><div id="sideWho">Loading account…</div><button onclick="logout()">Sign out</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><div id="who" class="muted" style="font-size:13px">Loading account…</div></div><div class="top-actions"><a href="/calculators.html">Open calculators</a></div></header>
+    <main class="wrap">
+      <section id="view-dashboard" class="view active">
+        <div class="hero">
+          <div><h2 id="welcomeTitle">Welcome back</h2><p>Your CEC 2024 calculator workspace, account status and future reports will live here. Use the calculator workspace for service, transformer, motor, fire alarm, patient-care, welder and wiring-method tools.</p></div>
+          <a class="btn" href="/calculators.html">Open CEC Calculators</a>
         </div>
-        <div class="profile-meta">
-          <h2 id="profileTitle">My profile</h2>
-          <div id="profileSubtitle" class="muted">Manage how your account appears.</div>
-          <div id="tierBadge" class="badge">Loading…</div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Subscription</div><div id="dashTier" class="value">—</div><div class="sub">Current account tier</div></div>
+          <div class="stat"><div class="label">Enabled features</div><div id="dashFeatures" class="value">—</div><div class="sub">From live account bootstrap</div></div>
+          <div class="stat"><div class="label">Saved calculations</div><div class="value">—</div><div class="sub">Coming soon</div></div>
+          <div class="stat"><div class="label">Generated reports</div><div class="value">—</div><div class="sub">Coming soon</div></div>
         </div>
-      </div>
-      <div class="field"><label>Username</label><input id="profileUsername" disabled></div>
-      <div class="field"><label>Display name</label><input id="displayName"></div>
-      <div class="field"><label>Email</label><input id="email" type="email"></div>
-      <button class="btn" onclick="saveProfile()">Save profile</button>
-      <button class="btn ghost" style="margin-left:6px" onclick="removePhoto()">Remove photo</button>
-      <div class="photo-help">Profile pictures are resized in your browser before upload to keep the client lightweight.</div>
-      <div id="profileStatus" class="status"></div>
-    </section>
-    <section class="card">
-      <h2>Security</h2><p class="muted">Change the password used by both the web portal and desktop client.</p>
-      <div class="field"><label>Current password</label><input id="currentPassword" type="password"></div>
-      <div class="field"><label>New password</label><input id="newPassword" type="password" minlength="8"></div>
-      <button class="btn" onclick="changePassword()">Change password</button>
-      <div id="passwordStatus" class="status"></div>
-    </section>
+
+        <div class="section-title"><h2>Quick actions</h2></div>
+        <div class="quick-grid">
+          <a class="quick" href="/calculators.html"><strong>CEC calculator workspace</strong><span>Open section-based calculators and worksheets.</span></a>
+          <a class="quick" href="#" onclick="showView('profile',document.querySelector('[data-view=profile]'));return false"><strong>Edit profile & account</strong><span>Photo, email, password, subscription and features.</span></a>
+          <div class="quick disabled-link"><strong>Reports & exports</strong><span>Placeholder for saved calculation PDFs, exports and history.</span></div>
+        </div>
+
+        <div class="grid" style="margin-top:18px">
+          <section class="card"><div class="section-title" style="margin-top:0"><h2>Recent activity</h2><span class="pill">Future</span></div><div class="empty-list"><div class="empty-row"><div><b>Calculation history</b><div class="muted">Recent service, motor, transformer and other worksheets.</div></div><small>Coming soon</small></div><div class="empty-row"><div><b>Saved calculations</b><div class="muted">Reopen calculations without re-entering values.</div></div><small>Coming soon</small></div><div class="empty-row"><div><b>Desktop sync</b><div class="muted">Sync selected calculation history between web and desktop.</div></div><small>Planned</small></div></div></section>
+          <section class="card"><div class="section-title" style="margin-top:0"><h2>Reports & statistics</h2><span class="pill">Future</span></div><div class="placeholder"><b>Usage dashboard</b><div class="muted">Charts for calculations by CEC section, most-used tools, saved reports and recent activity can appear here once history storage is added.</div></div><div class="placeholder" style="margin-top:10px"><b>Export centre</b><div class="muted">Future PDF/CSV calculation reports, project summaries and printable worksheets.</div></div></section>
+        </div>
+
+        <section class="card" style="margin-top:18px"><div class="section-title" style="margin-top:0"><h2>News & product updates</h2><span class="pill">Placeholder</span></div><div class="grid"><div class="placeholder"><b>Calculator updates</b><div class="muted">Release notes for new calculators, code-reference improvements and desktop/web feature changes can appear here.</div></div><div class="placeholder"><b>CEC / training news</b><div class="muted">Reserved for future curated electrical-code, training or product announcements. No external news feed is connected yet.</div></div></div></section>
+      </section>
+
+      <section id="view-profile" class="view">
+        <div class="section-title" style="margin-top:0"><div><h2>Profile & Settings</h2><div class="muted">Account information previously shown on the dashboard now lives here.</div></div></div>
+        <div class="grid">
+          <section class="card">
+            <div class="profile-head"><div class="avatar-wrap"><div id="avatar" class="avatar"><span>?</span></div><label class="avatar-edit" title="Change profile picture">✎<input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div><div class="profile-meta"><h2 id="profileTitle">My profile</h2><div id="profileSubtitle" class="muted">Manage how your account appears.</div><div id="tierBadge" class="badge">Loading…</div></div></div>
+            <div class="field"><label>Username</label><input id="profileUsername" disabled></div>
+            <div class="field"><label>Display name</label><input id="displayName"></div>
+            <div class="field"><label>Email</label><input id="email" type="email"></div>
+            <button class="btn" onclick="saveProfile()">Save profile</button><button class="btn ghost" style="margin-left:6px" onclick="removePhoto()">Remove photo</button>
+            <div class="photo-help">Profile pictures are resized in your browser before upload.</div><div id="profileStatus" class="status"></div>
+          </section>
+          <section class="card"><h2>Security</h2><p class="muted">Change the password used by both the web portal and desktop client.</p><div class="field"><label>Current password</label><input id="currentPassword" type="password"></div><div class="field"><label>New password</label><input id="newPassword" type="password" minlength="8"></div><button class="btn" onclick="changePassword()">Change password</button><div id="passwordStatus" class="status"></div></section>
+        </div>
+        <section class="card" style="margin-top:18px"><h2>Subscription & feature access</h2><p class="muted">Your account tier and currently enabled application features.</p><div id="tiers" class="tier-row"><div class="tier" data-tier="TIER_1"><h3>Tier 1</h3><div>Core tools</div></div><div class="tier" data-tier="TIER_2"><h3>Tier 2</h3><div>Expanded tools</div></div><div class="tier" data-tier="TIER_3"><h3>Tier 3</h3><div>Advanced tools</div></div></div><h3 style="margin-top:20px">Effective features</h3><div id="features" class="features"></div></section>
+      </section>
+
+      <section id="view-admin" class="view">
+        <section id="adminSection" class="card admin"><h2>Admin · User management</h2><p class="muted">Create users, edit profiles, assign Tier 1–3, enable/disable accounts, and reset passwords.</p><div class="admin-user"><h3>Create or update user</h3><div class="row"><div class="field"><label>Username</label><input id="aUsername"></div><div class="field"><label>Display name</label><input id="aDisplayName"></div><div class="field"><label>Email</label><input id="aEmail" type="email"></div><div class="field"><label>Subscription</label><select id="aTier"><option value="TIER_1">Tier 1</option><option value="TIER_2">Tier 2</option><option value="TIER_3">Tier 3</option></select></div><div class="field"><label>New/reset password</label><input id="aPassword" type="password" placeholder="Leave blank to keep current"></div><div class="field"><label>Account status</label><select id="aEnabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div></div><button class="btn" onclick="saveAdminUser()">Save user</button><div id="adminStatus" class="status"></div></div><div id="userList"></div></section>
+      </section>
+    </main>
   </div>
-
-  <section class="card" style="margin-top:18px">
-    <h2>Subscription</h2><p class="muted">Your subscription tier controls the default features available in the desktop client.</p>
-    <div id="tiers" class="tier-row">
-      <div class="tier" data-tier="TIER_1"><h3>Tier 1</h3><div>Dashboard</div><div>Reports</div></div>
-      <div class="tier" data-tier="TIER_2"><h3>Tier 2</h3><div>Everything in Tier 1</div><div>PLC Connect</div><div>Remote Diagnostics</div></div>
-      <div class="tier" data-tier="TIER_3"><h3>Tier 3</h3><div>Everything in Tier 2</div><div>Advanced Analytics</div><div>Engineering Mode</div></div>
-    </div>
-    <h3 style="margin-top:20px">Effective features</h3><div id="features" class="features"></div>
-  </section>
-
-  <section id="adminSection" class="card admin" style="margin-top:18px">
-    <h2>Admin · User management</h2><p class="muted">Create users, edit profiles, assign Tier 1–3, enable/disable accounts, and reset passwords.</p>
-    <div class="admin-user">
-      <h3>Create or update user</h3>
-      <div class="row">
-        <div class="field"><label>Username</label><input id="aUsername"></div>
-        <div class="field"><label>Display name</label><input id="aDisplayName"></div>
-        <div class="field"><label>Email</label><input id="aEmail" type="email"></div>
-        <div class="field"><label>Subscription</label><select id="aTier"><option value="TIER_1">Tier 1</option><option value="TIER_2">Tier 2</option><option value="TIER_3">Tier 3</option></select></div>
-        <div class="field"><label>New/reset password</label><input id="aPassword" type="password" placeholder="Leave blank to keep current"></div>
-        <div class="field"><label>Account status</label><select id="aEnabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
-      </div>
-      <button class="btn" onclick="saveAdminUser()">Save user</button>
-      <div id="adminStatus" class="status"></div>
-    </div>
-    <div id="userList"></div>
-  </section>
-</main>
+</div>
 <script>
-let profile=null;
-let avatarData=null;
+let profile=null,avatarData=null,bootstrap=null;
 async function api(url,opt={}){const r=await fetch(url,opt);if(r.status===401){location.href='/';throw new Error('Not signed in')}if(!r.ok){let t=await r.text();throw new Error(t||('HTTP '+r.status))}const ct=r.headers.get('content-type')||'';return ct.includes('json')?r.json():r.text()}
 function jsonOpt(method,body){return{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}}
-function setStatus(id,msg,ok=true){const e=document.getElementById(id);e.textContent=msg;e.className='status '+(ok?'good':'bad')}
-function initials(name){return (name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')||'?'}
-function renderAvatar(){const a=document.getElementById('avatar');if(avatarData){a.innerHTML=`<img alt="Profile picture" src="${avatarData}">`}else{a.innerHTML=`<span>${initials(displayName.value||profile?.username)}</span>`}}
+function setStatus(id,msg,ok=true){const e=document.getElementById(id);if(!e)return;e.textContent=msg;e.className='status '+(ok?'good':'bad')}
+function initials(name){return(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')||'?'}
 function tierText(t){return t==='ADMIN'?'Administrator':(t||'TIER_1').replace('_',' ')}
+function renderAvatar(){const a=document.getElementById('avatar');if(!a)return;if(avatarData)a.innerHTML=`<img alt="Profile picture" src="${avatarData}">`;else a.innerHTML=`<span>${initials(document.getElementById('displayName')?.value||profile?.username)}</span>`}
+function showView(name,button){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name)?.classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(button)button.classList.add('active');pageTitle.textContent=name==='dashboard'?'Dashboard':name==='profile'?'Profile & Settings':'Administration';window.scrollTo({top:0,behavior:'smooth'})}
 async function load(){
   profile=await api('/api/profile');avatarData=profile.avatarData||null;
   profileUsername.value=profile.username||'';displayName.value=profile.displayName||'';email.value=profile.email||'';
   profileTitle.textContent=profile.displayName||profile.username;profileSubtitle.textContent='@'+profile.username+(profile.email?' · '+profile.email:'');tierBadge.textContent=tierText(profile.subscriptionTier);renderAvatar();
-  who.textContent=(profile.displayName||profile.username)+' · '+tierText(profile.subscriptionTier);
+  const whoText=(profile.displayName||profile.username)+' · '+tierText(profile.subscriptionTier);who.textContent=whoText;sideWho.textContent=whoText;welcomeTitle.textContent='Welcome back, '+(profile.displayName||profile.username);dashTier.textContent=tierText(profile.subscriptionTier);
   document.querySelectorAll('.tier').forEach(e=>e.classList.toggle('active',e.dataset.tier===profile.subscriptionTier));
-  if(profile.subscriptionTier==='ADMIN'){document.getElementById('tiers').innerHTML='<div class="tier active"><h3>Administrator</h3><div>Portal administration account</div></div>';document.querySelector('.grid .card:nth-child(2)').style.opacity='.55'}
-  try{const b=await api('/api/client/bootstrap');features.innerHTML='';Object.entries(b.features||{}).forEach(([k,v])=>{const d=document.createElement('div');d.className='feature';d.textContent=(v?'✓ ':'✕ ')+k.replaceAll('_',' ');features.appendChild(d)})}catch(e){}
-  try{await api('/api/admin/users');adminSection.style.display='block';loadUsers()}catch(e){adminSection.style.display='none'}
+  try{bootstrap=await api('/api/client/bootstrap');features.innerHTML='';let enabled=0;Object.entries(bootstrap.features||{}).forEach(([k,v])=>{if(v)enabled++;const d=document.createElement('div');d.className='feature';d.textContent=(v?'✓ ':'✕ ')+k.replaceAll('_',' ');features.appendChild(d)});dashFeatures.textContent=String(enabled)}catch(e){dashFeatures.textContent='—'}
+  try{await api('/api/admin/users');adminSection.style.display='block';adminNav.style.display='flex';loadUsers()}catch(e){adminSection.style.display='none';adminNav.style.display='none'}
+  if(profile.subscriptionTier==='ADMIN'){tiers.innerHTML='<div class="tier active"><h3>Administrator</h3><div>Portal administration account</div></div>'}
 }
-async function saveProfile(){try{if(profile.subscriptionTier==='ADMIN')throw new Error('Admin profile values are controlled by the deployment settings.');profile=await api('/api/profile',jsonOpt('PUT',{displayName:displayName.value,email:email.value,avatarData}));profileTitle.textContent=profile.displayName||profile.username;profileSubtitle.textContent='@'+profile.username+(profile.email?' · '+profile.email:'');who.textContent=(profile.displayName||profile.username)+' · '+tierText(profile.subscriptionTier);renderAvatar();setStatus('profileStatus','Profile saved.')}catch(e){setStatus('profileStatus',e.message,false)}}
+async function saveProfile(){try{if(profile.subscriptionTier==='ADMIN')throw new Error('Admin profile values are controlled by deployment settings.');profile=await api('/api/profile',jsonOpt('PUT',{displayName:displayName.value,email:email.value,avatarData}));profileTitle.textContent=profile.displayName||profile.username;profileSubtitle.textContent='@'+profile.username+(profile.email?' · '+profile.email:'');const txt=(profile.displayName||profile.username)+' · '+tierText(profile.subscriptionTier);who.textContent=txt;sideWho.textContent=txt;welcomeTitle.textContent='Welcome back, '+(profile.displayName||profile.username);renderAvatar();setStatus('profileStatus','Profile saved.')}catch(e){setStatus('profileStatus',e.message,false)}}
 async function changePassword(){try{if(profile.subscriptionTier==='ADMIN')throw new Error('Admin password is managed in Render environment settings.');await api('/api/profile/password',jsonOpt('PUT',{currentPassword:currentPassword.value,newPassword:newPassword.value}));currentPassword.value='';newPassword.value='';setStatus('passwordStatus','Password changed successfully.')}catch(e){setStatus('passwordStatus',e.message,false)}}
 function removePhoto(){avatarData=null;renderAvatar();setStatus('profileStatus','Photo removed locally. Click Save profile to apply.')}
 avatarFile.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>8*1024*1024){setStatus('profileStatus','Please choose an image smaller than 8 MB.',false);return}try{const img=await createImageBitmap(f);const max=420,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);avatarData=c.toDataURL('image/jpeg',.84);renderAvatar();setStatus('profileStatus','New picture ready. Click Save profile to apply.')}catch(err){setStatus('profileStatus','Could not read that image.',false)}finally{e.target.value=''}});
 displayName.addEventListener('input',()=>{if(!avatarData)renderAvatar()});
 async function loadUsers(){const users=await api('/api/admin/users');userList.innerHTML='<h3>Users</h3>';users.forEach(u=>{const d=document.createElement('div');d.className='admin-user';d.innerHTML=`<b>${u.displayName||u.username}</b> · ${u.username}<br><span class="muted">${u.email||'No email'} · ${(u.subscriptionTier||'TIER_1').replace('_',' ')} · ${u.enabled?'Enabled':'Disabled'}</span><br><button class="btn secondary" style="margin-top:10px" onclick='editUser(${JSON.stringify(JSON.stringify(u))})'>Edit</button>`;userList.appendChild(d)})}
-function editUser(raw){const u=JSON.parse(raw);aUsername.value=u.username||'';aDisplayName.value=u.displayName||'';aEmail.value=u.email||'';aTier.value=u.subscriptionTier||'TIER_1';aEnabled.value=String(!!u.enabled);aPassword.value='';scrollTo({top:document.getElementById('adminSection').offsetTop-10,behavior:'smooth'})}
+function editUser(raw){const u=JSON.parse(raw);aUsername.value=u.username||'';aDisplayName.value=u.displayName||'';aEmail.value=u.email||'';aTier.value=u.subscriptionTier||'TIER_1';aEnabled.value=String(!!u.enabled);aPassword.value='';showView('admin',adminNav)}
 async function saveAdminUser(){try{const u=aUsername.value.trim();if(!u)throw new Error('Username is required');await api('/api/admin/users/'+encodeURIComponent(u),jsonOpt('PUT',{displayName:aDisplayName.value,email:aEmail.value,password:aPassword.value,enabled:aEnabled.value==='true',subscriptionTier:aTier.value}));setStatus('adminStatus','User saved.');aPassword.value='';loadUsers()}catch(e){setStatus('adminStatus',e.message,false)}}
 async function logout(){await fetch('/logout',{method:'POST'});location.href='/'}
 load().catch(e=>{console.error(e);location.href='/'})
