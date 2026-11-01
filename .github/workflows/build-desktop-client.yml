@@ -36,6 +36,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "0.1.${{ github.run_number }}"
+          $channel = if ("${{ github.ref_name }}" -eq "development/functionality") { "development" } else { "stable" }
           New-Item -ItemType Directory -Force -Path target/installer | Out-Null
           jpackage `
             --type msi `
@@ -47,6 +48,7 @@ jobs:
             --main-jar remote-javafx-client-0.1.0.jar `
             --main-class com.example.desktop.Launcher `
             --java-options "-Dapp.version=$version" `
+            --java-options "-Dapp.updateChannel=$channel" `
             --dest target/installer `
             --win-menu `
             --win-shortcut `
@@ -72,13 +74,13 @@ jobs:
               --repo "${{ github.repository }}" `
               --target "development/functionality" `
               --title "Desktop Client DEV $version" `
-              --notes "Development preview build. Includes the first functionality modules and in-app update support. Uses the live cloud portal." `
+              --notes "Development preview build. In-app updates stay on the development channel and follow client-dev prereleases. Uses the live cloud portal." `
               --prerelease
           } else {
             $tag = "client-v$version"
             gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
               --repo "${{ github.repository }}" `
               --title "Desktop Client $version" `
-              --notes "Windows MSI build of the managed JavaFX desktop client with in-app update support. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+              --notes "Stable Windows MSI build. In-app updates stay on the stable release channel. Default cloud portal: https://remote-javafx-portal.onrender.com" `
               --latest
           }
