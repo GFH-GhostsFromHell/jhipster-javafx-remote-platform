@@ -554,9 +554,15 @@ private fun DashboardScreen(session: Session, onOpenWeb: (String) -> Unit) {
         }
 
         ElectricalCard {
-            Text("News & Product Updates", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(5.dp))
-            Text("A placeholder for future CEC study updates, calculator releases and app announcements.", color = TextSecondary, fontSize = 13.sp)
+            Text("CEC 2024 & Ontario Code News", color = ElectricCyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+            Spacer(Modifier.height(6.dp))
+            Text("Newest ESA OESC public bulletins and CEC/OESC notices, sorted newest to oldest with app-generated severity colours.", color = TextSecondary, fontSize = 13.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { onOpenWeb("/news.html") }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Launch, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Open code news & bulletins", fontWeight = FontWeight.Bold)
+            }
         }
 
         OutlinedButton(onClick = { onOpenWeb("/portal.html") }, modifier = Modifier.fillMaxWidth()) {
