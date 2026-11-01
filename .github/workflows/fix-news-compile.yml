@@ -1,0 +1,39 @@
+name: Fix electrical news compile
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/fix-news-compile.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Fix bulletin metadata cache lookup
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('portal/src/main/java/com/example/remoteportal/service/ElectricalNewsService.java')
+          x=p.read_text(encoding='utf-8')
+          old='''            BulletinMeta meta = bulletinMetaCache.computeIfAbsent(url, u -> readBulletinMeta(u, title));'''
+          new='''            BulletinMeta meta = bulletinMetaCache.get(url);\n            if (meta == null) {\n                meta = readBulletinMeta(url, title);\n                bulletinMetaCache.put(url, meta);\n            }'''
+          if old not in x: raise SystemExit('cache marker not found')
+          x=x.replace(old,new,1).replace('import java.util.Comparator;\n','')
+          p.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit compile fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal/src/main/java/com/example/remoteportal/service/ElectricalNewsService.java
+          git commit -m "Fix bulletin metadata cache compilation"
+          git push origin HEAD:main
