@@ -600,6 +600,12 @@ private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
             Text("Launch calculator workspace", fontWeight = FontWeight.Bold)
         }
 
+        OutlinedButton(onClick = { onOpenWeb("/bend-calcs.html") }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Launch, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Open visual conduit bender", fontWeight = FontWeight.SemiBold)
+        }
+
         Text(
             "Future Android releases can move the most-used calculators to fully native screens one section at a time while keeping the same server calculation logic.",
             color = TextMuted,
