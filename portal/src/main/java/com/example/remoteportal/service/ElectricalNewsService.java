@@ -94,10 +94,13 @@ public class ElectricalNewsService {
         Map<String, NewsItem> unique = new LinkedHashMap<>();
         for (NewsItem item : items) unique.putIfAbsent(item.url(), item);
         List<NewsItem> sorted = new ArrayList<>(unique.values());
-        sorted.sort(Comparator
-            .comparing(NewsItem::sortDate, Comparator.nullsLast(Comparator.naturalOrder()))
-            .reversed()
-            .thenComparing(NewsItem::title));
+        sorted.sort((a, b) -> {
+            if (a.sortDate() == null && b.sortDate() == null) return a.title().compareToIgnoreCase(b.title());
+            if (a.sortDate() == null) return 1;
+            if (b.sortDate() == null) return -1;
+            int dateOrder = b.sortDate().compareTo(a.sortDate());
+            return dateOrder != 0 ? dateOrder : a.title().compareToIgnoreCase(b.title());
+        });
 
         if (!sorted.isEmpty() || snapshot.items().isEmpty()) {
             snapshot = new Snapshot(
