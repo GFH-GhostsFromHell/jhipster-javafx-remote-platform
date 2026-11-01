@@ -41,29 +41,65 @@ jobs:
         with:
           gradle-version: '9.6.0'
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Set build metadata
+        run: |
+          echo "APP_VERSION=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          if [ "${GITHUB_REF}" = "refs/heads/development/functionality" ]; then
+            echo "UPDATE_CHANNEL=development" >> "$GITHUB_ENV"
+          else
+            echo "UPDATE_CHANNEL=stable" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build Android APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          COMMON_ARGS="-PreleaseVersionName=${APP_VERSION} -PreleaseVersionCode=${APP_VERSION_CODE} -PupdateChannel=${UPDATE_CHANNEL}"
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] && [ -n "${ANDROID_KEY_ALIAS:-}" ] && [ -n "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+            export ANDROID_KEYSTORE_PATH="$PWD/app/release.keystore"
+            gradle :app:assembleRelease $COMMON_ARGS --stacktrace
+            echo "APK_BUILD_TYPE=release" >> "$GITHUB_ENV"
+            echo "APK_SIGNING=persistent" >> "$GITHUB_ENV"
+          else
+            echo "Persistent Android signing secrets are not configured; producing a debug-signed APK."
+            gradle :app:assembleDebug $COMMON_ARGS --stacktrace
+            echo "APK_BUILD_TYPE=debug" >> "$GITHUB_ENV"
+            echo "APK_SIGNING=debug" >> "$GITHUB_ENV"
+          fi
 
       - name: Prepare APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ElectricalWorkbench-Android.apk
+        run: |
+          if [ "${APK_BUILD_TYPE}" = "release" ]; then
+            cp app/build/outputs/apk/release/app-release.apk ElectricalWorkbench-Android.apk
+          else
+            cp app/build/outputs/apk/debug/app-debug.apk ElectricalWorkbench-Android.apk
+          fi
+          sha256sum ElectricalWorkbench-Android.apk > ElectricalWorkbench-Android.apk.sha256
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ElectricalWorkbench-Android
-          path: android-client/ElectricalWorkbench-Android.apk
+          path: |
+            android-client/ElectricalWorkbench-Android.apk
+            android-client/ElectricalWorkbench-Android.apk.sha256
 
       - name: Publish development APK release
         if: github.ref == 'refs/heads/development/functionality'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="android-dev-v0.1.${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" ElectricalWorkbench-Android.apk \
+          TAG="android-dev-v${APP_VERSION}"
+          gh release create "$TAG" ElectricalWorkbench-Android.apk ElectricalWorkbench-Android.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Electrical Workbench Android DEV 0.1.${GITHUB_RUN_NUMBER}" \
-            --notes "Development Android build of Electrical Workbench." \
+            --title "Electrical Workbench Android DEV ${APP_VERSION}" \
+            --notes "Development Android build of Electrical Workbench. Update channel: development. Signing mode: ${APK_SIGNING}." \
             --prerelease
 
       - name: Publish stable APK release
@@ -71,9 +107,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="android-v0.1.${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" ElectricalWorkbench-Android.apk \
+          TAG="android-v${APP_VERSION}"
+          gh release create "$TAG" ElectricalWorkbench-Android.apk ElectricalWorkbench-Android.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Electrical Workbench Android 0.1.${GITHUB_RUN_NUMBER}" \
-            --notes "Android build of Electrical Workbench."
+            --title "Electrical Workbench Android ${APP_VERSION}" \
+            --notes "Android build of Electrical Workbench. Update channel: stable. Signing mode: ${APK_SIGNING}."
