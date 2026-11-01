@@ -23,16 +23,16 @@ public final class CalculatorHub {
     sections.setStyle("-fx-background-color:#edf3f8;-fx-open-tab-animation:none;-fx-close-tab-animation:none;");
     sections.getTabs().addAll(
       sectionTab("02  General Rules", Section2Views.create()),
-      sectionTab("04  Conductors / Busbars", Section4Views.create()),
-      sectionTab("08  Service & Demand", ServiceCalculatorViews.create(portal,username,password)),
-      sectionTab("12  Wiring Methods", Section12Views.create(calculators.get("conduit"),calculators.get("box"))),
-      sectionTab("14  Protection & Control", Section14Views.create(calculators.get("tap"))),
-      sectionTab("16  Class 1 & Class 2", Section16Views.create()),
-      sectionTab("24  Patient Care", Section24Views.create()),
-      sectionTab("26  Transformers & Capacitors", Section26Views.create(portal,username,password)),
-      sectionTab("28  Motors & Generators", Section28Views.create(portal,username,password)),
-      sectionTab("32  Fire Alarm / Fire Pumps", Section32Views.create()),
-      sectionTab("42  Electric Welders", Section42Views.create(portal,username,password))
+      sectionTab("04  Conductors / Busbars", guided(Section4Views.create())),
+      sectionTab("08  Service & Demand", guided(ServiceCalculatorViews.create(portal,username,password))),
+      sectionTab("12  Wiring Methods", guided(Section12Views.create(calculators.get("conduit"),Section12BoxFillView.create()))),
+      sectionTab("14  Protection & Control", guided(Section14Views.create(calculators.get("tap")))),
+      sectionTab("16  Class 1 & Class 2", guided(Section16Views.create())),
+      sectionTab("24  Patient Care", guided(Section24Views.create())),
+      sectionTab("26  Transformers & Capacitors", guided(Section26Views.create(portal,username,password))),
+      sectionTab("28  Motors & Generators", guided(Section28Views.create(portal,username,password))),
+      sectionTab("32  Fire Alarm / Fire Pumps", guided(Section32Views.create())),
+      sectionTab("42  Electric Welders", guided(Section42Views.create(portal,username,password)))
     );
     sections.getSelectionModel().selectFirst();
 
@@ -59,6 +59,7 @@ public final class CalculatorHub {
     return root;
   }
 
+  private static Node guided(Node n){return CalculatorGuideDecorator.decorate(n);}
   private static Tab sectionTab(String title,Node content){Tab t=new Tab(title,content);t.setClosable(false);return t;}
   private static Node sectionPage(String title,String description,TitledPane... panes){VBox body=new VBox(12);body.setPadding(new Insets(22));body.setStyle("-fx-background-color:#f8fafc;");Label h=new Label(title);h.setStyle("-fx-font-size:21px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label d=new Label(description);d.setWrapText(true);d.setStyle("-fx-text-fill:#64748b;");Accordion accordion=new Accordion();for(TitledPane p:panes)if(p!=null)accordion.getPanes().add(p);if(!accordion.getPanes().isEmpty())accordion.setExpandedPane(accordion.getPanes().get(0));body.getChildren().addAll(h,d,new Separator(),accordion);ScrollPane scroll=new ScrollPane(body);scroll.setFitToWidth(true);scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);scroll.setStyle("-fx-background:#f8fafc;-fx-background-color:#f8fafc;");return scroll;}
   private static Map<String,TitledPane> extractCalculators(Node root){Map<String,TitledPane> found=new LinkedHashMap<>();findAccordionPanes(root,found);return found;}
