@@ -3,6 +3,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val releaseVersionName = providers.gradleProperty("releaseVersionName").orElse("0.1.0")
+val releaseVersionCode = providers.gradleProperty("releaseVersionCode").orElse("1")
+val updateChannel = providers.gradleProperty("updateChannel").orElse("development")
+val androidKeystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+
 android {
     namespace = "com.gfh.electricalworkbench"
     compileSdk = 36
@@ -11,8 +16,29 @@ android {
         applicationId = "com.gfh.electricalworkbench"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = releaseVersionCode.get().toInt()
+        versionName = releaseVersionName.get()
+        buildConfigField("String", "UPDATE_CHANNEL", "\"${updateChannel.get()}\"")
+    }
+
+    if (!androidKeystorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(androidKeystorePath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (!androidKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     buildFeatures {
