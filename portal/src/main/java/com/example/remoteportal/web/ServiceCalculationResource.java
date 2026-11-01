@@ -13,6 +13,9 @@ public class ServiceCalculationResource {
   public record ResidentialRequest(Double groundArea,Double upperArea,Double basementArea,Double rangeKw,Double roomHeatKw,Double centralHeatKw,Double acKw,Boolean interlocked,Double otherOver1500Kw,Double dedicated100Kw,Double evseKw,Double voltage){}
   @PostMapping("/residential") public Map<String,Object> residential(@RequestBody ResidentialRequest r){return service.residential(z(r.groundArea()),z(r.upperArea()),z(r.basementArea()),z(r.rangeKw()),z(r.roomHeatKw()),z(r.centralHeatKw()),z(r.acKw()),b(r.interlocked()),z(r.otherOver1500Kw()),z(r.dedicated100Kw()),z(r.evseKw()),n(r.voltage(),240));}
 
+  public record ApartmentRequest(Integer suites,Double suiteArea,Double rangeKw,Double suiteOtherKw,Double suiteHeatKw,Double suiteAcKw,Boolean suiteInterlocked,Double houseLoadKw,Double houseDemandFactor,Double houseContinuousFactor,Double voltage,Integer phases){}
+  @PostMapping("/apartment") public Map<String,Object> apartment(@RequestBody ApartmentRequest r){return service.apartment(i(r.suites(),1),n(r.suiteArea(),90),z(r.rangeKw()),z(r.suiteOtherKw()),z(r.suiteHeatKw()),z(r.suiteAcKw()),b(r.suiteInterlocked()),z(r.houseLoadKw()),n(r.houseDemandFactor(),0.75),n(r.houseContinuousFactor(),1.25),n(r.voltage(),240),i(r.phases(),1));}
+
   public record SchoolRequest(Double totalArea,Double classroomArea,Double otherKw,Double heatKw,Double acKw,Boolean interlocked,Double evseKw,Double highPowerCordKw,Double voltage,Integer phases){}
   @PostMapping("/school") public Map<String,Object> school(@RequestBody SchoolRequest r){return service.school(n(r.totalArea(),0),z(r.classroomArea()),z(r.otherKw()),z(r.heatKw()),z(r.acKw()),b(r.interlocked()),z(r.evseKw()),z(r.highPowerCordKw()),n(r.voltage(),240),i(r.phases(),1));}
 
