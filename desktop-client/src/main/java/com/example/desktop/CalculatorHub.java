@@ -20,6 +20,7 @@ public final class CalculatorHub {
       sectionTab("Section 8 — Circuit Loading & Demand", ServiceCalculatorViews.create(portal,username,password)),
       sectionTab("Section 12 — Wiring Methods", Section12Views.create(calculators.get("conduit"),calculators.get("box"))),
       sectionTab("Section 14 — Protection & Control", sectionPage("Section 14 — Protection & Control","Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",calculators.get("tap"))),
+      sectionTab("Section 16 — Class 1 & Class 2", Section16Views.create()),
       sectionTab("Section 24 — Patient Care Areas", Section24Views.create()),
       sectionTab("Section 26 — Electrical Equipment", Section26Views.create(portal,username,password)),
       sectionTab("Section 28 — Motors & Generators", Section28Views.create(portal,username,password)),
