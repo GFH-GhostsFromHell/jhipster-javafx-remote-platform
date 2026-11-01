@@ -1,0 +1,40 @@
+name: Add direct Android visual bender button
+
+on:
+  push:
+    branches: [ development/functionality ]
+    paths:
+      - '.github/workflows/patch-android-bender-button.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: development/functionality
+      - name: Add visual bender shortcut
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-client/app/src/main/java/com/gfh/electricalworkbench/MainActivity.kt')
+          x=p.read_text(encoding='utf-8')
+          marker='''        Button(onClick = { onOpenWeb("/calculators.html") }, modifier = Modifier.fillMaxWidth()) {\n            Icon(Icons.Default.Calculate, null)\n            Spacer(Modifier.width(8.dp))\n            Text("Launch calculator workspace", fontWeight = FontWeight.Bold)\n        }\n'''
+          insert=marker+'''\n        OutlinedButton(onClick = { onOpenWeb("/bend-calcs.html") }, modifier = Modifier.fillMaxWidth()) {\n            Icon(Icons.Default.Launch, null)\n            Spacer(Modifier.width(8.dp))\n            Text("Open visual conduit bender", fontWeight = FontWeight.SemiBold)\n        }\n'''
+          if marker not in x:
+              raise SystemExit('calculator launch button marker not found')
+          p.write_text(x.replace(marker,insert,1),encoding='utf-8')
+          PY
+      - name: Commit Android bender shortcut
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-client/app/src/main/java/com/gfh/electricalworkbench/MainActivity.kt
+          git diff --cached --quiet && exit 0
+          git commit -m "Add Android visual conduit bender shortcut"
+          git push origin HEAD:development/functionality
