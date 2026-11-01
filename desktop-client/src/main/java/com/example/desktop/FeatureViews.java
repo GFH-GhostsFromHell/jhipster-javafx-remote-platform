@@ -24,7 +24,7 @@ public final class FeatureViews {
 
     public static Node create(String featureKey, JsonNode bootstrap, PortalClient portal, Stage stage, String username, String password) {
         return switch (featureKey) {
-            case "ELECTRICAL_CALCULATORS" -> CalculatorViews.create(portal,username,password);
+            case "ELECTRICAL_CALCULATORS" -> CalculatorHub.create(portal,username,password);
             case "RESIDENTIAL_REFERENCE" -> residentialReference();
             case "DASHBOARD" -> dashboard(bootstrap,portal);
             case "REPORTS" -> reports(bootstrap,stage);
