@@ -88,7 +88,11 @@ public class ReleaseResource {
                 if (release.path("draft").asBoolean(false)) continue;
                 String tag = release.path("tag_name").asText("");
                 boolean prerelease = release.path("prerelease").asBoolean(false);
-                if (!tag.startsWith(prefix) || prerelease != dev) continue;
+                if (!tag.startsWith(prefix)) continue;
+                // Development releases have their own explicit tag prefix. Trust that prefix even if
+                // GitHub metadata was accidentally published without the prerelease flag. Stable
+                // releases must still be non-prerelease.
+                if (!dev && prerelease) continue;
                 selected = release;
                 break;
             }
