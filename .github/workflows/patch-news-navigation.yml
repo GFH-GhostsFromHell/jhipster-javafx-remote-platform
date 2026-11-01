@@ -1,0 +1,49 @@
+name: Patch electrical news navigation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/patch-news-navigation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Add Code News navigation and dashboard action
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('portal/src/main/resources/static/portal.html')
+          x=p.read_text(encoding='utf-8')
+
+          calc='<a href="/calculators.html"><span class="icon">∑</span><span class="label">CEC Calculators</span></a>'
+          news='<a href="/news.html"><span class="icon">⚠</span><span class="label">Code News & Bulletins</span></a>'
+          if news not in x:
+              if calc not in x: raise SystemExit('calculator nav marker not found')
+              x=x.replace(calc,calc+'\n      '+news,1)
+
+          old='<div class="quick disabled-link"><strong>Reports & exports</strong><span>Placeholder for saved calculation PDFs, exports and history.</span></div>'
+          newsq='<a class="quick" href="/news.html"><strong>CEC 2024 & Ontario Code News</strong><span>Newest ESA OESC bulletins and code notices, severity colour-coded.</span></a>'
+          if newsq not in x:
+              if old not in x: raise SystemExit('quick action marker not found')
+              x=x.replace(old,newsq+old,1)
+
+          p.write_text(x,encoding='utf-8')
+          PY
+      - name: Commit portal integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal/src/main/resources/static/portal.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Add Code News and Bulletins to portal"
+          git push origin HEAD:main
