@@ -16,13 +16,13 @@ import java.time.Duration;
 import java.util.HexFormat;
 
 public final class UpdateService {
-    private static final String RELEASE_API = "https://api.github.com/repos/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases/latest";
+    private static final String RELEASES_API = "https://api.github.com/repos/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases?per_page=30";
     private static final String MSI_NAME = "RemoteJavaFXClient-Setup.msi";
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).followRedirects(HttpClient.Redirect.NORMAL).build();
     private final ObjectMapper json = new ObjectMapper();
 
-    public record UpdateInfo(String currentVersion, String latestVersion, String downloadUrl, String sha256) {
+    public record UpdateInfo(String currentVersion, String latestVersion, String downloadUrl, String sha256, String channel) {
         public boolean updateAvailable() { return compareVersions(latestVersion, currentVersion) > 0; }
     }
 
@@ -30,8 +30,16 @@ public final class UpdateService {
         return System.getProperty("app.version", "0.1.0");
     }
 
+    public String updateChannel() {
+        return System.getProperty("app.updateChannel", "stable").trim().toLowerCase();
+    }
+
     public UpdateInfo check() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(RELEASE_API))
+        String channel = updateChannel();
+        boolean dev = channel.equals("development") || channel.equals("dev") || channel.equals("beta");
+        String prefix = dev ? "client-dev-v" : "client-v";
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(RELEASES_API))
             .timeout(Duration.ofSeconds(30))
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "RemoteJavaFXClient")
@@ -39,21 +47,32 @@ public final class UpdateService {
         HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) throw new IOException("Update check returned HTTP " + response.statusCode());
 
-        JsonNode release = json.readTree(response.body());
-        String tag = release.path("tag_name").asText("");
-        String latest = tag.replaceFirst("^client-v", "");
+        JsonNode selected = null;
+        for (JsonNode release : json.readTree(response.body())) {
+            if (release.path("draft").asBoolean(false)) continue;
+            String tag = release.path("tag_name").asText("");
+            boolean prerelease = release.path("prerelease").asBoolean(false);
+            if (!tag.startsWith(prefix)) continue;
+            if (dev != prerelease) continue;
+            selected = release;
+            break;
+        }
+        if (selected == null) throw new IOException("No " + channel + " release is available");
+
+        String tag = selected.path("tag_name").asText("");
+        String latest = tag.substring(prefix.length());
         String url = null;
         String digest = null;
-        for (JsonNode asset : release.path("assets")) {
+        for (JsonNode asset : selected.path("assets")) {
             if (MSI_NAME.equals(asset.path("name").asText())) {
                 url = asset.path("browser_download_url").asText(null);
                 digest = asset.path("digest").asText(null);
                 break;
             }
         }
-        if (latest.isBlank() || url == null) throw new IOException("Latest release does not contain the Windows installer");
+        if (latest.isBlank() || url == null) throw new IOException("Selected release does not contain the Windows installer");
         if (digest != null && digest.startsWith("sha256:")) digest = digest.substring(7);
-        return new UpdateInfo(currentVersion(), latest, url, digest);
+        return new UpdateInfo(currentVersion(), latest, url, digest, dev ? "development" : "stable");
     }
 
     public Path downloadAndVerify(UpdateInfo info) throws Exception {
@@ -79,9 +98,7 @@ public final class UpdateService {
 
     public void launchInstallerAndRelaunch(Path msi) throws Exception {
         String appPath = System.getProperty("jpackage.app-path");
-        if (appPath == null || appPath.isBlank()) {
-            appPath = ProcessHandle.current().info().command().orElse("");
-        }
+        if (appPath == null || appPath.isBlank()) appPath = ProcessHandle.current().info().command().orElse("");
         Path script = Files.createTempFile("RemoteJavaFXClient-update-", ".ps1");
         String escapedMsi = ps(msi.toAbsolutePath().toString());
         String escapedApp = ps(appPath);
