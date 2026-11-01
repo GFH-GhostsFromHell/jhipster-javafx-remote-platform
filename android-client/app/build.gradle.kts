@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.gfh.electricalworkbench"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.gfh.electricalworkbench"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
     }
