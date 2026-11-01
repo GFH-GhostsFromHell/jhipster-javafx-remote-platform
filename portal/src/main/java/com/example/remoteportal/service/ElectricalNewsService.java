@@ -22,7 +22,6 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -130,7 +129,11 @@ public class ElectricalNewsService {
             String title = clean(cells.get(1).text());
             if (title.isBlank()) title = clean(link.text()).replaceFirst("(?i)^download\\s*", "");
 
-            BulletinMeta meta = bulletinMetaCache.computeIfAbsent(url, u -> readBulletinMeta(u, title));
+            BulletinMeta meta = bulletinMetaCache.get(url);
+            if (meta == null) {
+                meta = readBulletinMeta(url, title);
+                bulletinMetaCache.put(url, meta);
+            }
             Severity severity = classify("bulletin", title, meta.firstPageText());
             String summary = "Public OESC bulletin";
             if (!meta.rules().isBlank()) summary += " — " + meta.rules();
