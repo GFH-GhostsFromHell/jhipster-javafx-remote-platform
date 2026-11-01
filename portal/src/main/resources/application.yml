@@ -26,5 +26,5 @@ app:
   client:
     seed:
       username: ${CLIENT_USERNAME:bryn}
-      password: ${CLIENT_PASSWORD:CHANGE_ME_CLIENT_2026}
+      password: ${CLIENT_PASSWORD:bryn}
       display-name: ${CLIENT_DISPLAY_NAME:Bryn Flewelling}
