@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequestMapping("/api/public/releases")
 public class ReleaseResource {
     private static final String RELEASES_API = "https://api.github.com/repos/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases?per_page=40";
-    private static final Duration CACHE_TTL = Duration.ofMinutes(10);
+    private static final Duration CACHE_TTL = Duration.ofSeconds(30);
 
     private final HttpClient http = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
