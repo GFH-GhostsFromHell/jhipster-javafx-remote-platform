@@ -26,6 +26,20 @@ public class ServiceCalculationService {
       Map.entry("livingAreaM2",r(living)),Map.entry("basicLoadW",r(basic)),Map.entry("rangeDemandW",r(range)),Map.entry("heatingDemandW",r(heat)),Map.entry("airConditioningW",r(ac)),Map.entry("hvacDemandW",r(hvac)),Map.entry("otherLoadsDemandW",r(otherDemand)),Map.entry("minimumRuleLoadW",r(minimum)),Map.entry("calculatedBeforeMinimumW",r(calc)),Map.entry("reference","CEC 2024 Rules 8-110 and 8-200; Section 62 heating demand; Rule 8-106 interlocked heating/A/C"),Map.entry("note","Basement area is counted at 75%. Range demand is 6000 W plus 40% of rating above 12 kW. Loads over 1500 W use the Rule 8-200 range/no-range treatment. Verify EVEMS and special-load exceptions where applicable.")));
   }
 
+  public Map<String,Object> apartment(int suites,double suiteArea,double rangeKw,double suiteOtherKw,double suiteHeatKw,double suiteAcKw,boolean suiteInterlocked,double houseLoadKw,double houseDemandFactor,double houseContinuousFactor,double voltage,int phases){
+    if(suites<1)throw new IllegalArgumentException("Suite count must be at least 1"); positive(suiteArea,"Suite area"); positive(voltage,"Voltage"); phase(phases); if(houseDemandFactor<=0||houseDemandFactor>1)throw new IllegalArgumentException("House demand factor must be >0 and <=1"); if(houseContinuousFactor<=0||houseContinuousFactor>2)throw new IllegalArgumentException("House continuous factor must be >0 and <=2");
+    double basic=suiteArea<=45?3500:suiteArea<=90?5000:5000+Math.ceil((suiteArea-90)/90.0)*1000;
+    double range=rangeKw<=0?0:6000+Math.max(0,rangeKw-12)*1000*0.40;
+    double heat=section62Heat(suiteHeatKw), ac=Math.max(0,suiteAcKw)*1000, hvac=suiteInterlocked?Math.max(heat,ac):heat+ac;
+    double each=basic+range+Math.max(0,suiteOtherKw)*1000+hvac;
+    int first=Math.min(suites,1), next65=Math.min(Math.max(suites-1,0),2), next40=Math.min(Math.max(suites-3,0),2), rest25=Math.max(suites-5,0);
+    double suiteDemand=each*(first+next65*0.65+next40*0.40+rest25*0.25);
+    double houseDemand=Math.max(0,houseLoadKw)*1000*houseDemandFactor*houseContinuousFactor;
+    double total=suiteDemand+houseDemand, amps=current(total,voltage,phases);
+    return result("APARTMENT",total,amps,voltage,phases,Map.ofEntries(
+      Map.entry("suiteCount",suites),Map.entry("suiteAreaM2",r(suiteArea)),Map.entry("calculatedLoadPerSuiteW",r(each)),Map.entry("basicLoadPerSuiteW",r(basic)),Map.entry("rangeDemandPerSuiteW",r(range)),Map.entry("suiteHvacDemandW",r(hvac)),Map.entry("suiteDemandAfterDiversityW",r(suiteDemand)),Map.entry("houseConnectedLoadW",r(Math.max(0,houseLoadKw)*1000)),Map.entry("houseDemandW",r(houseDemand)),Map.entry("firstSuite100Percent",first),Map.entry("nextSuites65Percent",next65),Map.entry("nextSuites40Percent",next40),Map.entry("remainingSuites25Percent",rest25),Map.entry("reference","CEC 2024 Rule 8-202 apartment/multi-unit dwelling calculation; common/house loads calculated separately"),Map.entry("note","This follows the apartment-demand sequence used in your practice set: first suite 100%, next 2 at 65%, next 2 at 40%, remaining suites at 25%. House/common-load demand and continuous-load multiplier are shown separately so they can be adjusted to match the exact question.")));
+  }
+
   public Map<String,Object> school(double totalArea,double classroomArea,double otherKw,double heatKw,double acKw,boolean interlocked,double evseKw,double highPowerCordKw,double voltage,int phases){
     area(totalArea,classroomArea); phase(phases); positive(voltage,"Voltage");
     double basic=classroomArea*50+(totalArea-classroomArea)*10;
