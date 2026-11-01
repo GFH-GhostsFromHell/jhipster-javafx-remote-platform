@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequestMapping("/api/public/releases")
 public class ReleaseResource {
     private static final String RELEASES_API = "https://api.github.com/repos/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases?per_page=40";
-    private static final String ANDROID_ASSET = "ElectricalWorkbench-Android.apk";
     private static final Duration CACHE_TTL = Duration.ofMinutes(10);
 
     private final HttpClient http = HttpClient.newBuilder()
@@ -36,29 +35,45 @@ public class ReleaseResource {
 
     @GetMapping("/android")
     public ResponseEntity<?> android(@RequestParam(defaultValue = "stable") String channel) {
+        return release("android", channel, "android-v", "android-dev-v", "ElectricalWorkbench-Android.apk");
+    }
+
+    @GetMapping("/desktop")
+    public ResponseEntity<?> desktop(@RequestParam(defaultValue = "stable") String channel) {
+        return release("desktop", channel, "client-v", "client-dev-v", "RemoteJavaFXClient-Setup.msi");
+    }
+
+    private ResponseEntity<?> release(String platform, String channel, String stablePrefix, String devPrefix, String assetName) {
         String normalized = normalizeChannel(channel);
         try {
-            return ResponseEntity.ok(findAndroidRelease(normalized));
+            return ResponseEntity.ok(findRelease(platform, normalized, stablePrefix, devPrefix, assetName));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
-                "error", "Unable to resolve the current Android release",
+                "error", "Unable to resolve the current " + platform + " release",
                 "channel", normalized,
                 "detail", ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage()
             ));
         }
     }
 
-    private Map<String, Object> findAndroidRelease(String channel) throws Exception {
-        CachedRelease cached = cache.get(channel);
+    private Map<String, Object> findRelease(
+        String platform,
+        String channel,
+        String stablePrefix,
+        String devPrefix,
+        String assetName
+    ) throws Exception {
+        String cacheKey = platform + ":" + channel;
+        CachedRelease cached = cache.get(cacheKey);
         Instant now = Instant.now();
         if (cached != null && cached.expiresAt().isAfter(now)) return cached.payload();
 
         synchronized (cache) {
-            cached = cache.get(channel);
+            cached = cache.get(cacheKey);
             if (cached != null && cached.expiresAt().isAfter(now)) return cached.payload();
 
             boolean dev = "development".equals(channel);
-            String prefix = dev ? "android-dev-v" : "android-v";
+            String prefix = dev ? devPrefix : stablePrefix;
             HttpRequest request = HttpRequest.newBuilder(URI.create(RELEASES_API))
                 .timeout(Duration.ofSeconds(25))
                 .header("Accept", "application/vnd.github+json")
@@ -77,7 +92,7 @@ public class ReleaseResource {
                 selected = release;
                 break;
             }
-            if (selected == null) throw new IOException("No " + channel + " Android release is available");
+            if (selected == null) throw new IOException("No " + channel + " " + platform + " release is available");
 
             String tag = selected.path("tag_name").asText();
             String version = tag.substring(prefix.length());
@@ -85,17 +100,17 @@ public class ReleaseResource {
             String sha256 = null;
             long size = 0L;
             for (JsonNode asset : selected.path("assets")) {
-                if (!ANDROID_ASSET.equals(asset.path("name").asText())) continue;
+                if (!assetName.equals(asset.path("name").asText())) continue;
                 downloadUrl = asset.path("browser_download_url").asText(null);
                 sha256 = asset.path("digest").asText(null);
                 size = asset.path("size").asLong(0L);
                 break;
             }
-            if (downloadUrl == null || downloadUrl.isBlank()) throw new IOException("Android release does not contain " + ANDROID_ASSET);
+            if (downloadUrl == null || downloadUrl.isBlank()) throw new IOException("Release does not contain " + assetName);
             if (sha256 != null && sha256.startsWith("sha256:")) sha256 = sha256.substring(7);
 
             Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("platform", "android");
+            payload.put("platform", platform);
             payload.put("channel", channel);
             payload.put("version", version);
             payload.put("tag", tag);
@@ -104,9 +119,10 @@ public class ReleaseResource {
             payload.put("sha256", sha256 == null ? "" : sha256);
             payload.put("sizeBytes", size);
             payload.put("publishedAt", selected.path("published_at").asText(""));
-            payload.put("assetName", ANDROID_ASSET);
+            payload.put("assetName", assetName);
             payload.put("checkedAt", now.toString());
-            cache.put(channel, new CachedRelease(Map.copyOf(payload), now.plus(CACHE_TTL)));
+            Map<String, Object> immutable = Map.copyOf(payload);
+            cache.put(cacheKey, new CachedRelease(immutable, now.plus(CACHE_TTL)));
             return payload;
         }
     }
