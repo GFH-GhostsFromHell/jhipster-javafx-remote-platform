@@ -47,6 +47,7 @@ jobs:
             --main-jar remote-javafx-client-0.1.0.jar `
             --main-class com.example.desktop.Launcher `
             --java-options "-Dapp.version=$version" `
+            --java-options "-Dapp.updateChannel=stable" `
             --dest target/installer `
             --win-menu `
             --win-shortcut `
@@ -69,5 +70,5 @@ jobs:
           gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
             --repo "${{ github.repository }}" `
             --title "Desktop Client 0.1.${{ github.run_number }}" `
-            --notes "Windows MSI build of the managed JavaFX desktop client with in-app update support. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+            --notes "Stable Windows MSI build. In-app updates stay on the stable channel. Default cloud portal: https://remote-javafx-portal.onrender.com" `
             --latest
