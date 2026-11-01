@@ -11,7 +11,6 @@ import javafx.scene.layout.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 public final class CalculatorViews {
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -23,15 +22,7 @@ public final class CalculatorViews {
         Label h=new Label("Electrical Calculators"); h.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
         Label s=new Label("CEC 2024 calculation tools. Lookup data and calculation rules are served from the backend so code editions can be updated centrally."); s.setWrapText(true); s.setStyle("-fx-text-fill:#64748b;");
         Label edition=new Label("Code edition: CEC 2024 · backend dataset starter-2"); edition.setStyle("-fx-font-weight:bold;-fx-text-fill:#1d4ed8;");
-        Accordion a=new Accordion(
-            transformer(portal,username,password),
-            motor(portal,username,password),
-            multiMotor(portal,username,password),
-            taps(portal,username,password),
-            conduitFill(portal,username,password),
-            boxFill(portal,username,password),
-            service(portal,username,password)
-        );
+        Accordion a=new Accordion(transformer(portal,username,password),motor(portal,username,password),multiMotor(portal,username,password),taps(portal,username,password),conduitFill(portal,username,password),boxFill(portal,username,password),service(portal,username,password));
         a.setExpandedPane(a.getPanes().get(0));
         root.getChildren().addAll(h,s,new Separator(),edition,a,catalog(portal,username,password));
         return root;
@@ -83,7 +74,8 @@ public final class CalculatorViews {
     private static Node catalog(PortalClient p,String u,String pw){VBox b=new VBox(6);Label h=new Label("Subscription calculator catalog");h.setStyle("-fx-font-size:16px;-fx-font-weight:bold;");b.getChildren().add(h);CompletableFuture.supplyAsync(()->{try{return p.calculatorCatalog(u,pw);}catch(Exception e){return null;}}).thenAccept(body->Platform.runLater(()->{if(body==null){b.getChildren().add(new Label("Could not load catalog."));return;}try{for(JsonNode c:JSON.readTree(body).path("calculators")){boolean ok=c.path("unlocked").asBoolean();Label l=new Label((ok?"✓  ":"🔒  ")+t(c,"name")+" — "+t(c,"description")+" ["+t(c,"minimumTier")+"]");l.setWrapText(true);l.setStyle(ok?"-fx-text-fill:#166534;":"-fx-text-fill:#64748b;");b.getChildren().add(l);}}catch(Exception e){b.getChildren().add(new Label("Could not parse catalog."));}}));return b;}
 
     private interface Formatter{String format(JsonNode r) throws Exception;}
-    private static TitledPane pane(String title,Node form,Supplier<String> call,Formatter fmt){Button go=new Button("Calculate");go.setStyle("-fx-background-color:#1d4ed8;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:9;-fx-padding:10 16;");Label status=new Label();status.setWrapText(true);TextArea out=new TextArea();out.setEditable(false);out.setWrapText(true);out.setPrefRowCount(12);go.setOnAction(e->{go.setDisable(true);status.setText("Calculating…");CompletableFuture.supplyAsync(()->{try{return call.get();}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((body,err)->Platform.runLater(()->{go.setDisable(false);if(err!=null){Throwable c=err.getCause()==null?err:err.getCause();status.setText("Calculation failed: "+c.getMessage());return;}try{JsonNode r=JSON.readTree(body);out.setText(fmt.format(r));status.setText("Calculated using backend "+EDITION+" dataset.");}catch(Exception ex){status.setText("Could not read result: "+ex.getMessage());}}));});VBox content=new VBox(10,form,go,status,out);content.setPadding(new Insets(8));TitledPane tp=new TitledPane(title,content);tp.setExpanded(false);return tp;}
+    private interface ThrowingSupplier{String get() throws Exception;}
+    private static TitledPane pane(String title,Node form,ThrowingSupplier call,Formatter fmt){Button go=new Button("Calculate");go.setStyle("-fx-background-color:#1d4ed8;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:9;-fx-padding:10 16;");Label status=new Label();status.setWrapText(true);TextArea out=new TextArea();out.setEditable(false);out.setWrapText(true);out.setPrefRowCount(12);go.setOnAction(e->{go.setDisable(true);status.setText("Calculating…");CompletableFuture.supplyAsync(()->{try{return call.get();}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((body,err)->Platform.runLater(()->{go.setDisable(false);if(err!=null){Throwable c=err.getCause()==null?err:err.getCause();status.setText("Calculation failed: "+c.getMessage());return;}try{JsonNode r=JSON.readTree(body);out.setText(fmt.format(r));status.setText("Calculated using backend "+EDITION+" dataset.");}catch(Exception ex){status.setText("Could not read result: "+ex.getMessage());}}));});VBox content=new VBox(10,form,go,status,out);content.setPadding(new Insets(8));TitledPane tp=new TitledPane(title,content);tp.setExpanded(false);return tp;}
     private static GridPane form(){GridPane g=new GridPane();g.setHgap(10);g.setVgap(9);g.setPadding(new Insets(10));ColumnConstraints a=new ColumnConstraints();a.setMinWidth(220);ColumnConstraints b=new ColumnConstraints();b.setHgrow(Priority.ALWAYS);g.getColumnConstraints().addAll(a,b);return g;}
     private static void row(GridPane g,int r,String label,Node input){g.add(new Label(label),0,r);g.add(input,1,r);}
     private static TextField tf(String v){TextField t=new TextField(v);t.setMaxWidth(260);return t;}
