@@ -114,4 +114,4 @@ jobs:
             --title "Electrical Workbench Android ${APP_VERSION}" \
             --notes "Android build of Electrical Workbench. Update channel: stable. Signing mode: ${APK_SIGNING}."
 
-# Rebuild marker: Section 4 busbar workspace listing
+# Rebuild marker: improved pre-login readability and visual conduit bender shortcut
