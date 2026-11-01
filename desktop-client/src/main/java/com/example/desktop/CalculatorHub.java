@@ -20,14 +20,14 @@ public final class CalculatorHub {
       sectionTab("Section 12 — Wiring Methods", sectionPage("Section 12 — Wiring Methods","Raceway and box calculations used with wiring-method rules and tables.",calculators.get("conduit"),calculators.get("box"))),
       sectionTab("Section 14 — Protection & Control", sectionPage("Section 14 — Protection & Control","Tap and splitter worksheets with source protection, conductor ampacity and downstream protection checks.",calculators.get("tap"))),
       sectionTab("Section 26 — Electrical Equipment", Section26Views.create(portal,username,password)),
-      sectionTab("Section 28 — Motors & Generators", sectionPage("Section 28 — Motors & Generators","Motor branch circuits, overloads, disconnects, multiple-motor feeders and refrigeration/compressor motor worksheets.",calculators.get("motor"),calculators.get("multi-motor"),calculators.get("refrigeration"))),
-      sectionTab("Section 42 — Electric Welders", sectionPage("Section 42 — Electric Welders","Welder conductor, duty-cycle, group-demand and overcurrent worksheets.",calculators.get("welder")))
+      sectionTab("Section 28 — Motors & Generators", Section28Views.create(portal,username,password)),
+      sectionTab("Section 42 — Electric Welders", Section42Views.create(portal,username,password))
     );
     sections.getSelectionModel().selectFirst();
 
     VBox root=new VBox();
     Label title=new Label("CEC 2024 Calculator Sections");title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");
-    Label subtitle=new Label("Choose the CEC section first, then work through the calculation in the same order used in the practice worksheets.");subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
+    Label subtitle=new Label("Choose the CEC section first, then work through each calculation in the same order used in the practice worksheets.");subtitle.setWrapText(true);subtitle.setStyle("-fx-text-fill:#64748b;");
     VBox header=new VBox(5,title,subtitle);header.setPadding(new Insets(18,22,10,22));VBox.setVgrow(sections,Priority.ALWAYS);root.getChildren().addAll(header,sections);return root;
   }
 
