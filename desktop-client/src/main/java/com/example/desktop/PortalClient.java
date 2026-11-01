@@ -33,7 +33,9 @@ public final class PortalClient {
     public String tapCalculator(String username,String password,String body) throws Exception{return calc("tap",username,password,body);}
     public String conduitFillCalculator(String username,String password,String body) throws Exception{return calc("conduit-fill",username,password,body);}
     public String boxFillCalculator(String username,String password,String body) throws Exception{return calc("box-fill",username,password,body);}
+    public String serviceCalculator(String username,String password,String body) throws Exception{return calc("service",username,password,body);}
     public String residentialServiceCalculator(String username,String password,String body) throws Exception{return serviceCalc("residential",username,password,body);}
+    public String apartmentServiceCalculator(String username,String password,String body) throws Exception{return serviceCalc("apartment",username,password,body);}
     public String schoolServiceCalculator(String username,String password,String body) throws Exception{return serviceCalc("school",username,password,body);}
     public String hospitalServiceCalculator(String username,String password,String body) throws Exception{return serviceCalc("hospital",username,password,body);}
     public String otherServiceCalculator(String username,String password,String body) throws Exception{return serviceCalc("other",username,password,body);}
