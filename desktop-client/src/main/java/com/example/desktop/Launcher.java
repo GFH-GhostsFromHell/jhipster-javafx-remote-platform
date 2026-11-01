@@ -1,5 +1,7 @@
 package com.example.desktop;
 
+import java.nio.file.Path;
+
 /**
  * Plain Java entry point used by jpackage.
  * Keeping the packaged main class separate from the JavaFX Application subclass
@@ -9,6 +11,7 @@ public final class Launcher {
     private Launcher() {}
 
     public static void main(String[] args) {
+        startPreLoginUpdateCheck();
         try {
             RemoteDesktopApp.main(args);
         } catch (Throwable t) {
@@ -22,6 +25,55 @@ public final class Launcher {
                 // Best-effort diagnostic logging only.
             }
             throw t;
+        }
+    }
+
+    /**
+     * Checks the public release endpoint as soon as the packaged client starts,
+     * before authentication. The check is deliberately non-blocking so a slow or
+     * unavailable update service can never prevent the login window from opening.
+     *
+     * The authenticated workspace continues to run its existing update check too,
+     * so users who dismiss this startup prompt still see the normal in-app update
+     * button after sign-in.
+     */
+    private static void startPreLoginUpdateCheck() {
+        if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
+
+        Thread checker = new Thread(() -> {
+            try {
+                UpdateService updater = new UpdateService();
+                UpdateService.UpdateInfo info = updater.check();
+                if (!info.updateAvailable()) return;
+
+                if (!confirmWindowsUpdate(info.latestVersion())) return;
+
+                Path installer = updater.downloadAndVerify(info);
+                updater.launchInstallerAndRelaunch(installer);
+                System.exit(0);
+            } catch (Throwable ex) {
+                System.err.println("Pre-login update check failed: " + ex.getMessage());
+                // Startup/update failures must never block account sign-in.
+            }
+        }, "electrical-workbench-pre-login-update");
+        checker.setDaemon(true);
+        checker.start();
+    }
+
+    private static boolean confirmWindowsUpdate(String latestVersion) {
+        String safeVersion = latestVersion == null ? "newer" : latestVersion.replace("'", "");
+        String command = "Add-Type -AssemblyName PresentationFramework; " +
+            "$r=[System.Windows.MessageBox]::Show(" +
+            "'Electrical Workbench v" + safeVersion + " is available. Download and install it now?'," +
+            "'Electrical Workbench Update','YesNo','Information'); " +
+            "if($r -eq 'Yes'){exit 0}else{exit 1}";
+        try {
+            Process process = new ProcessBuilder(
+                "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command
+            ).start();
+            return process.waitFor() == 0;
+        } catch (Exception ex) {
+            return false;
         }
     }
 }
