@@ -2,6 +2,7 @@ package com.example.remoteportal.web;
 
 import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.PortalStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,15 +14,24 @@ import java.util.*;
 public class PortalResource {
   private final PortalStore store;
   private final ClientAccountStore accounts;
+  private final boolean googleEnabled;
 
-  public PortalResource(PortalStore store, ClientAccountStore accounts){
+  public PortalResource(PortalStore store, ClientAccountStore accounts,
+      @Value("${GOOGLE_CLIENT_ID:}") String googleClientId,
+      @Value("${GOOGLE_CLIENT_SECRET:}") String googleClientSecret){
     this.store=store;
     this.accounts=accounts;
+    this.googleEnabled=googleClientId!=null&&!googleClientId.isBlank()&&googleClientSecret!=null&&!googleClientSecret.isBlank();
   }
 
   @GetMapping("/api/public/client-health")
   public Map<String,Object> publicHealth(){
-    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.4.0");
+    return Map.of("status","UP","serverTime",Instant.now().toString(),"apiVersion","0.5.0");
+  }
+
+  @GetMapping("/api/public/auth-options")
+  public Map<String,Object> authOptions(){
+    return Map.of("password",true,"google",googleEnabled);
   }
 
   @GetMapping("/api/client/status")
