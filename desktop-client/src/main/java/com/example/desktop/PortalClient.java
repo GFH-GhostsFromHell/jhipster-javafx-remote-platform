@@ -28,6 +28,8 @@ public final class PortalClient {
     public String dryTransformerWorksheet(String username,String password,String body) throws Exception{return calc("transformer-dry-worksheet",username,password,body);}
     public String hvTransformerWorksheet(String username,String password,String body) throws Exception{return calc("transformer-hv-worksheet",username,password,body);}
     public String capacitorWorksheet(String username,String password,String body) throws Exception{return calc("capacitor-worksheet",username,password,body);}
+    public String refrigerationWorksheet(String username,String password,String body) throws Exception{return calc("refrigeration-worksheet",username,password,body);}
+    public String welderWorksheet(String username,String password,String body) throws Exception{return calc("welder-worksheet",username,password,body);}
     public String motorCalculator(String username,String password,String body) throws Exception{return calc("motor",username,password,body);}
     public String refrigerationCalculator(String username,String password,String body) throws Exception{return calc("refrigeration",username,password,body);}
     public String multiMotorCalculator(String username,String password,String body) throws Exception{return calc("multi-motor",username,password,body);}
