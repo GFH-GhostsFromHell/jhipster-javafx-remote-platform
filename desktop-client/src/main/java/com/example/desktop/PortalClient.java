@@ -1,5 +1,8 @@
 package com.example.desktop;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +12,7 @@ import java.util.Base64;
 public final class PortalClient {
     private final String baseUrl;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
+    private final ObjectMapper json = new ObjectMapper();
 
     public PortalClient() { this.baseUrl = System.getenv().getOrDefault("PORTAL_URL", "https://remote-javafx-portal.onrender.com").replaceAll("/$", ""); }
     public String baseUrl() { return baseUrl; }
@@ -18,7 +22,20 @@ public final class PortalClient {
         HttpResponse<String> res = sendWithRetry(req, 3, 2500); return res.statusCode() == 200;
     }
 
-    public String bootstrap(String username,String password) throws Exception{return authorizedGet("/api/client/bootstrap",username,password);}
+    public String bootstrap(String username,String password) throws Exception{
+        String body=authorizedGet("/api/client/bootstrap",username,password);
+        // Ask ChatGPT is a local desktop capability backed by the user's own
+        // OpenAI authorization. Keep it additive even if an older portal has not
+        // yet advertised the new feature entitlement.
+        try{
+            ObjectNode root=(ObjectNode)json.readTree(body);
+            ObjectNode features=root.withObject("features");
+            features.put("ASK_CHATGPT",true);
+            return json.writeValueAsString(root);
+        }catch(Exception ignored){
+            return body;
+        }
+    }
     public String profile(String username,String password) throws Exception{return authorizedGet("/api/profile",username,password);}
     public String updateProfile(String username,String password,String jsonBody) throws Exception{return authorizedJson("/api/profile","PUT",username,password,jsonBody);}
     public String changePassword(String username,String password,String jsonBody) throws Exception{return authorizedJson("/api/profile/password","PUT",username,password,jsonBody);}
