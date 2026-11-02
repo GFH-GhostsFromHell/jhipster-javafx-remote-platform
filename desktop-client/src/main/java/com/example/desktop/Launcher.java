@@ -13,7 +13,7 @@ public final class Launcher {
     public static void main(String[] args) {
         startPreLoginUpdateCheck();
         try {
-            RemoteDesktopApp.main(args);
+            ElectricalWorkbenchDesktopApp.main(args);
         } catch (Throwable t) {
             t.printStackTrace();
             try {
@@ -32,10 +32,6 @@ public final class Launcher {
      * Checks the public release endpoint as soon as the packaged client starts,
      * before authentication. The check is deliberately non-blocking so a slow or
      * unavailable update service can never prevent the login window from opening.
-     *
-     * The authenticated workspace continues to run its existing update check too,
-     * so users who dismiss this startup prompt still see the normal in-app update
-     * button after sign-in.
      */
     private static void startPreLoginUpdateCheck() {
         if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
@@ -53,7 +49,6 @@ public final class Launcher {
                 System.exit(0);
             } catch (Throwable ex) {
                 System.err.println("Pre-login update check failed: " + ex.getMessage());
-                // Startup/update failures must never block account sign-in.
             }
         }, "electrical-workbench-pre-login-update");
         checker.setDaemon(true);
