@@ -133,7 +133,8 @@ function calcFault(){
   document.getElementById('rMva').textContent=faultMva.toFixed(3)+' MVA';
   document.getElementById('rDownstream').textContent=amps(downstream);
   const flaFormula=phase===3?'I_FL = kVA × 1000 / (1.73 × V)':'I_FL = kVA × 1000 / V';
-  document.getElementById('faultSteps').textContent=flaFormula+' = '+amps(fla)+'\nZ_used = '+zName.toFixed(3)+'% × '+zFactor.toFixed(2)+' = '+zUsed.toFixed(3)+'%\nFault multiplier = 100 / '+zUsed.toFixed(3)+' = '+multiplier.toFixed(3)+' ×\nIsc at transformer terminals = '+amps(fla)+' × '+multiplier.toFixed(3)+' = '+amps(terminal)+'\n'+feederText;
+  const nl=String.fromCharCode(10);
+  document.getElementById('faultSteps').textContent=flaFormula+' = '+amps(fla)+nl+'Z_used = '+zName.toFixed(3)+'% × '+zFactor.toFixed(2)+' = '+zUsed.toFixed(3)+'%'+nl+'Fault multiplier = 100 / '+zUsed.toFixed(3)+' = '+multiplier.toFixed(3)+' ×'+nl+'Isc at transformer terminals = '+amps(fla)+' × '+multiplier.toFixed(3)+' = '+amps(terminal)+nl+feederText;
 }
 calcFault();
 </script>
