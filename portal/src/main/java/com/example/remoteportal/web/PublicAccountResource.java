@@ -24,7 +24,10 @@ public class PublicAccountResource {
 
   @GetMapping("/api/public/account-options")
   public Map<String,Object> accountOptions() {
-    return Map.of("emailConfigured", accounts.mailConfigured(), "tiers", checkout.options());
+    return Map.of(
+        "emailConfigured", accounts.mailConfigured(),
+        "stripeConfigured", checkout.webhookConfigured(),
+        "tiers", checkout.options());
   }
 
   public record RegisterStart(String username, String displayName, String email, String password, String requestedTier) {}
@@ -48,8 +51,14 @@ public class PublicAccountResource {
     try {
       Map<String,Object> verified = new LinkedHashMap<>(accounts.verifyRegistration(request.username(), request.code()));
       String requestedTier = Objects.toString(verified.get("requestedTier"), "TIER_1");
-      checkout.checkoutUrl(requestedTier).ifPresent(url -> verified.put("checkoutUrl", url));
       verified.put("checkoutConfigured", checkout.configured(requestedTier));
+      if (!"TIER_1".equals(requestedTier) && checkout.configured(requestedTier)) {
+        try {
+          verified.put("checkoutUrl", checkout.createCheckoutSession(request.username(), requestedTier));
+        } catch (RuntimeException ex) {
+          verified.put("checkoutError", ex.getMessage());
+        }
+      }
       return verified;
     } catch (IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -99,15 +108,14 @@ public class PublicAccountResource {
   }
 
   @GetMapping("/api/public/checkout/{tier}")
-  public Map<String,Object> publicCheckout(@PathVariable String tier) {
+  public Map<String,Object> publicCheckoutStatus(@PathVariable String tier) {
     try {
       String normalized = TierCheckoutService.normalize(tier);
-      Map<String,Object> result = new LinkedHashMap<>();
-      result.put("tier", normalized);
-      Optional<String> url = checkout.checkoutUrl(normalized);
-      result.put("configured", url.isPresent() || "TIER_1".equals(normalized));
-      url.ifPresent(v -> result.put("url", v));
-      return result;
+      return Map.of(
+          "tier", normalized,
+          "configured", checkout.configured(normalized),
+          "provider", "stripe",
+          "requiresVerifiedAccount", !"TIER_1".equals(normalized));
     } catch (IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
@@ -115,10 +123,38 @@ public class PublicAccountResource {
 
   @GetMapping("/api/profile/billing-options")
   public Map<String,Object> billingOptions(Principal principal) {
-    String tier;
-    try { tier = clientAccounts.tier(principal.getName()); }
-    catch (Exception ex) { tier = "ADMIN"; }
-    return Map.of("currentTier", tier, "tiers", checkout.options());
+    try { return checkout.profileOptions(principal.getName()); }
+    catch (Exception ex) {
+      return Map.of("currentTier", safeTier(principal), "tiers", checkout.options(), "stripeConfigured", false);
+    }
+  }
+
+  @PostMapping("/api/profile/checkout/{tier}")
+  public Map<String,Object> profileCheckout(Principal principal, @PathVariable String tier) {
+    try {
+      String normalized = TierCheckoutService.normalize(tier);
+      if ("TIER_1".equals(normalized)) throw new IllegalArgumentException("Tier 1 does not require checkout.");
+      String url = checkout.createCheckoutSession(principal.getName(), normalized);
+      return Map.of("tier", normalized, "url", url);
+    } catch (IllegalArgumentException ex) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+    } catch (IllegalStateException ex) {
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+  }
+
+  @PostMapping("/api/profile/billing-portal")
+  public Map<String,Object> billingPortal(Principal principal) {
+    try {
+      return Map.of("url", checkout.createBillingPortalSession(principal.getName()));
+    } catch (IllegalStateException ex) {
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+  }
+
+  private String safeTier(Principal principal) {
+    try { return clientAccounts.tier(principal.getName()); }
+    catch (Exception ex) { return "ADMIN"; }
   }
 
   private void requireMail() {
