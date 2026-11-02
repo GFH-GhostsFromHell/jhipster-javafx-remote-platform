@@ -579,6 +579,7 @@ private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
         "General Rules", "Section 4 · Conductors / Busbars", "Section 8 · Services & Demand", "Section 12 · Wiring Methods",
         "Section 16 · Class 1 & Class 2", "Section 24 · Patient Care", "Section 26 · Electrical Equipment",
         "Section 28 · AC & DC Motors", "Section 32 · Fire Alarm", "Section 42 · Welders",
+        "Advanced · Grounding, Fire Pump, Neutral, Services, HVAC, Fire Alarm & Derating",
         "Conduit Bending", "Supports & Straps"
     )
     Column(
@@ -604,6 +605,12 @@ private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
             Icon(Icons.Default.Calculate, null)
             Spacer(Modifier.width(8.dp))
             Text("Launch calculator workspace", fontWeight = FontWeight.Bold)
+        }
+
+        OutlinedButton(onClick = { onOpenWeb("/advanced-calculations.html") }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Calculate, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Open advanced calculation pack", fontWeight = FontWeight.SemiBold)
         }
 
         OutlinedButton(onClick = { onOpenWeb("/bend-calcs.html") }, modifier = Modifier.fillMaxWidth()) {
