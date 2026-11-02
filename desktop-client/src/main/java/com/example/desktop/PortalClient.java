@@ -27,6 +27,10 @@ public final class PortalClient {
         return res.statusCode() == 200;
     }
 
+    public String electricalNews() throws Exception {
+        return publicGet("/api/public/news/electrical");
+    }
+
     public String bootstrap(String username, String password) throws Exception {
         return authorizedGet("/api/client/bootstrap", username, password);
     }
@@ -41,6 +45,15 @@ public final class PortalClient {
 
     public String changePassword(String username, String password, String jsonBody) throws Exception {
         return authorizedJson("/api/profile/password", "PUT", username, password, jsonBody);
+    }
+
+    private String publicGet(String path) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + path))
+            .timeout(Duration.ofSeconds(150))
+            .header("Cache-Control", "no-cache")
+            .GET()
+            .build();
+        return bodyOrThrow(sendWithRetry(req, 3, 3000));
     }
 
     private String authorizedGet(String path, String username, String password) throws Exception {
