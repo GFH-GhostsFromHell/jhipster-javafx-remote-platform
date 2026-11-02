@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Local/offline persistence for apprentice, project and field records. */
+/** Local/offline persistence for apprentice, project and field records. Records are intentionally per-user. */
 public final class LocalWorkspaceStore {
     private final ObjectMapper json;
     private final Path file;
