@@ -1,0 +1,184 @@
+name: Patch native account access
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/native-account-ui-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply source changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          account_activity = '''package com.gfh.electricalworkbench
+
+          import android.content.Intent
+          import android.net.Uri
+          import android.os.Bundle
+          import android.webkit.WebResourceRequest
+          import android.webkit.WebSettings
+          import android.webkit.WebView
+          import android.webkit.WebViewClient
+          import androidx.activity.ComponentActivity
+          import androidx.activity.OnBackPressedCallback
+
+          private const val ACCOUNT_PORTAL_BASE = "https://remote-javafx-portal.onrender.com"
+
+          class AccountAccessActivity : ComponentActivity() {
+              private lateinit var webView: WebView
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  title = "Electrical Workbench Account"
+                  val tab = intent.getStringExtra("tab")?.takeIf {
+                      it in setOf("signup", "verify", "forgot-password", "forgot-username")
+                  } ?: "signup"
+
+                  webView = WebView(this).apply {
+                      settings.javaScriptEnabled = true
+                      settings.domStorageEnabled = true
+                      settings.allowFileAccess = false
+                      settings.allowContentAccess = false
+                      settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                      settings.textZoom = 105
+                      webViewClient = object : WebViewClient() {
+                          override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                              val url = request?.url?.toString() ?: return false
+                              return if (url.startsWith(ACCOUNT_PORTAL_BASE)) false else {
+                                  runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                  true
+                              }
+                          }
+                      }
+                      clearCache(true)
+                      loadUrl("$ACCOUNT_PORTAL_BASE/account.html#$tab")
+                  }
+                  setContentView(webView)
+
+                  onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+                      override fun handleOnBackPressed() {
+                          if (webView.canGoBack()) webView.goBack() else finish()
+                      }
+                  })
+              }
+
+              override fun onDestroy() {
+                  webView.stopLoading()
+                  webView.destroy()
+                  super.onDestroy()
+              }
+          }
+          '''.replace('          ', '')
+          Path('android-client/app/src/main/java/com/gfh/electricalworkbench/AccountAccessActivity.kt').write_text(account_activity, encoding='utf-8')
+
+          manifest = Path('android-client/app/src/main/AndroidManifest.xml')
+          m = manifest.read_text(encoding='utf-8')
+          if '.AccountAccessActivity' not in m:
+              marker = '        <activity\n            android:name=".EngineeringPowerActivity"\n            android:exported="false" />'
+              if marker not in m:
+                  raise SystemExit('manifest insertion marker missing')
+              m = m.replace(marker, '        <activity\n            android:name=".AccountAccessActivity"\n            android:exported="false" />\n' + marker, 1)
+          manifest.write_text(m, encoding='utf-8')
+
+          mobile = Path('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt')
+          a = mobile.read_text(encoding='utf-8')
+          state = '    var username by remember { mutableStateOf("") }\n    var password by remember { mutableStateOf("") }'
+          if 'val context = LocalContext.current\n    Box(' not in a:
+              if state not in a:
+                  raise SystemExit('android login state marker missing')
+              a = a.replace(state, state + '\n    val context = LocalContext.current', 1)
+          cloud = '''                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CloudDone, null, tint = if (cloudOk == true) MobileGood else MobileMuted)
+                        Spacer(Modifier.width(8.dp))
+                        Text(cloudStatus, color = if (cloudOk == true) MobileGood else MobileMuted, fontSize = 12.sp)
+                    }'''
+          if 'Text("Account access"' not in a:
+              buttons = '''                    Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) }, modifier = Modifier.weight(1f)) { Text("Create account") }
+                        OutlinedButton(onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) }, modifier = Modifier.weight(1f)) { Text("Verify email") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) }, modifier = Modifier.weight(1f)) { Text("Forgot password") }
+                        OutlinedButton(onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) }, modifier = Modifier.weight(1f)) { Text("Forgot username") }
+                    }
+'''
+              if cloud not in a:
+                  raise SystemExit('android cloud row marker missing')
+              a = a.replace(cloud, buttons + cloud, 1)
+          profile_sig = 'private fun MobileProfile(session: MobileSession, onOpenWeb: (String) -> Unit, onLogout: () -> Unit) {\n'
+          if 'Account security & recovery' not in a:
+              if profile_sig not in a:
+                  raise SystemExit('android profile marker missing')
+              a = a.replace(profile_sig, profile_sig + '    val context = LocalContext.current\n', 1)
+              profile_button = '''        Button(onClick = { onOpenWeb("/portal.html") }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Person, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Manage profile & account")
+        }'''
+              replacement = profile_button + '''
+        OutlinedButton(onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Account security & recovery")
+        }'''
+              if profile_button not in a:
+                  raise SystemExit('android profile button marker missing')
+              a = a.replace(profile_button, replacement, 1)
+          mobile.write_text(a, encoding='utf-8')
+
+          desktop = Path('desktop-client/src/main/java/com/example/desktop/ElectricalWorkbenchNativeApp.java')
+          d = desktop.read_text(encoding='utf-8')
+          if 'import javafx.scene.web.WebView;' not in d:
+              marker = 'import javafx.scene.layout.*;\n'
+              if marker not in d:
+                  raise SystemExit('desktop import marker missing')
+              d = d.replace(marker, marker + 'import javafx.scene.web.WebView;\n', 1)
+          login_line = '        loginCard.getChildren().addAll(loginTitle,new Label("Use your Electrical Workbench account."),fieldLabel("Username"),username,fieldLabel("Password"),password,login,message);'
+          if 'createAccount.setOnAction' not in d:
+              addition = '''        Label accountHelp=new Label("Account access");accountHelp.setStyle("-fx-font-weight:bold;-fx-text-fill:#334155;-fx-font-size:12px;");
+        Button createAccount=new Button("Create account"),verifyEmail=new Button("Verify email"),forgotPassword=new Button("Forgot password"),forgotUsername=new Button("Forgot username");
+        for(Button b:new Button[]{createAccount,verifyEmail,forgotPassword,forgotUsername}){b.setMaxWidth(Double.MAX_VALUE);b.setStyle("-fx-background-color:#f8fafc;-fx-text-fill:#0f4c81;-fx-border-color:#c7d9e8;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-font-weight:bold;");}
+        createAccount.setOnAction(e->showAccountAccess("signup"));verifyEmail.setOnAction(e->showAccountAccess("verify"));forgotPassword.setOnAction(e->showAccountAccess("forgot-password"));forgotUsername.setOnAction(e->showAccountAccess("forgot-username"));
+        GridPane accountActions=new GridPane();accountActions.setHgap(8);accountActions.setVgap(8);ColumnConstraints aa=new ColumnConstraints();aa.setPercentWidth(50);ColumnConstraints ab=new ColumnConstraints();ab.setPercentWidth(50);accountActions.getColumnConstraints().addAll(aa,ab);accountActions.add(createAccount,0,0);accountActions.add(verifyEmail,1,0);accountActions.add(forgotPassword,0,1);accountActions.add(forgotUsername,1,1);
+        loginCard.getChildren().addAll(loginTitle,new Label("Use your Electrical Workbench account."),fieldLabel("Username"),username,fieldLabel("Password"),password,login,message,new Separator(),accountHelp,accountActions);'''
+              if login_line not in d:
+                  raise SystemExit('desktop login line marker missing')
+              d = d.replace(login_line, addition, 1)
+          method_marker = '    private void showWorkspace() {\n'
+          if 'private void showAccountAccess(String tab)' not in d:
+              method = '''    private void showAccountAccess(String tab) {
+        Stage accountStage=new Stage();accountStage.initOwner(stage);accountStage.setTitle("Electrical Workbench · Account Access");accountStage.setMinWidth(760);accountStage.setMinHeight(620);
+        WebView webView=new WebView();webView.getEngine().setJavaScriptEnabled(true);
+        String safeTab=switch(tab==null?"":tab){case "verify","forgot-password","forgot-username"->tab;default->"signup";};
+        webView.getEngine().load(portal.baseUrl()+"/account.html#"+safeTab);
+        BorderPane root=new BorderPane(webView);root.setStyle("-fx-background-color:#07111f;");accountStage.setScene(new Scene(root,980,760));accountStage.show();
+    }
+
+'''
+              if method_marker not in d:
+                  raise SystemExit('desktop showWorkspace marker missing')
+              d = d.replace(method_marker, method + method_marker, 1)
+          desktop.write_text(d, encoding='utf-8')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-client desktop-client
+          git commit -m "Expose registration and recovery in Android and desktop"
+          git push origin HEAD:main
