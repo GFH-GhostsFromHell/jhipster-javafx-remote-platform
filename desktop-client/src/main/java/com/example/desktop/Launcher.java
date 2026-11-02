@@ -11,6 +11,10 @@ public final class Launcher {
     private Launcher() {}
 
     public static void main(String[] args) {
+        // Account creation, verification and recovery must be reachable before a
+        // user has working credentials, so expose the native account center first.
+        if (!DesktopAccountAccess.showBeforeSignIn()) return;
+
         startPreLoginUpdateCheck();
         try {
             ElectricalWorkbenchNativeApp.main(args);
