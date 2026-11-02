@@ -35,10 +35,61 @@ public class EngineeringPowerPageController {
   private static String page(){
     try {
       ClassPathResource resource=new ClassPathResource("engineering/engineering-power.html");
-      return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+      String html=new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+      return html.replace("</body>", symmetricalReferencePatch()+"</body>");
     } catch (IOException ex) {
       return "<!doctype html><html><body><h1>Engineering Power Systems</h1><p>The engineering workspace could not be loaded.</p></body></html>";
     }
+  }
+
+  private static String symmetricalReferencePatch(){
+    return """
+<script>
+(function(){
+  const mode=document.getElementById('scMode');
+  const button=document.getElementById('calcSc');
+  if(!mode||!button||document.getElementById('scRef')) return;
+  const field=document.createElement('div');
+  field.className='field';
+  field.innerHTML='<label>Sequence reference phase</label><select id="scRef"><option value="A">R / A</option><option value="B">W / B</option><option value="C">B / C</option></select><small>Used for sequence → power-system phases.</small>';
+  mode.closest('.formgrid').appendChild(field);
+  const ref=document.getElementById('scRef');
+  const rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+  const C=(re,im)=>({re,im}), add=(a,b)=>C(a.re+b.re,a.im+b.im), mul=(a,b)=>C(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re), scale=(a,k)=>C(a.re*k,a.im*k);
+  const polar=(m,d)=>C(m*Math.cos(rad(d)),m*Math.sin(rad(d))), mag=a=>Math.hypot(a.re,a.im), ang=a=>deg(Math.atan2(a.im,a.re));
+  const fmt=(v,d=4)=>Number.isFinite(v)?Number(v).toFixed(d).replace(/\\.?0+$/,''):'—';
+  const ph=a=>fmt(mag(a),4)+' ∠ '+fmt(ang(a),2)+'°';
+  function setLabels(){
+    if(mode.value!=='seq') return;
+    const r=ref.value;
+    document.getElementById('scLabelA').textContent='Zero sequence (0) at '+r;
+    document.getElementById('scLabelB').textContent='Positive sequence (+) at '+r;
+    document.getElementById('scLabelC').textContent='Negative sequence (−) at '+r;
+  }
+  function recompute(){
+    if(mode.value!=='seq') return;
+    const z=polar(Number(document.getElementById('scAm').value),Number(document.getElementById('scAa').value));
+    let p=polar(Number(document.getElementById('scBm').value),Number(document.getElementById('scBa').value));
+    let neg=polar(Number(document.getElementById('scCm').value),Number(document.getElementById('scCa').value));
+    const a=polar(1,120),a2=polar(1,240);
+    if(ref.value==='B'){p=mul(a,p);neg=mul(a2,neg)}
+    else if(ref.value==='C'){p=mul(a2,p);neg=mul(a,neg)}
+    const pa=add(add(z,p),neg);
+    const pb=add(add(z,mul(a2,p)),mul(a,neg));
+    const pc=add(add(z,mul(a,p)),mul(a2,neg));
+    document.getElementById('scOut0').textContent=ph(pa);
+    document.getElementById('scOut1').textContent=ph(pb);
+    document.getElementById('scOut2').textContent=ph(pc);
+    document.getElementById('scNeutral').textContent=ph(scale(z,3));
+    document.getElementById('scSteps').textContent='Sequence values are referenced to '+ref.value+'. Positive and negative sequence are first rotated to the R/A reference; zero sequence is not rotated. Then A = 0 + + + −; B = 0 + α²(+) + α(−); C = 0 + α(+) + α²(−).';
+  }
+  mode.addEventListener('change',setLabels);
+  ref.addEventListener('change',setLabels);
+  button.addEventListener('click',recompute);
+  setLabels();
+})();
+</script>
+""";
   }
 
   private static String lockedPage(){
