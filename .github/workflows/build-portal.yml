@@ -1,0 +1,36 @@
+name: Build Web Portal
+
+on:
+  push:
+    branches:
+      - main
+      - development/functionality
+    paths:
+      - 'portal/**'
+      - 'Dockerfile.portal'
+      - '.github/workflows/build-portal.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'portal/**'
+      - 'Dockerfile.portal'
+      - '.github/workflows/build-portal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  portal-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compile and package portal
+        run: mvn -f portal/pom.xml -DskipTests package

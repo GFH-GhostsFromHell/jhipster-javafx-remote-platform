@@ -8,7 +8,7 @@ import java.util.*;
 
 @Service
 public class PortalStore {
-  public static final List<String> FEATURES=List.of("ELECTRICAL_CALCULATORS","RESIDENTIAL_REFERENCE","DASHBOARD","REPORTS","PLC_CONNECT","REMOTE_DIAGNOSTICS","ADVANCED_ANALYTICS","ENGINEERING_MODE","ADMIN_TOOLS");
+  public static final List<String> FEATURES=List.of("ELECTRICAL_CALCULATORS","RESIDENTIAL_REFERENCE","ASK_CHATGPT","DASHBOARD","REPORTS","PLC_CONNECT","REMOTE_DIAGNOSTICS","ADVANCED_ANALYTICS","ENGINEERING_MODE","ADMIN_TOOLS");
   private final JdbcTemplate db;
   private final ClientAccountStore accounts;
   public PortalStore(JdbcTemplate db, ClientAccountStore accounts){this.db=db;this.accounts=accounts;}
@@ -31,6 +31,7 @@ public class PortalStore {
     for(String f:FEATURES)m.put(f,false);
     m.put("ELECTRICAL_CALCULATORS",true);
     m.put("RESIDENTIAL_REFERENCE",true);
+    m.put("ASK_CHATGPT",true);
     m.put("DASHBOARD",true);
     m.put("REPORTS",true);
     if (List.of("TIER_2","TIER_3").contains(tier)) {
