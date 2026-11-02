@@ -32,7 +32,8 @@ public final class CalculatorHub {
       sectionTab("26  Transformers & Capacitors", guided(Section26Views.create(portal,username,password))),
       sectionTab("28  Motors & Generators", guided(Section28Views.create(portal,username,password))),
       sectionTab("32  Fire Alarm / Fire Pumps", guided(Section32Views.create())),
-      sectionTab("42  Electric Welders", guided(Section42Views.create(portal,username,password)))
+      sectionTab("42  Electric Welders", guided(Section42Views.create(portal,username,password))),
+      sectionTab("ADV Advanced Calculations", guided(AdvancedCalculationViews.create()))
     );
     sections.getSelectionModel().selectFirst();
 
