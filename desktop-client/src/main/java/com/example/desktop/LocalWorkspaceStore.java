@@ -9,10 +9,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Local/offline persistence for apprentice, project and field records. Records are intentionally per-user. */
+/** Local/offline persistence for apprentice, project, field and safety records. Records are intentionally per-user. */
 public final class LocalWorkspaceStore {
     private final ObjectMapper json;
     private final Path file;
+
+    private static final String[] COLLECTIONS = new String[]{
+        "projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials",
+        "safetyAssessments","unsafeConditions","rubberGloves","safetyMaintenance"
+    };
 
     public LocalWorkspaceStore(ObjectMapper json, String username) {
         this.json = json;
@@ -62,12 +67,12 @@ public final class LocalWorkspaceStore {
 
     private ObjectNode blank() {
         ObjectNode root = json.createObjectNode();
-        for (String name : new String[]{"projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials"}) root.set(name, json.createArrayNode());
+        for (String name : COLLECTIONS) root.set(name, json.createArrayNode());
         return root;
     }
 
     private ObjectNode normalize(ObjectNode root) {
-        for (String name : new String[]{"projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials"}) ensure(root, name);
+        for (String name : COLLECTIONS) ensure(root, name);
         return root;
     }
 
