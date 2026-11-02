@@ -349,7 +349,7 @@ Movement = run length × ΔT × expansion coefficient
         TextField name=field("Working at Heights"), issuer=field(""), expiry=field(LocalDate.now().plusYears(3).toString()), notes=field(""); Label status=status(); TextArea list=output();
         Runnable refresh=()->{StringBuilder b=new StringBuilder();LocalDate today=LocalDate.now();for(JsonNode n:store.records("credentials")){String exp=n.path("expiry").asText("");String remaining="";try{long days=ChronoUnit.DAYS.between(today,LocalDate.parse(exp));remaining=days<0?"EXPIRED "+(-days)+" days ago":days+" days remaining";}catch(Exception ignored){}b.append(n.path("name").asText()).append(" — ").append(exp).append(" — ").append(remaining).append("\n");}list.setText(b.length()==0?"No credentials saved yet.":b.toString());};
         Button save=button("Save credential");save.setOnAction(e->{ObjectNode n=json.createObjectNode();n.put("name",name.getText());n.put("issuer",issuer.getText());n.put("expiry",expiry.getText());n.put("notes",notes.getText());store.append("credentials",n);status.setText("Credential saved.");refresh.run();}); refresh.run();
-        root.getChildren().add(cardForm("Credential",row("Certification / training",name),row("Issuer",issuer),row("Expiry YYYY-MM-DD",expiry),row("Notes",notes),save,status),cardForm("Renewal status",list)); return scroll(root);
+        root.getChildren().addAll(cardForm("Credential",row("Certification / training",name),row("Issuer",issuer),row("Expiry YYYY-MM-DD",expiry),row("Notes",notes),save,status),cardForm("Renewal status",list)); return scroll(root);
     }
 
     private Node wageCalculator() {
