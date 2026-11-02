@@ -102,11 +102,11 @@ public final class ElectricalWorkbenchNativeApp extends Application {
 
         VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");
         Label navTitle=new Label("WORKSPACE");navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
-        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), profile=navButton("👤  Profile");
-        nav.getChildren().addAll(navTitle,home,calculators,learn,field,projects,career,news,profile);root.setLeft(nav);
+        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), profile=navButton("👤  Profile");
+        nav.getChildren().addAll(navTitle,home,calculators,learn,field,safety,projects,career,news,profile);root.setLeft(nav);
 
         workspace=new StackPane();workspace.setPadding(new Insets(22));root.setCenter(workspace);
-        home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
+        home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));safety.setOnAction(e->setWorkspace(buildSafety()));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
         stage.setScene(new Scene(root,1320,830));
     }
 
@@ -119,6 +119,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
             tile("🧮 CEC 2024 Workbench","Full section-based calculators: services, busbars, motors, transformers, wiring, fire alarm, welders and more",()->setWorkspace(buildCalculators())),
             tile("🎓 Learn & Daily 25","Red Seal daily quiz, CEC navigator, formulas, control trainer and province profile",()->setWorkspace(buildPlatform("Learn"))),
             tile("🛠 Field Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
+            tile("🦺 Electrical Safety","PPE rating checks, approach-distance planning, unsafe-condition photos, glove testing and safety-equipment maintenance",()->setWorkspace(buildSafety())),
             tile("📁 Project Workspace","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
             tile("📈 Career & Apprenticeship","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
             tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))
@@ -128,6 +129,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     }
 
     private Node buildCalculators(){return new NativeCalculatorPane(portal,json,currentUsername,currentPassword);}
+    private Node buildSafety(){return new SafetyPane(json,currentUsername);}
     private Node buildPlatform(String area){return new ElectricianPlatformPane(json,currentUsername,area);}
 
     private Node buildNews() {
