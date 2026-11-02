@@ -24,6 +24,7 @@ public final class FeatureViews {
 
     public static Node create(String featureKey, JsonNode bootstrap, PortalClient portal, Stage stage, String username, String password) {
         return switch (featureKey) {
+            case "ASK_CHATGPT" -> AskChatGptView.create(username);
             case "ELECTRICAL_CALCULATORS" -> CalculatorHub.create(portal,username,password);
             case "RESIDENTIAL_REFERENCE" -> residentialReference();
             case "DASHBOARD" -> dashboard(bootstrap,portal);
@@ -50,5 +51,5 @@ public final class FeatureViews {
     private static Node engineering(JsonNode root){VBox b=page("Engineering Mode","Inspect the effective configuration returned by the cloud portal.");TextArea raw=new TextArea(root.path("configuration").toPrettyString());raw.setEditable(false);raw.setPrefRowCount(20);b.getChildren().add(raw);return b;}
     private static VBox page(String title,String subtitle){VBox b=new VBox(14);b.setPadding(new Insets(22));Label h=new Label(title);h.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#14213d;");Label s=new Label(subtitle);s.setWrapText(true);s.setStyle("-fx-text-fill:#64748b;");b.getChildren().addAll(h,s,new Separator());return b;}
     private static VBox card(String title,String value){VBox c=new VBox(6);c.setPadding(new Insets(16));c.setPrefWidth(260);c.setStyle("-fx-background-color:white;-fx-border-color:#e2e8f0;-fx-border-radius:12;-fx-background-radius:12;");Label t=new Label(title);t.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");Label v=new Label(value);v.setWrapText(true);v.setStyle("-fx-text-fill:#14213d;-fx-font-size:18px;-fx-font-weight:bold;");c.getChildren().addAll(t,v);return c;}
-    private static String pretty(String key){String[] p=key.toLowerCase().split("_");StringBuilder o=new StringBuilder();for(String x:p)if(!x.isBlank())o.append(Character.toUpperCase(x.charAt(0))).append(x.substring(1)).append(' ');return o.toString().trim();}
+    private static String pretty(String key){if("ASK_CHATGPT".equals(key))return"Ask ChatGPT";String[] p=key.toLowerCase().split("_");StringBuilder o=new StringBuilder();for(String x:p)if(!x.isBlank())o.append(Character.toUpperCase(x.charAt(0))).append(x.substring(1)).append(' ');return o.toString().trim();}
 }
