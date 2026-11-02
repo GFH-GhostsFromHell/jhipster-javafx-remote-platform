@@ -72,3 +72,5 @@ jobs:
             --title "Desktop Client 0.1.${{ github.run_number }}" `
             --notes "Stable Windows MSI build. In-app updates stay on the stable channel. Default cloud portal: https://remote-javafx-portal.onrender.com" `
             --latest
+
+# Trigger: stable advanced CEC calculation pack.
