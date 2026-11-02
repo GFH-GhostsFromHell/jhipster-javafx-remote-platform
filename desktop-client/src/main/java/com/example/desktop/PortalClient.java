@@ -47,6 +47,19 @@ public final class PortalClient {
         return authorizedJson("/api/profile/password", "PUT", username, password, jsonBody);
     }
 
+    public String calculatorCatalog(String username, String password) throws Exception {
+        return authorizedGet("/api/calculators/catalog", username, password);
+    }
+
+    public String calculate(String endpoint, String username, String password, String jsonBody) throws Exception {
+        String path = endpoint == null ? "" : endpoint.trim();
+        if (!path.startsWith("/api/calculators/")) {
+            if (path.startsWith("/")) path = "/api/calculators" + path;
+            else path = "/api/calculators/" + path;
+        }
+        return authorizedJson(path, "POST", username, password, jsonBody);
+    }
+
     private String publicGet(String path) throws Exception {
         HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(Duration.ofSeconds(150))
