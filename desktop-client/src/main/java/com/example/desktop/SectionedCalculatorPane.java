@@ -230,8 +230,9 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node section12() {
-        return sectionTabs("Section 12 — Wiring Methods", "Conduit fill, box fill, bending, supports, voltage drop and PVC expansion.",
-            tab("Conduit Fill", conduitFill()), tab("Box Fill", boxFill()), tab("Conduit Bending", bending()), tab("Supports & Straps", supports()),
+        return sectionTabs("Section 12 — Wiring Methods", "Conduit fill, box fill, bending, cable straps, raceway supports, voltage drop and PVC expansion.",
+            tab("Conduit Fill", conduitFill()), tab("Box Fill", boxFill()), tab("Conduit Bending", bending()),
+            tab("Cable Straps", cableStraps()), tab("Conduit Supports", conduitSupports()),
             tab("Voltage Drop / D3", voltageDrop()), tab("PVC Expansion", pvcExpansion()));
     }
 
@@ -260,24 +261,65 @@ public final class SectionedCalculatorPane extends BorderPane {
         }, row("Offset/rise (mm)",rise),row("Bend angle (degrees)",angle),row("Rolling vertical (mm)",vertical),row("Rolling horizontal (mm)",horizontal),row("Desired 90° stub (mm)",stub),row("Bender take-up (mm)",takeup));
     }
 
-    private Node supports() {
-        ChoiceBox<String> type=choice("NMD90 / non-metallic sheathed cable","NMD90 / non-metallic sheathed cable","BX / AC90 armoured cable","Rigid metal conduit","EMT","Rigid PVC conduit","Flexible metal conduit","Liquid-tight flexible conduit","ENT");
-        TextField size=field("21"), run=field("10");
-        return localForm("Supports & straps", "Restores the wiring-method support/strap worksheet from the earlier app.", "Calculate supports / straps", () -> {
-            double[] r=supportRule(type.getValue(),integer(size)); double spacing=r[0], near=r[1], L=number(run);
-            int count=near<=0?Math.max(1,(int)Math.ceil(L/spacing)):(L<=2*near?1:2+Math.max(0,(int)Math.ceil((L-2*near)/spacing)-1));
-            return String.format("Wiring method: %s%nTrade size: %d mm%nMaximum support spacing: %.2f m%nNear box/fitting: %s%nMinimum straight-run supports/straps: %d%n%nVerify the listed CEC rule and actual installation details.",
-                type.getValue(),integer(size),spacing,near>0?String.format("within %.2f m",near):"see raceway-specific rule",count);
-        }, row("Wiring method",type),row("Trade size (mm)",size),row("Straight run between boxes (m)",run));
+    private Node cableStraps() {
+        ChoiceBox<String> type=choice("NMD90 / non-metallic sheathed cable","NMD90 / non-metallic sheathed cable","BX / AC90 armoured cable");
+        ChoiceBox<String> connector=choice("<=35 mm","<=35 mm","36-78 mm",">78 mm");
+        TextField run=field("10");
+        Runnable sync=()->connector.setDisable(type.getValue().startsWith("NMD90"));
+        type.setOnAction(e->sync.run()); sync.run();
+        return localForm("Cable straps — NMD90 / BX / AC90", "Cable strapping is calculated separately from conduit support spacing. This worksheet assumes a straight run between two terminations where straps are required.", "Calculate cable straps", () -> {
+            double L=number(run), spacing=1.5;
+            boolean nmd=type.getValue().startsWith("NMD90");
+            double near=nmd?0.3:bxTerminationDistance(connector.getValue());
+            int count=minimumStrapCount(L,spacing,near);
+            String ref=nmd?"CEC 2024 Rule 12-560(1)":"CEC 2024 Rule 12-618(1)";
+            String extra=nmd
+                ? "NMD90: holes through joists/studs can count as support; fished-cable exceptions are not included in this straight-run count."
+                : "BX/AC90: the maximum distance from a termination changes with connector trade size; select the connector range above.";
+            return String.format("Cable: %s%nMaximum spacing between straps/supports: %.2f m%nMaximum distance from each termination: %.2f m%nMinimum straps/support points for this straight run: %d%nReference: %s%n%n%s",
+                type.getValue(),spacing,near,count,ref,extra);
+        }, row("Cable type",type),row("BX/AC90 connector trade size",connector),row("Straight run between terminations (m)",run));
     }
 
-    private double[] supportRule(String t,int z){
-        if(t.startsWith("NMD90"))return new double[]{1.5,.3}; if(t.startsWith("BX"))return new double[]{1.5,.3};
+    private double bxTerminationDistance(String connectorRange) {
+        if(connectorRange.startsWith("36-78")) return 0.6;
+        if(connectorRange.startsWith(">78")) return 0.9;
+        return 0.3;
+    }
+
+    private int minimumStrapCount(double length,double spacing,double nearEachEnd) {
+        if(length<=0||spacing<=0||nearEachEnd<0) throw new IllegalArgumentException("Run length and spacing must be positive.");
+        if(length<=2*nearEachEnd) return 1;
+        return 1+(int)Math.ceil((length-2*nearEachEnd)/spacing);
+    }
+
+    private Node conduitSupports() {
+        ChoiceBox<String> type=choice("EMT","EMT","Rigid metal conduit","Rigid PVC conduit","Flexible metal conduit","Liquid-tight flexible conduit","ENT");
+        TextField size=field("21"), run=field("10");
+        return localForm("Conduit / raceway supports", "Raceway supports use the support rule for the selected raceway and trade size. NMD90 and BX/AC90 are intentionally excluded from this calculator.", "Calculate conduit supports", () -> {
+            double[] rule=conduitSupportRule(type.getValue(),integer(size));
+            double spacing=rule[0], near=rule[1], L=number(run);
+            int count=near>0?minimumStrapCount(L,spacing,near):Math.max(1,(int)Math.ceil(L/spacing));
+            return String.format("Raceway: %s%nTrade size: %d mm%nMaximum support spacing: %.2f m%nTermination fastening/support: %s%nEstimated minimum support points: %d%nReference: %s%n%nThis is a raceway-support calculation, not the NMD90/BX cable-strap formula. Verify actual installation geometry and exceptions.",
+                type.getValue(),integer(size),spacing,near>0?String.format("within %.2f m",near):"no separate end-distance entered by this worksheet",count,conduitSupportReference(type.getValue()));
+        }, row("Raceway type",type),row("Trade size (mm)",size),row("Straight run between terminations (m)",run));
+    }
+
+    private double[] conduitSupportRule(String t,int z){
         if(t.equals("Rigid metal conduit"))return new double[]{z<=21?1.5:z<=35?2:3,0};
         if(t.equals("EMT"))return new double[]{z<=21?1.5:z<=35?2:3,1};
         if(t.equals("Rigid PVC conduit"))return new double[]{z<=27?.75:z<=41?1.2:z<=53?1.5:z<=78?1.8:z<=129?2.1:2.5,0};
         if(t.equals("Flexible metal conduit")||t.equals("Liquid-tight flexible conduit"))return new double[]{1.5,.3};
         return new double[]{1,1};
+    }
+
+    private String conduitSupportReference(String t){
+        if(t.equals("Rigid metal conduit"))return "CEC 2024 Rule 12-1010";
+        if(t.equals("EMT"))return "CEC 2024 EMT support rule with Rule 12-1010 spacing";
+        if(t.equals("Rigid PVC conduit"))return "CEC 2024 Rule 12-1114";
+        if(t.equals("Flexible metal conduit"))return "CEC 2024 Rule 12-1010(3)";
+        if(t.equals("Liquid-tight flexible conduit"))return "CEC 2024 Rule 12-1308";
+        return "CEC 2024 ENT support rule";
     }
 
     private Node voltageDrop() {
