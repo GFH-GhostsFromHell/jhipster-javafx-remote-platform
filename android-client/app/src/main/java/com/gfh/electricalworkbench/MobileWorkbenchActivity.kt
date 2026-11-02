@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -210,6 +211,7 @@ private fun MobileLoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
     Box(
         Modifier.fillMaxSize()
             .background(Brush.linearGradient(listOf(Color(0xFF030712), MobileNavy, Color(0xFF0A3150))))
@@ -253,6 +255,27 @@ private fun MobileLoginScreen(
                             Spacer(Modifier.width(8.dp))
                             Text("Connecting…")
                         } else Text("Sign in to Electrical Workbench", fontWeight = FontWeight.Bold)
+                    }
+                    Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Create account") }
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Verify email") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Reset password") }
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Forgot username") }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.CloudDone, null, tint = if (cloudOk == true) MobileGood else MobileMuted)
@@ -347,6 +370,7 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
 
 @Composable
 private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit) {
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -355,6 +379,9 @@ private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, 
         Text("Full electrician workspace", color = MobileCyan, fontWeight = FontWeight.Bold)
         Text("The Android app now includes the major desktop workspaces instead of only calculators/profile.", color = MobileMuted)
         MobileFeatureCard("🧮 CEC 2024 Workbench", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
+        MobileFeatureCard("⚙ Engineering Power Systems", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
+            context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
+        }
         MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
         MobileFeatureCard("🤖 Ask ChatGPT", "Connect an eligible ChatGPT account and ask questions directly inside Electrical Workbench") { onSelected(MobileTab.ChatGPT) }
         MobileFeatureCard("🎓 Learn", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onSelected(MobileTab.More) }
@@ -378,7 +405,11 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 
 @Composable
 private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
+    val context = LocalContext.current
     MWPage("CEC 2024 Workbench", "Full calculation pages use the shared cloud calculation backend inside the app; Safety/Learn/Field/Projects/Career are native Android workspaces.") {
+        MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
+            context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
+        }
         MWHubCard("CEC calculator workspace", "Services, conductors, transformers, motors, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Visual conduit bender", "Offset, saddle and bend planning tools") { onOpenWeb("/bend-calcs.html") }
@@ -387,6 +418,7 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
 
 @Composable
 private fun MobileProfile(session: MobileSession, onOpenWeb: (String) -> Unit, onLogout: () -> Unit) {
+    val context = LocalContext.current
     MWPage("Profile & Settings", "Electrical Workbench account and app session.") {
         MWCard("Account") {
             Text("Display name: ${session.displayName}", color = MWText)
@@ -399,7 +431,13 @@ private fun MobileProfile(session: MobileSession, onOpenWeb: (String) -> Unit, o
         Button(onClick = { onOpenWeb("/portal.html") }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Person, null)
             Spacer(Modifier.width(8.dp))
-            Text("Manage profile & account")
+            Text("Profile, subscription & billing")
+        }
+        OutlinedButton(
+            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Account security & recovery")
         }
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Logout, null)
@@ -457,6 +495,7 @@ private fun MobileAuthenticatedWeb(session: MobileSession, path: String, onClose
                             settings.domStorageEnabled = true
                             settings.allowFileAccess = false
                             settings.allowContentAccess = false
+                            settings.cacheMode = WebSettings.LOAD_NO_CACHE
                             settings.textZoom = 105
                             CookieManager.getInstance().setAcceptCookie(true)
                             CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
