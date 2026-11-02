@@ -18,10 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Fully native JavaFX desktop shell. The cloud is used as an API/data service;
- * core electrician tools are not rendered as web pages or WebViews.
- */
+/** Native JavaFX Electrical Workbench shell. Cloud services provide data/APIs; core UI stays native. */
 public final class ElectricalWorkbenchNativeApp extends Application {
     private final PortalClient portal = new PortalClient();
     private final ObjectMapper json = new ObjectMapper();
@@ -40,15 +37,11 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     private static final String PRIMARY = "-fx-background-color:#0e7490;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:9;-fx-padding:10 14;";
     private static final String NAV = "-fx-background-color:transparent;-fx-text-fill:#dbeafe;-fx-font-weight:bold;-fx-font-size:13px;-fx-alignment:center-left;-fx-padding:11 13;-fx-background-radius:9;";
 
-    @Override
-    public void start(Stage stage) {
+    @Override public void start(Stage stage) {
         this.stage = stage;
         stage.setTitle("Electrical Workbench Desktop");
-        stage.setMinWidth(930);
-        stage.setMinHeight(640);
-        showLogin();
-        stage.show();
-        checkCloud();
+        stage.setMinWidth(980); stage.setMinHeight(680);
+        showLogin(); stage.show(); checkCloud();
     }
 
     private void checkCloud() {
@@ -58,310 +51,117 @@ public final class ElectricalWorkbenchNativeApp extends Application {
                 boolean ok = portal.health();
                 cloudStatus.setState(ok ? CloudConnectionState.ONLINE : CloudConnectionState.OFFLINE,
                     ok ? "Connected to " + portal.baseUrl() : "Cloud service is waking or unavailable");
-            } catch (Exception ex) {
-                cloudStatus.setState(CloudConnectionState.OFFLINE, ex.getMessage());
-            }
+            } catch (Exception ex) { cloudStatus.setState(CloudConnectionState.OFFLINE, ex.getMessage()); }
         });
     }
 
     private void showLogin() {
-        BorderPane root = new BorderPane();
-        root.setStyle(BG);
-
-        VBox hero = new VBox(17);
-        hero.setPadding(new Insets(58));
-        hero.setAlignment(Pos.CENTER_LEFT);
-        Label brand = new Label("ELECTRICAL WORKBENCH");
-        brand.setStyle("-fx-text-fill:#67e8f9;-fx-font-weight:bold;-fx-font-size:12px;");
-        Label title = new Label("A real JavaFX desktop app\nfor electrical work.");
+        BorderPane root = new BorderPane(); root.setStyle(BG);
+        VBox hero = new VBox(17); hero.setPadding(new Insets(58)); hero.setAlignment(Pos.CENTER_LEFT);
+        Label brand = new Label("ELECTRICAL WORKBENCH"); brand.setStyle("-fx-text-fill:#67e8f9;-fx-font-weight:bold;-fx-font-size:12px;");
+        Label title = new Label("A Canadian electrician workspace\nthat stays native JavaFX.");
         title.setStyle("-fx-text-fill:white;-fx-font-size:35px;-fx-font-weight:bold;");
-        Label detail = new Label("Calculators, voltage drop, PVC expansion, conduit bending and code news stay in the desktop application. The server supplies data and calculation results only.");
-        detail.setWrapText(true);
-        detail.setMaxWidth(440);
-        detail.setStyle("-fx-text-fill:#cbd5e1;-fx-font-size:15px;-fx-line-spacing:4px;");
-        HBox cloud = new HBox(cloudStatus);
-        cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:10;-fx-padding:5 8;");
-        hero.getChildren().addAll(brand, title, detail, cloud);
+        Label detail = new Label("CEC calculators, Red Seal study, field troubleshooting, project records, apprenticeship tracking and code news in one desktop application.");
+        detail.setWrapText(true); detail.setMaxWidth(455); detail.setStyle("-fx-text-fill:#cbd5e1;-fx-font-size:15px;-fx-line-spacing:4px;");
+        HBox cloud = new HBox(cloudStatus); cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:10;-fx-padding:5 8;");
+        hero.getChildren().addAll(brand,title,detail,cloud);
 
-        VBox loginCard = new VBox(12);
-        loginCard.setMaxWidth(390);
-        loginCard.setPadding(new Insets(34));
+        VBox loginCard = new VBox(12); loginCard.setMaxWidth(390); loginCard.setPadding(new Insets(34));
         loginCard.setStyle("-fx-background-color:white;-fx-background-radius:20;-fx-effect:dropshadow(gaussian,rgba(0,0,0,.24),28,0,0,10);");
-        Label loginTitle = new Label("Sign in");
-        loginTitle.setStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
+        Label loginTitle = new Label("Sign in"); loginTitle.setStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
         TextField username = new TextField(); username.setPromptText("Username"); username.setStyle(INPUT);
         PasswordField password = new PasswordField(); password.setPromptText("Password"); password.setStyle(INPUT);
         Label message = new Label(); message.setWrapText(true); message.setStyle("-fx-text-fill:#b91c1c;-fx-font-size:12px;");
         Button login = new Button("Sign in to Electrical Workbench"); login.setMaxWidth(Double.MAX_VALUE); login.setDefaultButton(true); login.setStyle(PRIMARY);
-
         login.setOnAction(e -> {
             login.setDisable(true); login.setText("Connecting…"); message.setText("");
-            String u = username.getText().trim(); String p = password.getText();
-            CompletableFuture.supplyAsync(() -> {
-                try { return portal.bootstrap(u, p); }
-                catch (Exception ex) { throw new RuntimeException(ex); }
-            }).whenComplete((body, err) -> Platform.runLater(() -> {
-                login.setDisable(false); login.setText("Sign in to Electrical Workbench");
-                if (err != null) {
-                    Throwable c = unwrap(err); message.setText(message(c)); cloudStatus.setState(CloudConnectionState.DEGRADED, "Sign-in failed"); return;
-                }
-                try {
-                    currentUsername = u; currentPassword = p; currentBootstrap = json.readTree(body);
-                    cloudStatus.setState(CloudConnectionState.AUTHENTICATED, "Authenticated as " + u);
-                    showWorkspace();
-                } catch (Exception ex) { message.setText("The cloud returned an invalid response."); }
-            }));
+            String u=username.getText().trim(), p=password.getText();
+            CompletableFuture.supplyAsync(() -> { try { return portal.bootstrap(u,p); } catch(Exception ex){ throw new RuntimeException(ex); } })
+                .whenComplete((body,err)->Platform.runLater(()->{
+                    login.setDisable(false); login.setText("Sign in to Electrical Workbench");
+                    if(err!=null){Throwable c=unwrap(err);message.setText(message(c));cloudStatus.setState(CloudConnectionState.DEGRADED,"Sign-in failed");return;}
+                    try{currentUsername=u;currentPassword=p;currentBootstrap=json.readTree(body);cloudStatus.setState(CloudConnectionState.AUTHENTICATED,"Authenticated as "+u);showWorkspace();}
+                    catch(Exception ex){message.setText("The cloud returned an invalid response.");}
+                }));
         });
+        loginCard.getChildren().addAll(loginTitle,new Label("Use your Electrical Workbench account."),fieldLabel("Username"),username,fieldLabel("Password"),password,login,message);
 
-        loginCard.getChildren().addAll(loginTitle, new Label("Use your Electrical Workbench account."), fieldLabel("Username"), username,
-            fieldLabel("Password"), password, login, message);
-
-        GridPane layout = new GridPane();
-        ColumnConstraints left = new ColumnConstraints(); left.setPercentWidth(55);
-        ColumnConstraints right = new ColumnConstraints(); right.setPercentWidth(45);
-        layout.getColumnConstraints().addAll(left, right);
-        layout.add(hero, 0, 0);
-        StackPane wrap = new StackPane(loginCard); wrap.setPadding(new Insets(40));
-        layout.add(wrap, 1, 0);
-        root.setCenter(layout);
-        stage.setScene(new Scene(root, 1020, 660));
+        GridPane layout=new GridPane();ColumnConstraints left=new ColumnConstraints();left.setPercentWidth(55);ColumnConstraints right=new ColumnConstraints();right.setPercentWidth(45);layout.getColumnConstraints().addAll(left,right);layout.add(hero,0,0);StackPane wrap=new StackPane(loginCard);wrap.setPadding(new Insets(40));layout.add(wrap,1,0);root.setCenter(layout);
+        stage.setScene(new Scene(root,1040,680));
     }
 
     private void showWorkspace() {
-        BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color:#eef3f8;");
+        BorderPane root=new BorderPane();root.setStyle("-fx-background-color:#eef3f8;");
+        HBox top=new HBox(12);top.setAlignment(Pos.CENTER_LEFT);top.setPadding(new Insets(12,18,12,18));top.setStyle("-fx-background-color:linear-gradient(to right,#050b14,#0b2743,#0e7490);");
+        Label brand=new Label("⚡ Electrical Workbench Canada");brand.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
+        Label version=new Label("v"+updater.currentVersion());version.setStyle("-fx-text-fill:#a5f3fc;-fx-font-size:11px;");Region push=new Region();HBox.setHgrow(push,Priority.ALWAYS);
+        Button update=new Button("Checking updates…");update.setVisible(false);update.setManaged(false);update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:8;-fx-padding:7 10;");
+        HBox cloud=new HBox(cloudStatus);cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:9;-fx-padding:4 7;");
+        Button logout=new Button("Sign out");logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");logout.setOnAction(e->{currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
+        top.getChildren().addAll(brand,version,push,update,cloud,logout);root.setTop(top);checkForUpdates(update);
 
-        HBox top = new HBox(12);
-        top.setAlignment(Pos.CENTER_LEFT);
-        top.setPadding(new Insets(12, 18, 12, 18));
-        top.setStyle("-fx-background-color:linear-gradient(to right,#050b14,#0b2743,#0e7490);");
-        Label brand = new Label("⚡ Electrical Workbench Desktop");
-        brand.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
-        Label version = new Label("v" + updater.currentVersion());
-        version.setStyle("-fx-text-fill:#a5f3fc;-fx-font-size:11px;");
-        Region push = new Region(); HBox.setHgrow(push, Priority.ALWAYS);
-        Button update = new Button("Checking updates…");
-        update.setVisible(false); update.setManaged(false);
-        update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:8;-fx-padding:7 10;");
-        HBox cloud = new HBox(cloudStatus); cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:9;-fx-padding:4 7;");
-        Button logout = new Button("Sign out");
-        logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");
-        logout.setOnAction(e -> { currentUsername=null; currentPassword=null; currentBootstrap=null; showLogin(); checkCloud(); });
-        top.getChildren().addAll(brand, version, push, update, cloud, logout);
-        root.setTop(top);
-        checkForUpdates(update);
+        VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");
+        Label navTitle=new Label("WORKSPACE");navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
+        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), profile=navButton("👤  Profile");
+        nav.getChildren().addAll(navTitle,home,calculators,learn,field,projects,career,news,profile);root.setLeft(nav);
 
-        VBox nav = new VBox(7);
-        nav.setPadding(new Insets(18, 12, 18, 12));
-        nav.setPrefWidth(215);
-        nav.setStyle("-fx-background-color:#07111f;");
-        Label navTitle = new Label("WORKSPACE"); navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
-        Button home = navButton("⌂  Home");
-        Button calculators = navButton("🧮  Calculators");
-        Button news = navButton("⚡  Code News");
-        Button profile = navButton("👤  Profile");
-        nav.getChildren().addAll(navTitle, home, calculators, news, profile);
-        root.setLeft(nav);
-
-        workspace = new StackPane(); workspace.setPadding(new Insets(22)); root.setCenter(workspace);
-        home.setOnAction(e -> setWorkspace(buildHome()));
-        calculators.setOnAction(e -> setWorkspace(buildCalculators()));
-        news.setOnAction(e -> setWorkspace(buildNews()));
-        profile.setOnAction(e -> setWorkspace(buildProfile()));
-        setWorkspace(buildHome());
-
-        stage.setScene(new Scene(root, 1220, 790));
+        workspace=new StackPane();workspace.setPadding(new Insets(22));root.setCenter(workspace);
+        home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
+        stage.setScene(new Scene(root,1320,830));
     }
 
     private Node buildHome() {
-        JsonNode account = currentBootstrap.path("user");
-        String name = account.path("displayName").asText(account.path("username").asText("user"));
-        String tier = account.path("subscriptionTier").asText("TIER_1").replace('_',' ');
-
-        VBox page = new VBox(18);
-        Label hello = new Label("Welcome, " + name);
-        hello.setStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label tierLabel = new Label(tier);
-        tierLabel.setStyle("-fx-background-color:#cffafe;-fx-text-fill:#155e75;-fx-background-radius:999;-fx-padding:5 9;-fx-font-weight:bold;");
-        HBox head = new HBox(12, hello, tierLabel); head.setAlignment(Pos.CENTER_LEFT);
-        Label note = new Label("The electrician workspace is native JavaFX again. Core tools no longer redirect to the web application.");
-        note.setWrapText(true); note.setStyle("-fx-text-fill:#64748b;-fx-font-size:14px;");
-
-        TilePane tiles = new TilePane(); tiles.setHgap(12); tiles.setVgap(12); tiles.setPrefColumns(2);
+        JsonNode account=currentBootstrap.path("user");String name=account.path("displayName").asText(account.path("username").asText("user"));String tier=account.path("subscriptionTier").asText("TIER_1").replace('_',' ');
+        VBox page=new VBox(18);Label hello=new Label("Welcome, "+name);hello.setStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label tierLabel=new Label(tier);tierLabel.setStyle("-fx-background-color:#cffafe;-fx-text-fill:#155e75;-fx-background-radius:999;-fx-padding:5 9;-fx-font-weight:bold;");HBox head=new HBox(12,hello,tierLabel);head.setAlignment(Pos.CENTER_LEFT);
+        Label note=new Label("Workbench handles CEC calculations; Learn, Field, Projects and Career turn the app into an everyday electrician/apprentice workspace. Most personal records work offline.");note.setWrapText(true);note.setStyle("-fx-text-fill:#64748b;-fx-font-size:14px;");
+        TilePane tiles=new TilePane();tiles.setHgap(12);tiles.setVgap(12);tiles.setPrefColumns(2);
         tiles.getChildren().addAll(
-            tile("🧮 Electrical Calculators", "Transformers, motors, capacitor banks, refrigeration, welders and taps", () -> setWorkspace(buildCalculators())),
-            tile("📐 Voltage Drop & D3 Worksheet", "Voltage drop, maximum conductor length and K-factor calculations", () -> setWorkspace(buildCalculators())),
-            tile("↪ Conduit Bending", "Two-bend offsets, 3-point saddles and 90° stub marks", () -> setWorkspace(buildCalculators())),
-            tile("⚡ CEC / OESC Code News", "Live ESA public bulletins and code notices in native JavaFX", () -> setWorkspace(buildNews()))
+            tile("🧮 CEC 2024 Workbench","Full section-based calculators: services, busbars, motors, transformers, wiring, fire alarm, welders and more",()->setWorkspace(buildCalculators())),
+            tile("🎓 Learn & Daily 25","Red Seal daily quiz, CEC navigator, formulas, control trainer and province profile",()->setWorkspace(buildPlatform("Learn"))),
+            tile("🛠 Field Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
+            tile("📁 Project Workspace","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
+            tile("📈 Career & Apprenticeship","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
+            tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))
         );
-
-        VBox info = new VBox(8);
-        info.setPadding(new Insets(18)); info.setStyle(CARD);
-        Label infoTitle = new Label("How the desktop app works"); infoTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label infoText = new Label("The user interface is JavaFX. Calculation requests can use the cloud calculation engine so formulas and future CEC datasets can be updated without replacing the UI. Only an official-source news link opens your normal browser when you explicitly click it.");
-        infoText.setWrapText(true); infoText.setStyle("-fx-text-fill:#475569;-fx-line-spacing:3px;");
-        info.getChildren().addAll(infoTitle, infoText);
-
-        page.getChildren().addAll(head, note, tiles, info);
-        ScrollPane scroll = new ScrollPane(page); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
-        return scroll;
+        VBox info=new VBox(8);info.setPadding(new Insets(18));info.setStyle(CARD);Label infoTitle=new Label("Native desktop architecture");infoTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label infoText=new Label("The UI remains JavaFX. Calculations can use cloud APIs, while quiz history, projects, field sheets, apprenticeship hours and credentials are stored locally for offline use. External websites open only when you explicitly choose an official-source link.");infoText.setWrapText(true);infoText.setStyle("-fx-text-fill:#475569;-fx-line-spacing:3px;");info.getChildren().addAll(infoTitle,infoText);
+        page.getChildren().addAll(head,note,tiles,info);ScrollPane scroll=new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");return scroll;
     }
 
-    private Node buildCalculators() {
-        return new NativeCalculatorPane(portal, json, currentUsername, currentPassword);
-    }
+    private Node buildCalculators(){return new NativeCalculatorPane(portal,json,currentUsername,currentPassword);}
+    private Node buildPlatform(String area){return new ElectricianPlatformPane(json,currentUsername,area);}
 
     private Node buildNews() {
-        VBox root = new VBox(13);
-        Label title = new Label("CEC 2024 & Ontario Code News");
-        title.setStyle("-fx-font-size:25px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label sub = new Label("Native JavaFX feed using the same ESA/OESC backend data. Official source pages open only when you choose Open source.");
-        sub.setWrapText(true); sub.setStyle("-fx-text-fill:#64748b;");
-        HBox controls = new HBox(9); controls.setAlignment(Pos.CENTER_LEFT);
-        ComboBox<String> filter = new ComboBox<>(); filter.getItems().addAll("All", "Urgent", "Important", "Technical", "Info", "OESC Bulletin", "CEC/OESC Code Notice"); filter.setValue("All");
-        Button refresh = new Button("Refresh"); refresh.setStyle(PRIMARY);
-        Label checked = new Label("Loading…"); checked.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");
-        controls.getChildren().addAll(filter, refresh, checked);
-        VBox feed = new VBox(10);
-        ScrollPane scroll = new ScrollPane(feed); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;"); VBox.setVgrow(scroll, Priority.ALWAYS);
-        JsonNode[] snapshot = {null};
-
-        Runnable render = () -> {
-            feed.getChildren().clear();
-            if (snapshot[0] == null) return;
-            for (JsonNode item : snapshot[0].path("items")) {
-                String selected = filter.getValue();
-                String severity = item.path("severity").asText("");
-                String type = item.path("type").asText("");
-                boolean show = "All".equals(selected) || selected.equalsIgnoreCase(severity) || selected.equals(type);
-                if (!show) continue;
-                feed.getChildren().add(newsCard(item));
-            }
-            if (feed.getChildren().isEmpty()) feed.getChildren().add(new Label("No news items match this filter."));
-        };
-
-        Runnable load = () -> {
-            refresh.setDisable(true); checked.setText("Loading…"); feed.getChildren().setAll(new Label("Loading code news…"));
-            CompletableFuture.supplyAsync(() -> {
-                try { return portal.electricalNews(); } catch (Exception ex) { throw new RuntimeException(ex); }
-            }).whenComplete((body, err) -> Platform.runLater(() -> {
-                refresh.setDisable(false);
-                if (err != null) { checked.setText("Feed unavailable"); feed.getChildren().setAll(new Label(message(unwrap(err)))); return; }
-                try {
-                    snapshot[0] = json.readTree(body);
-                    checked.setText("Last backend poll: " + snapshot[0].path("polledAt").asText("unknown"));
-                    render.run();
-                } catch (Exception ex) { checked.setText("Invalid feed response"); }
-            }));
-        };
-        refresh.setOnAction(e -> load.run());
-        filter.setOnAction(e -> render.run());
-        root.getChildren().addAll(title, sub, controls, scroll);
-        Platform.runLater(load);
-        return root;
+        VBox root=new VBox(13);Label title=new Label("CEC 2024 & Ontario Code News");title.setStyle("-fx-font-size:25px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label sub=new Label("Native JavaFX feed using the ESA/OESC backend data. Official source pages open only when you choose Open official source.");sub.setWrapText(true);sub.setStyle("-fx-text-fill:#64748b;");
+        HBox controls=new HBox(9);controls.setAlignment(Pos.CENTER_LEFT);ComboBox<String> filter=new ComboBox<>();filter.getItems().addAll("All","Urgent","Important","Technical","Info","OESC Bulletin","CEC/OESC Code Notice");filter.setValue("All");Button refresh=new Button("Refresh");refresh.setStyle(PRIMARY);Label checked=new Label("Loading…");checked.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");controls.getChildren().addAll(filter,refresh,checked);
+        VBox feed=new VBox(10);ScrollPane scroll=new ScrollPane(feed);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");VBox.setVgrow(scroll,Priority.ALWAYS);JsonNode[] snapshot={null};
+        Runnable render=()->{feed.getChildren().clear();if(snapshot[0]==null)return;for(JsonNode item:snapshot[0].path("items")){String selected=filter.getValue(),severity=item.path("severity").asText(""),type=item.path("type").asText("");boolean show="All".equals(selected)||selected.equalsIgnoreCase(severity)||selected.equals(type);if(show)feed.getChildren().add(newsCard(item));}if(feed.getChildren().isEmpty())feed.getChildren().add(new Label("No news items match this filter."));};
+        Runnable load=()->{refresh.setDisable(true);checked.setText("Loading…");feed.getChildren().setAll(new Label("Loading code news…"));CompletableFuture.supplyAsync(()->{try{return portal.electricalNews();}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((body,err)->Platform.runLater(()->{refresh.setDisable(false);if(err!=null){checked.setText("Feed unavailable");feed.getChildren().setAll(new Label(message(unwrap(err))));return;}try{snapshot[0]=json.readTree(body);checked.setText("Last backend poll: "+snapshot[0].path("polledAt").asText("unknown"));render.run();}catch(Exception ex){checked.setText("Invalid feed response");}}));};
+        refresh.setOnAction(e->load.run());filter.setOnAction(e->render.run());root.getChildren().addAll(title,sub,controls,scroll);Platform.runLater(load);return root;
     }
 
     private Node newsCard(JsonNode item) {
-        VBox card = new VBox(7); card.setPadding(new Insets(15)); card.setStyle(CARD);
-        String severity = item.path("severity").asText("INFO");
-        Label meta = new Label(severity + "  •  " + item.path("type").asText("") + "  •  " + item.path("dateLabel").asText(""));
-        meta.setStyle("-fx-text-fill:#0e7490;-fx-font-size:11px;-fx-font-weight:bold;");
-        Label title = new Label(item.path("title").asText("Untitled")); title.setWrapText(true); title.setStyle("-fx-font-size:16px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label summary = new Label(item.path("summary").asText("")); summary.setWrapText(true); summary.setStyle("-fx-text-fill:#475569;");
-        HBox bottom = new HBox(10); bottom.setAlignment(Pos.CENTER_LEFT);
-        Label source = new Label(item.path("source").asText("")); source.setStyle("-fx-text-fill:#64748b;-fx-font-size:11px;");
-        Button open = new Button("Open official source");
-        open.setOnAction(e -> { String url=item.path("url").asText(""); if(!url.isBlank()) getHostServices().showDocument(url); });
-        bottom.getChildren().addAll(open, source);
-        card.getChildren().addAll(meta, title, summary, bottom);
-        return card;
+        VBox card=new VBox(7);card.setPadding(new Insets(15));card.setStyle(CARD);String severity=item.path("severity").asText("INFO");Label meta=new Label(severity+"  •  "+item.path("type").asText("")+"  •  "+item.path("dateLabel").asText(""));meta.setStyle("-fx-text-fill:#0e7490;-fx-font-size:11px;-fx-font-weight:bold;");Label title=new Label(item.path("title").asText("Untitled"));title.setWrapText(true);title.setStyle("-fx-font-size:16px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label summary=new Label(item.path("summary").asText(""));summary.setWrapText(true);summary.setStyle("-fx-text-fill:#475569;");HBox bottom=new HBox(10);bottom.setAlignment(Pos.CENTER_LEFT);Label source=new Label(item.path("source").asText(""));source.setStyle("-fx-text-fill:#64748b;-fx-font-size:11px;");Button open=new Button("Open official source");open.setOnAction(e->{String url=item.path("url").asText("");if(!url.isBlank())getHostServices().showDocument(url);});bottom.getChildren().addAll(open,source);card.getChildren().addAll(meta,title,summary,bottom);return card;
     }
 
     private Node buildProfile() {
-        JsonNode account = currentBootstrap.path("user");
-        VBox root = new VBox(14);
-        Label title = new Label("Profile"); title.setStyle("-fx-font-size:25px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        VBox profile = new VBox(10); profile.setPadding(new Insets(18)); profile.setStyle(CARD); profile.setMaxWidth(650);
-        TextField name = new TextField(account.path("displayName").asText("")); name.setStyle(INPUT);
-        TextField email = new TextField(account.path("email").asText("")); email.setStyle(INPUT);
-        Label saveStatus = new Label(); saveStatus.setWrapText(true);
-        Button save = new Button("Save profile"); save.setStyle(PRIMARY);
-        save.setOnAction(e -> {
-            save.setDisable(true); saveStatus.setText("Saving…");
-            try {
-                String payload = json.writeValueAsString(Map.of("displayName", name.getText(), "email", email.getText(), "avatarData", account.path("avatarData").asText("")));
-                CompletableFuture.supplyAsync(() -> {
-                    try { return portal.updateProfile(currentUsername, currentPassword, payload); } catch(Exception ex) { throw new RuntimeException(ex); }
-                }).whenComplete((body, err) -> Platform.runLater(() -> {
-                    save.setDisable(false);
-                    if(err!=null){saveStatus.setText(message(unwrap(err)));return;}
-                    try { ((ObjectNode)currentBootstrap).set("user", json.readTree(body)); saveStatus.setText("Profile saved."); }
-                    catch(Exception ex){saveStatus.setText("Saved, but could not refresh the local profile.");}
-                }));
-            } catch(Exception ex){save.setDisable(false);saveStatus.setText(ex.getMessage());}
-        });
-        profile.getChildren().addAll(fieldLabel("Display name"), name, fieldLabel("Email"), email, save, saveStatus);
-
-        VBox password = new VBox(10); password.setPadding(new Insets(18)); password.setStyle(CARD); password.setMaxWidth(650);
-        Label pwTitle = new Label("Change password"); pwTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;");
-        PasswordField current = new PasswordField(); current.setPromptText("Current password"); current.setStyle(INPUT);
-        PasswordField next = new PasswordField(); next.setPromptText("New password"); next.setStyle(INPUT);
-        Label pwStatus = new Label(); pwStatus.setWrapText(true);
-        Button change = new Button("Change password"); change.setStyle(PRIMARY);
-        change.setOnAction(e -> {
-            change.setDisable(true); pwStatus.setText("Changing…");
-            try {
-                String payload=json.writeValueAsString(Map.of("currentPassword",current.getText(),"newPassword",next.getText()));
-                CompletableFuture.runAsync(() -> { try { portal.changePassword(currentUsername,currentPassword,payload); } catch(Exception ex){ throw new RuntimeException(ex);} })
-                    .whenComplete((v,err)->Platform.runLater(()->{
-                        change.setDisable(false); if(err!=null){pwStatus.setText(message(unwrap(err)));return;}
-                        currentPassword=next.getText(); current.clear(); next.clear(); pwStatus.setText("Password changed.");
-                    }));
-            } catch(Exception ex){change.setDisable(false);pwStatus.setText(ex.getMessage());}
-        });
-        password.getChildren().addAll(pwTitle,current,next,change,pwStatus);
-        root.getChildren().addAll(title, profile, password);
-        ScrollPane scroll = new ScrollPane(root); scroll.setFitToWidth(true); scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
-        return scroll;
+        JsonNode account=currentBootstrap.path("user");VBox root=new VBox(14);Label title=new Label("Profile");title.setStyle("-fx-font-size:25px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
+        VBox profile=new VBox(10);profile.setPadding(new Insets(18));profile.setStyle(CARD);profile.setMaxWidth(650);TextField name=new TextField(account.path("displayName").asText(""));name.setStyle(INPUT);TextField email=new TextField(account.path("email").asText(""));email.setStyle(INPUT);Label saveStatus=new Label();saveStatus.setWrapText(true);Button save=new Button("Save profile");save.setStyle(PRIMARY);
+        save.setOnAction(e->{save.setDisable(true);saveStatus.setText("Saving…");try{String payload=json.writeValueAsString(Map.of("displayName",name.getText(),"email",email.getText(),"avatarData",account.path("avatarData").asText("")));CompletableFuture.supplyAsync(()->{try{return portal.updateProfile(currentUsername,currentPassword,payload);}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((body,err)->Platform.runLater(()->{save.setDisable(false);if(err!=null){saveStatus.setText(message(unwrap(err)));return;}try{((ObjectNode)currentBootstrap).set("user",json.readTree(body));saveStatus.setText("Profile saved.");}catch(Exception ex){saveStatus.setText("Saved, but could not refresh the local profile.");}}));}catch(Exception ex){save.setDisable(false);saveStatus.setText(ex.getMessage());}});
+        profile.getChildren().addAll(fieldLabel("Display name"),name,fieldLabel("Email"),email,save,saveStatus);
+        VBox password=new VBox(10);password.setPadding(new Insets(18));password.setStyle(CARD);password.setMaxWidth(650);Label pwTitle=new Label("Change password");pwTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;");PasswordField current=new PasswordField();current.setPromptText("Current password");current.setStyle(INPUT);PasswordField next=new PasswordField();next.setPromptText("New password");next.setStyle(INPUT);Label pwStatus=new Label();pwStatus.setWrapText(true);Button change=new Button("Change password");change.setStyle(PRIMARY);
+        change.setOnAction(e->{change.setDisable(true);pwStatus.setText("Changing…");try{String payload=json.writeValueAsString(Map.of("currentPassword",current.getText(),"newPassword",next.getText()));CompletableFuture.runAsync(()->{try{portal.changePassword(currentUsername,currentPassword,payload);}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((v,err)->Platform.runLater(()->{change.setDisable(false);if(err!=null){pwStatus.setText(message(unwrap(err)));return;}currentPassword=next.getText();current.clear();next.clear();pwStatus.setText("Password changed.");}));}catch(Exception ex){change.setDisable(false);pwStatus.setText(ex.getMessage());}});
+        password.getChildren().addAll(pwTitle,current,next,change,pwStatus);root.getChildren().addAll(title,profile,password);ScrollPane scroll=new ScrollPane(root);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");return scroll;
     }
 
-    private Button navButton(String text) {
-        Button b = new Button(text); b.setMaxWidth(Double.MAX_VALUE); b.setStyle(NAV); return b;
-    }
+    private Button navButton(String text){Button b=new Button(text);b.setMaxWidth(Double.MAX_VALUE);b.setStyle(NAV);return b;}
+    private Button tile(String title,String detail,Runnable action){Button b=new Button(title+"\n"+detail);b.setWrapText(true);b.setPrefWidth(460);b.setPrefHeight(95);b.setMaxWidth(Double.MAX_VALUE);b.setAlignment(Pos.CENTER_LEFT);b.setStyle("-fx-background-color:white;-fx-text-fill:#0f172a;-fx-font-weight:bold;-fx-background-radius:14;-fx-border-color:#dbe5ef;-fx-border-radius:14;-fx-padding:17 19;-fx-font-size:14px;");b.setOnAction(e->action.run());return b;}
+    private void setWorkspace(Node node){workspace.getChildren().setAll(node);}
 
-    private Button tile(String title, String detail, Runnable action) {
-        Button b = new Button(title + "\n" + detail);
-        b.setWrapText(true); b.setPrefWidth(440); b.setPrefHeight(88); b.setMaxWidth(Double.MAX_VALUE); b.setAlignment(Pos.CENTER_LEFT);
-        b.setStyle("-fx-background-color:white;-fx-text-fill:#0f172a;-fx-font-weight:bold;-fx-background-radius:14;-fx-border-color:#dbe5ef;-fx-border-radius:14;-fx-padding:17 19;-fx-font-size:14px;");
-        b.setOnAction(e -> action.run()); return b;
-    }
+    private void checkForUpdates(Button button){CompletableFuture.supplyAsync(()->{try{return updater.check();}catch(Exception ex){return null;}}).thenAccept(info->Platform.runLater(()->{if(info==null||!info.updateAvailable())return;button.setText("Update v"+info.latestVersion());button.setVisible(true);button.setManaged(true);button.setOnAction(e->installUpdate(info,button));}));}
+    private void installUpdate(UpdateService.UpdateInfo info,Button button){Alert confirm=new Alert(Alert.AlertType.CONFIRMATION);confirm.initOwner(stage);confirm.setTitle("Update Electrical Workbench");confirm.setHeaderText("Install version "+info.latestVersion()+"?");confirm.setContentText("The MSI will download, verify, install, and relaunch the desktop app.");Optional<ButtonType> answer=confirm.showAndWait();if(answer.isEmpty()||answer.get()!=ButtonType.OK)return;button.setDisable(true);button.setText("Downloading…");CompletableFuture.supplyAsync(()->{try{return updater.downloadAndVerify(info);}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((msi,err)->Platform.runLater(()->{if(err!=null){button.setDisable(false);button.setText("Update v"+info.latestVersion());new Alert(Alert.AlertType.ERROR,message(unwrap(err))).showAndWait();return;}try{updater.launchInstallerAndRelaunch(msi);Platform.exit();}catch(Exception ex){button.setDisable(false);new Alert(Alert.AlertType.ERROR,ex.getMessage()).showAndWait();}}));}
 
-    private void setWorkspace(Node node) { workspace.getChildren().setAll(node); }
-
-    private void checkForUpdates(Button button) {
-        CompletableFuture.supplyAsync(() -> { try { return updater.check(); } catch(Exception ex){ return null; } })
-            .thenAccept(info -> Platform.runLater(() -> {
-                if(info==null || !info.updateAvailable()) return;
-                button.setText("Update v"+info.latestVersion()); button.setVisible(true); button.setManaged(true); button.setOnAction(e -> installUpdate(info,button));
-            }));
-    }
-
-    private void installUpdate(UpdateService.UpdateInfo info, Button button) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.initOwner(stage); confirm.setTitle("Update Electrical Workbench"); confirm.setHeaderText("Install version " + info.latestVersion() + "?");
-        confirm.setContentText("The MSI will download, verify, install, and relaunch the desktop app.");
-        Optional<ButtonType> answer = confirm.showAndWait(); if(answer.isEmpty() || answer.get()!=ButtonType.OK) return;
-        button.setDisable(true); button.setText("Downloading…");
-        CompletableFuture.supplyAsync(() -> { try{return updater.downloadAndVerify(info);}catch(Exception ex){throw new RuntimeException(ex);} })
-            .whenComplete((msi,err)->Platform.runLater(()->{
-                if(err!=null){button.setDisable(false);button.setText("Update v"+info.latestVersion());new Alert(Alert.AlertType.ERROR,message(unwrap(err))).showAndWait();return;}
-                try{updater.launchInstallerAndRelaunch(msi);Platform.exit();}catch(Exception ex){button.setDisable(false);new Alert(Alert.AlertType.ERROR,ex.getMessage()).showAndWait();}
-            }));
-    }
-
-    private static Label fieldLabel(String text) { Label l = new Label(text); l.setStyle("-fx-font-weight:bold;-fx-text-fill:#334155;-fx-font-size:12px;"); return l; }
+    private static Label fieldLabel(String text){Label l=new Label(text);l.setStyle("-fx-font-weight:bold;-fx-text-fill:#334155;-fx-font-size:12px;");return l;}
     private static Throwable unwrap(Throwable t){Throwable c=t;while(c.getCause()!=null&&c!=c.getCause())c=c.getCause();return c;}
     private static String message(Throwable t){return t.getMessage()==null?t.getClass().getSimpleName():t.getMessage();}
-
-    public static void main(String[] args) { launch(args); }
+    public static void main(String[] args){launch(args);}
 }
