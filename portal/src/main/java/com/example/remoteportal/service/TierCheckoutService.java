@@ -161,14 +161,15 @@ public class TierCheckoutService {
     Integer seen = db.queryForObject("select count(*) from stripe_event_log where event_id=?", Integer.class, event.getId());
     if (seen != null && seen > 0) return;
 
+    Instant eventTime = event.getCreated() == null ? Instant.now() : Instant.ofEpochSecond(event.getCreated());
     StripeObject object = event.getDataObjectDeserializer().getObject().orElse(null);
     if (object != null) {
       switch (event.getType()) {
         case "checkout.session.completed" -> {
-          if (object instanceof Session session) handleCheckoutCompleted(session);
+          if (object instanceof Session session) handleCheckoutCompleted(session, eventTime);
         }
         case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted" -> {
-          if (object instanceof Subscription subscription) handleSubscription(subscription);
+          if (object instanceof Subscription subscription) handleSubscription(subscription, eventTime);
         }
         default -> { }
       }
@@ -178,7 +179,7 @@ public class TierCheckoutService {
         event.getId(), event.getType(), Timestamp.from(Instant.now()));
   }
 
-  private void handleCheckoutCompleted(Session session) {
+  private void handleCheckoutCompleted(Session session, Instant eventTime) {
     if (!"subscription".equalsIgnoreCase(session.getMode())) return;
     String username = firstNonBlank(session.getClientReferenceId(), metadata(session.getMetadata(), "username"));
     String tier = normalizeNullable(metadata(session.getMetadata(), "tier"));
@@ -187,10 +188,10 @@ public class TierCheckoutService {
     String customerId = clean(session.getCustomer());
     String subscriptionId = clean(session.getSubscription());
     boolean paid = "paid".equalsIgnoreCase(session.getPaymentStatus()) || "no_payment_required".equalsIgnoreCase(session.getPaymentStatus());
-    syncState(username, customerId, subscriptionId, tier, paid ? "active" : "pending", paid ? Access.GRANT : Access.KEEP);
+    syncState(username, customerId, subscriptionId, tier, paid ? "active" : "pending", paid ? Access.GRANT : Access.KEEP, eventTime);
   }
 
-  private void handleSubscription(Subscription subscription) {
+  private void handleSubscription(Subscription subscription, Instant eventTime) {
     String customerId = clean(subscription.getCustomer());
     String subscriptionId = clean(subscription.getId());
     String username = firstNonBlank(metadata(subscription.getMetadata(), "username"), findUsername(customerId, subscriptionId));
@@ -206,25 +207,26 @@ public class TierCheckoutService {
       case "canceled", "unpaid", "incomplete_expired", "paused" -> Access.REVOKE;
       default -> Access.KEEP;
     };
-    syncState(username, customerId, subscriptionId, tier, status, access);
+    syncState(username, customerId, subscriptionId, tier, status, access, eventTime);
   }
 
-  private void syncState(String username, String customerId, String subscriptionId, String tier, String status, Access access) {
+  private void syncState(String username, String customerId, String subscriptionId, String tier, String status, Access access, Instant eventTime) {
     String t = normalize(tier);
-    Timestamp now = Timestamp.from(Instant.now());
+    Timestamp updated = Timestamp.from(eventTime == null ? Instant.now() : eventTime);
     String customer = clean(customerId);
     String subscription = clean(subscriptionId);
     String s = clean(status);
+    String freshness = "lower(username)=lower(?) and (stripe_updated_at is null or stripe_updated_at<=?)";
 
     if (access == Access.GRANT) {
-      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=?,subscription_tier=?,requested_tier=? where lower(username)=lower(?)",
-          customer, subscription, s, t, now, t, t, username);
+      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=?,subscription_tier=?,requested_tier=? where " + freshness,
+          customer, subscription, s, t, updated, t, t, username, updated);
     } else if (access == Access.REVOKE) {
-      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=?,subscription_tier='TIER_1' where lower(username)=lower(?)",
-          customer, subscription, s, t, now, username);
+      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=?,subscription_tier='TIER_1' where " + freshness,
+          customer, subscription, s, t, updated, username, updated);
     } else {
-      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=? where lower(username)=lower(?)",
-          customer, subscription, s, t, now, username);
+      db.update("update client_account set stripe_customer_id=coalesce(nullif(?,''),stripe_customer_id),stripe_subscription_id=coalesce(nullif(?,''),stripe_subscription_id),stripe_subscription_status=?,stripe_subscription_tier=?,stripe_updated_at=? where " + freshness,
+          customer, subscription, s, t, updated, username, updated);
     }
   }
 
