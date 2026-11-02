@@ -102,11 +102,11 @@ public final class ElectricalWorkbenchNativeApp extends Application {
 
         VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");
         Label navTitle=new Label("WORKSPACE");navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
-        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), profile=navButton("👤  Profile");
-        nav.getChildren().addAll(navTitle,home,calculators,learn,field,safety,projects,career,news,profile);root.setLeft(nav);
+        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), chatgpt=navButton("🤖  Ask ChatGPT"), profile=navButton("👤  Profile");
+        nav.getChildren().addAll(navTitle,home,calculators,learn,field,safety,projects,career,news,chatgpt,profile);root.setLeft(nav);
 
         workspace=new StackPane();workspace.setPadding(new Insets(22));root.setCenter(workspace);
-        home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));safety.setOnAction(e->setWorkspace(buildSafety()));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
+        home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));safety.setOnAction(e->setWorkspace(buildSafety()));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));chatgpt.setOnAction(e->setWorkspace(AskChatGptView.create(currentUsername)));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
         stage.setScene(new Scene(root,1320,830));
     }
 
@@ -122,6 +122,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
             tile("🦺 Electrical Safety","PPE rating checks, approach-distance planning, unsafe-condition photos, glove testing and safety-equipment maintenance",()->setWorkspace(buildSafety())),
             tile("📁 Project Workspace","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
             tile("📈 Career & Apprenticeship","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
+            tile("🤖 Ask ChatGPT","Connect your ChatGPT account and use an eligible ChatGPT plan in a native JavaFX chat workspace",()->setWorkspace(AskChatGptView.create(currentUsername))),
             tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))
         );
         VBox info=new VBox(8);info.setPadding(new Insets(18));info.setStyle(CARD);Label infoTitle=new Label("Native desktop architecture");infoTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label infoText=new Label("The UI remains JavaFX. Calculations can use cloud APIs, while quiz history, projects, field sheets, apprenticeship hours and credentials are stored locally for offline use. External websites open only when you explicitly choose an official-source link.");infoText.setWrapText(true);infoText.setStyle("-fx-text-fill:#475569;-fx-line-spacing:3px;");info.getChildren().addAll(infoTitle,infoText);
