@@ -13,7 +13,7 @@ public final class Launcher {
     public static void main(String[] args) {
         startPreLoginUpdateCheck();
         try {
-            ElectricalWorkbenchDesktopApp.main(args);
+            ElectricalWorkbenchNativeApp.main(args);
         } catch (Throwable t) {
             t.printStackTrace();
             try {
@@ -28,11 +28,6 @@ public final class Launcher {
         }
     }
 
-    /**
-     * Checks the public release endpoint as soon as the packaged client starts,
-     * before authentication. The check is deliberately non-blocking so a slow or
-     * unavailable update service can never prevent the login window from opening.
-     */
     private static void startPreLoginUpdateCheck() {
         if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
 
@@ -41,9 +36,7 @@ public final class Launcher {
                 UpdateService updater = new UpdateService();
                 UpdateService.UpdateInfo info = updater.check();
                 if (!info.updateAvailable()) return;
-
                 if (!confirmWindowsUpdate(info.latestVersion())) return;
-
                 Path installer = updater.downloadAndVerify(info);
                 updater.launchInstallerAndRelaunch(installer);
                 System.exit(0);
