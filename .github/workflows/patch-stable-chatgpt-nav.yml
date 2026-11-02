@@ -1,0 +1,51 @@
+name: Patch Stable Desktop ChatGPT Navigation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/patch-stable-chatgpt-nav.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Add Ask ChatGPT to native stable shell
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('desktop-client/src/main/java/com/example/desktop/ElectricalWorkbenchNativeApp.java')
+          s=p.read_text(encoding='utf-8')
+          replacements=[
+            (
+              'Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), profile=navButton("👤  Profile");',
+              'Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), news=navButton("⚡  Code News"), chatgpt=navButton("🤖  Ask ChatGPT"), profile=navButton("👤  Profile");'
+            ),
+            (
+              'nav.getChildren().addAll(navTitle,home,calculators,learn,field,safety,projects,career,news,profile);root.setLeft(nav);',
+              'nav.getChildren().addAll(navTitle,home,calculators,learn,field,safety,projects,career,news,chatgpt,profile);root.setLeft(nav);'
+            ),
+            (
+              'career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());',
+              'career.setOnAction(e->setWorkspace(buildPlatform("Career")));news.setOnAction(e->setWorkspace(buildNews()));chatgpt.setOnAction(e->setWorkspace(AskChatGptView.create(currentUsername)));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());'
+            ),
+            (
+              'tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))',
+              'tile("🤖 Ask ChatGPT","Connect your ChatGPT account and use an eligible ChatGPT plan in a native JavaFX chat workspace",()->setWorkspace(AskChatGptView.create(currentUsername))),\n            tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))'
+            )
+          ]
+          for old,new in replacements:
+              if old not in s:
+                  raise SystemExit('Expected native desktop marker not found: '+old[:90])
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add desktop-client/src/main/java/com/example/desktop/ElectricalWorkbenchNativeApp.java
+          git commit -m "Add Ask ChatGPT to stable native JavaFX navigation"
+          git push origin main
