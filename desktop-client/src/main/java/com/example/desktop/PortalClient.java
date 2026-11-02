@@ -51,6 +51,13 @@ public final class PortalClient {
         return authorizedGet("/api/calculators/catalog", username, password);
     }
 
+    /** Load an authenticated HTML workspace for embedding inside the native JavaFX client. */
+    public String authorizedPage(String path, String username, String password) throws Exception {
+        String safe = path == null || path.isBlank() ? "/portal.html" : path;
+        if (!safe.startsWith("/")) safe = "/" + safe;
+        return authorizedGet(safe, username, password);
+    }
+
     public String calculate(String endpoint, String username, String password, String jsonBody) throws Exception {
         String path = endpoint == null ? "" : endpoint.trim();
         if (!path.startsWith("/api/calculators/")) {
@@ -73,6 +80,7 @@ public final class PortalClient {
         HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(Duration.ofSeconds(150))
             .header("Authorization", basic(username, password))
+            .header("Cache-Control", "no-cache")
             .GET()
             .build();
         return bodyOrThrow(sendWithRetry(req, 3, 3000));
@@ -95,7 +103,7 @@ public final class PortalClient {
 
     private static String bodyOrThrow(HttpResponse<String> res) {
         if (res.statusCode() == 401 || res.statusCode() == 403) {
-            throw new SecurityException("Invalid username/password or account disabled");
+            throw new SecurityException("Invalid username/password, account disabled, or this tier does not include the requested feature");
         }
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
             String detail = res.body() == null || res.body().isBlank() ? "" : ": " + res.body();
