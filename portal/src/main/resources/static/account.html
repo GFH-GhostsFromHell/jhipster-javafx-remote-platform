@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account · Electrical Workbench</title>
+<style>
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#0f172a;background:#07111f;--blue:#1d4ed8;--cyan:#0e7490;--line:#dbe5ee;--muted:#64748b}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 12% 18%,#0e749055,transparent 30%),radial-gradient(circle at 88% 82%,#1d4ed844,transparent 34%),linear-gradient(135deg,#030712,#07111f 48%,#0b2239);padding:24px}.shell{max-width:1120px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;color:white;padding:10px 4px 22px}.top a{color:#dff8ff;text-decoration:none;border:1px solid #67e8f933;border-radius:9px;padding:8px 11px}.brand{font-weight:850;letter-spacing:.04em}.panel{background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 28px 80px #0008}.hero{padding:28px 32px;background:linear-gradient(135deg,#07111f,#0b2743 62%,#0e7490);color:white}.hero .eyebrow{color:#67e8f9;font-size:11px;font-weight:850;letter-spacing:.12em}.hero h1{margin:7px 0 8px;font-size:31px}.hero p{margin:0;color:#cbd5e1;line-height:1.55}.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:18px 24px;border-bottom:1px solid var(--line);background:#f8fafc}.tabs button{border:1px solid #cbd5e1;background:white;color:#334155;border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}.tabs button.active{background:linear-gradient(90deg,var(--blue),var(--cyan));color:white;border-color:transparent}.body{padding:26px}.pane{display:none}.pane.active{display:block}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.card{border:1px solid var(--line);border-radius:16px;padding:20px;background:#fff;box-shadow:0 7px 20px #0f172a08}.card h2{margin-top:0}.field{margin:13px 0}.field label{display:block;font-size:13px;font-weight:800;margin-bottom:6px}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #c7d3e0;border-radius:10px;font:inherit}.field input:focus,.field select:focus{outline:3px solid #22d3ee20;border-color:#0e7490}.btn{border:0;border-radius:10px;padding:11px 15px;background:linear-gradient(90deg,var(--blue),var(--cyan));color:white;font-weight:850;cursor:pointer;text-decoration:none;display:inline-block}.btn.secondary{background:#334155}.btn.ghost{background:#edf6fb;color:#0f4c81;border:1px solid #c7d9e8}.status{margin-top:12px;min-height:21px;font-size:14px}.good{color:#15803d}.bad{color:#b91c1c}.muted{color:var(--muted);line-height:1.5}.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}.tier{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;background:#fff}.tier.selected{border:2px solid #0e7490;background:#f0fbff}.tier h3{margin:0 0 7px}.tier small{display:block;color:#64748b;line-height:1.45}.badge{display:inline-block;margin-top:9px;padding:5px 9px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:11px;font-weight:850}.notice{padding:13px 14px;border-radius:11px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;margin:0 0 16px;display:none}.successbox{padding:15px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;margin-top:14px;display:none}.code{letter-spacing:.25em;font-weight:850;text-align:center;font-size:20px}.checkout{margin-top:12px;display:none}.foot{padding:18px 24px;border-top:1px solid var(--line);background:#f8fafc;color:#64748b;font-size:12px}@media(max-width:760px){body{padding:12px}.grid,.tiers{grid-template-columns:1fr}.body{padding:18px}.hero{padding:24px}.top{align-items:flex-start;gap:12px}.hero h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><div class="brand">⚡ ELECTRICAL WORKBENCH</div><a href="/">Back to sign in</a></div>
+  <div class="panel">
+    <div class="hero"><div class="eyebrow">ACCOUNT & SUBSCRIPTION</div><h1>Create or recover your Electrical Workbench account</h1><p>Register with email verification, recover your username or password, and choose the tier you want to use.</p></div>
+    <div class="tabs">
+      <button class="active" data-tab="signup" onclick="showTab('signup',this)">Create account</button>
+      <button data-tab="verify" onclick="showTab('verify',this)">Verify email</button>
+      <button data-tab="forgot-password" onclick="showTab('forgot-password',this)">Forgot password</button>
+      <button data-tab="forgot-username" onclick="showTab('forgot-username',this)">Forgot username</button>
+    </div>
+    <div class="body">
+      <div id="mailNotice" class="notice">Email verification is not configured on the server yet. Registration and recovery will become available after SMTP settings are added.</div>
+
+      <section id="pane-signup" class="pane active">
+        <div class="grid">
+          <div class="card">
+            <h2>Create account</h2>
+            <p class="muted">Your account starts on Tier 1. If you choose Tier 2 or Tier 3, you can continue to the configured checkout after your email is verified.</p>
+            <div class="field"><label>Username</label><input id="signupUsername" autocomplete="username" placeholder="3–40 letters, numbers, dot, dash or underscore"></div>
+            <div class="field"><label>Display name</label><input id="signupName" autocomplete="name" placeholder="Your name"></div>
+            <div class="field"><label>Email</label><input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+            <div class="field"><label>Password</label><input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></div>
+            <div class="field"><label>Confirm password</label><input id="signupPassword2" type="password" autocomplete="new-password" minlength="8"></div>
+            <button id="signupButton" class="btn" onclick="startRegistration()">Send verification code</button>
+            <div id="signupStatus" class="status"></div>
+          </div>
+          <div class="card">
+            <h2>Choose a tier</h2>
+            <div id="tierCards" class="tiers">
+              <div class="tier selected" data-tier="TIER_1" onclick="selectTier('TIER_1')"><h3>Tier 1</h3><small>Core electrical tools.</small><span class="badge">Selected</span></div>
+              <div class="tier" data-tier="TIER_2" onclick="selectTier('TIER_2')"><h3>Tier 2</h3><small>Expanded tools plus Engineering Power Systems.</small><span class="badge">Choose</span></div>
+              <div class="tier" data-tier="TIER_3" onclick="selectTier('TIER_3')"><h3>Tier 3</h3><small>Advanced analytics and full engineering mode.</small><span class="badge">Choose</span></div>
+            </div>
+            <p class="muted">Pricing is handled by the configured checkout provider; no price is hard-coded into this page.</p>
+            <div id="tierCheckoutHint" class="status"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pane-verify" class="pane">
+        <div class="card" style="max-width:620px;margin:auto">
+          <h2>Verify your email</h2>
+          <p class="muted">Enter the username you registered and the 6-digit code sent to your email. Codes expire after 15 minutes.</p>
+          <div class="field"><label>Username</label><input id="verifyUsername" autocomplete="username"></div>
+          <div class="field"><label>Verification code</label><input id="verifyCode" class="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
+          <button class="btn" onclick="verifyRegistration()">Verify account</button>
+          <div id="verifyStatus" class="status"></div>
+          <div id="verifySuccess" class="successbox"><b>Account verified.</b><div class="muted" style="margin-top:6px">You can now sign in. Paid tiers remain inactive until checkout/payment is completed and your subscription is activated.</div><div style="margin-top:12px"><a class="btn secondary" href="/">Go to sign in</a><a id="postVerifyCheckout" class="btn checkout" href="#" rel="noopener">Continue to tier checkout</a></div></div>
+        </div>
+      </section>
+
+      <section id="pane-forgot-password" class="pane">
+        <div class="grid">
+          <div class="card"><h2>Request reset code</h2><p class="muted">Enter your username or email. If it matches a password account, a reset code will be sent to the account email.</p><div class="field"><label>Username or email</label><input id="resetAccount" autocomplete="username"></div><button class="btn" onclick="startPasswordReset()">Send reset code</button><div id="resetStartStatus" class="status"></div></div>
+          <div class="card"><h2>Set new password</h2><div class="field"><label>Username</label><input id="resetUsername" autocomplete="username"></div><div class="field"><label>6-digit reset code</label><input id="resetCode" class="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"></div><div class="field"><label>New password</label><input id="resetPassword" type="password" minlength="8" autocomplete="new-password"></div><button class="btn" onclick="finishPasswordReset()">Reset password</button><div id="resetFinishStatus" class="status"></div></div>
+        </div>
+      </section>
+
+      <section id="pane-forgot-username" class="pane">
+        <div class="card" style="max-width:620px;margin:auto"><h2>Recover username</h2><p class="muted">Enter the email address on your account. If it matches an enabled account, the username will be sent to that email.</p><div class="field"><label>Email</label><input id="forgotEmail" type="email" autocomplete="email"></div><button class="btn" onclick="forgotUsername()">Send username reminder</button><div id="forgotStatus" class="status"></div></div>
+      </section>
+    </div>
+    <div class="foot">Verification and recovery responses are designed not to reveal whether an unrelated account exists. Paid-tier checkout links only appear when a payment provider has been configured.</div>
+  </div>
+</div>
+<script>
+let selectedTier='TIER_1',accountOptions={emailConfigured:false,tiers:[]};
+function status(id,msg,ok=true){const e=document.getElementById(id);e.textContent=msg;e.className='status '+(ok?'good':'bad')}
+async function api(url,opt={}){const r=await fetch(url,opt);const ct=r.headers.get('content-type')||'';let data=ct.includes('json')?await r.json():await r.text();if(!r.ok){let msg=typeof data==='string'?data:(data.detail||data.message||data.error||('HTTP '+r.status));throw new Error(msg)}return data}
+function post(body){return{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}}
+function showTab(name,button){document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));document.getElementById('pane-'+name).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));if(button)button.classList.add('active');history.replaceState(null,'','#'+name);window.scrollTo({top:0,behavior:'smooth'})}
+function selectTier(t){selectedTier=t;document.querySelectorAll('.tier').forEach(x=>{const on=x.dataset.tier===t;x.classList.toggle('selected',on);x.querySelector('.badge').textContent=on?'Selected':'Choose'});const opt=(accountOptions.tiers||[]).find(x=>x.id===t);if(t==='TIER_1')status('tierCheckoutHint','Tier 1 does not require a paid checkout.');else if(opt?.checkoutConfigured)status('tierCheckoutHint','Checkout is configured for '+t.replace('_',' ')+'. It will be offered after verification.');else status('tierCheckoutHint','Checkout for '+t.replace('_',' ')+' is not configured yet; your account will remain Tier 1 until billing is connected.',false)}
+async function loadOptions(){try{accountOptions=await api('/api/public/account-options');if(!accountOptions.emailConfigured){mailNotice.style.display='block';signupButton.disabled=true;signupButton.style.opacity='.55'}(accountOptions.tiers||[]).forEach(opt=>{const card=document.querySelector(`.tier[data-tier="${opt.id}"]`);if(card){card.querySelector('small').textContent=opt.description}});selectTier(selectedTier)}catch(e){mailNotice.style.display='block';mailNotice.textContent='Account services could not be loaded.'}}
+async function startRegistration(){try{if(signupPassword.value!==signupPassword2.value)throw new Error('Passwords do not match.');const r=await api('/api/public/register/start',post({username:signupUsername.value,displayName:signupName.value,email:signupEmail.value,password:signupPassword.value,requestedTier:selectedTier}));verifyUsername.value=r.username||signupUsername.value;status('signupStatus','Verification code sent to '+(r.email||'your email')+'.');showTab('verify',document.querySelector('[data-tab=verify]'))}catch(e){status('signupStatus',e.message,false)}}
+async function verifyRegistration(){try{const r=await api('/api/public/register/verify',post({username:verifyUsername.value,code:verifyCode.value}));status('verifyStatus','Email verified successfully.');verifySuccess.style.display='block';const a=document.getElementById('postVerifyCheckout');if(r.checkoutUrl){a.href=r.checkoutUrl;a.style.display='inline-block'}else a.style.display='none'}catch(e){status('verifyStatus',e.message,false)}}
+async function forgotUsername(){try{const r=await api('/api/public/recovery/username',post({email:forgotEmail.value}));status('forgotStatus',r.message||'If that email matches an account, a reminder has been sent.')}catch(e){status('forgotStatus',e.message,false)}}
+async function startPasswordReset(){try{const r=await api('/api/public/recovery/password/start',post({account:resetAccount.value}));status('resetStartStatus',r.message||'If an account matches, a reset code has been sent.');if(resetAccount.value&&!resetAccount.value.includes('@'))resetUsername.value=resetAccount.value}catch(e){status('resetStartStatus',e.message,false)}}
+async function finishPasswordReset(){try{const r=await api('/api/public/recovery/password/complete',post({username:resetUsername.value,code:resetCode.value,newPassword:resetPassword.value}));status('resetFinishStatus',r.message||'Password reset.');resetCode.value='';resetPassword.value=''}catch(e){status('resetFinishStatus',e.message,false)}}
+const initial=location.hash.replace('#','');if(['signup','verify','forgot-password','forgot-username'].includes(initial))showTab(initial,document.querySelector(`[data-tab="${initial}"]`));loadOptions();
+</script>
+</body></html>
