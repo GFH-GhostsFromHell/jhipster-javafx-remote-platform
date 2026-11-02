@@ -74,7 +74,7 @@ public class SecurityConfig {
   SecurityFilterChain filter(HttpSecurity http, OAuth2UserService<OidcUserRequest, OidcUser> googleOidcUserService) throws Exception {
     http.csrf(csrf->csrf.ignoringRequestMatchers("/api/**", "/login", "/logout"))
       .authorizeHttpRequests(a->a
-        .requestMatchers("/", "/index.html", "/management/health", "/actuator/health", "/api/public/**", "/oauth2/**", "/login/oauth2/**").permitAll()
+        .requestMatchers("/", "/index.html", "/account.html", "/management/health", "/actuator/health", "/api/public/**", "/oauth2/**", "/login/oauth2/**").permitAll()
         .requestMatchers("/api/admin/**").hasRole("ADMIN")
         .requestMatchers("/api/client/**", "/api/profile/**", "/portal.html").hasAnyRole("CLIENT", "ADMIN")
         .anyRequest().authenticated())
