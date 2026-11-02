@@ -1,0 +1,41 @@
+name: Integrate Thunderstorm Safety tab
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/add-thunderstorm-tab.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add thunderstorm tracker to Safety tabs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('desktop-client/src/main/java/com/example/desktop/SafetyPane.java')
+          s=p.read_text(encoding='utf-8')
+          old='''            tab("Safety Dashboard", dashboard()),\n            tab("PPE / Arc Flash", ppePlanner()),'''
+          new='''            tab("Safety Dashboard", dashboard()),\n            tab("Thunderstorm / Lightning", new ThunderstormSafetyPane(json, username)),\n            tab("PPE / Arc Flash", ppePlanner()),'''
+          if old not in s:
+              raise SystemExit('Safety tab insertion target not found')
+          s=s.replace(old,new,1)
+          old='''Label sub = new Label("PPE and boundary checks, unsafe-condition records, rubber-glove tracking and electrical safety-equipment maintenance. Core records work offline.");'''
+          new='''Label sub = new Label("Thunderstorm stand-down tracking, PPE and boundary checks, unsafe-condition records, rubber-glove tracking and electrical safety-equipment maintenance. Core records work offline.");'''
+          if old in s:
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add desktop-client/src/main/java/com/example/desktop/SafetyPane.java
+          git commit -m "Add thunderstorm tracker to native Safety workspace"
+          git push origin main
