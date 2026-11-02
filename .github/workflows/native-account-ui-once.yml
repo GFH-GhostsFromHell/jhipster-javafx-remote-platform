@@ -1,0 +1,216 @@
+name: Apply native account UI patch once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/native-account-ui-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-native-clients:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Patch Android and desktop account access
+        shell: python
+        run: |
+          from pathlib import Path
+
+          # ---------- Android: in-app account access screen ----------
+          account_activity = r'''package com.gfh.electricalworkbench
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+
+private const val ACCOUNT_PORTAL_BASE = "https://remote-javafx-portal.onrender.com"
+
+class AccountAccessActivity : ComponentActivity() {
+    private lateinit var webView: WebView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        title = "Electrical Workbench Account"
+        val tab = intent.getStringExtra("tab")?.takeIf {
+            it in setOf("signup", "verify", "forgot-password", "forgot-username")
+        } ?: "signup"
+
+        webView = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+            settings.cacheMode = WebSettings.LOAD_NO_CACHE
+            settings.textZoom = 105
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url?.toString() ?: return false
+                    return if (url.startsWith(ACCOUNT_PORTAL_BASE)) {
+                        false
+                    } else {
+                        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                        true
+                    }
+                }
+            }
+            clearCache(true)
+            loadUrl("$ACCOUNT_PORTAL_BASE/account.html#$tab")
+        }
+        setContentView(webView)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) webView.goBack() else finish()
+            }
+        })
+    }
+
+    override fun onDestroy() {
+        webView.stopLoading()
+        webView.destroy()
+        super.onDestroy()
+    }
+}
+'''
+          Path('android-client/app/src/main/java/com/gfh/electricalworkbench/AccountAccessActivity.kt').write_text(account_activity, encoding='utf-8')
+
+          manifest = Path('android-client/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+          marker = '        <activity\n            android:name=".EngineeringPowerActivity"\n            android:exported="false" />'
+          addition = '        <activity\n            android:name=".AccountAccessActivity"\n            android:exported="false" />\n' + marker
+          if '.AccountAccessActivity' not in text:
+              if marker not in text:
+                  raise SystemExit('Android manifest marker not found')
+              text = text.replace(marker, addition, 1)
+          manifest.write_text(text, encoding='utf-8')
+
+          mobile = Path('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt')
+          text = mobile.read_text(encoding='utf-8')
+          state_marker = '    var username by remember { mutableStateOf("") }\n    var password by remember { mutableStateOf("") }'
+          state_replacement = state_marker + '\n    val context = LocalContext.current'
+          if 'val context = LocalContext.current\n    Box(' not in text:
+              if state_marker not in text:
+                  raise SystemExit('Mobile login state marker not found')
+              text = text.replace(state_marker, state_replacement, 1)
+
+          button_marker = '''                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CloudDone, null, tint = if (cloudOk == true) MobileGood else MobileMuted)
+                        Spacer(Modifier.width(8.dp))
+                        Text(cloudStatus, color = if (cloudOk == true) MobileGood else MobileMuted, fontSize = 12.sp)
+                    }'''
+          account_buttons = '''                    Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Create account", maxLines = 1) }
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Verify email", maxLines = 1) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Forgot password", maxLines = 1) }
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Forgot username", maxLines = 1) }
+                    }
+''' + button_marker
+          if 'Text("Account access"' not in text:
+              if button_marker not in text:
+                  raise SystemExit('Mobile account button insertion marker not found')
+              text = text.replace(button_marker, account_buttons, 1)
+          mobile.write_text(text, encoding='utf-8')
+
+          # ---------- Desktop: embedded account access WebView ----------
+          desktop = Path('desktop-client/src/main/java/com/example/desktop/ElectricalWorkbenchDesktopApp.java')
+          text = desktop.read_text(encoding='utf-8')
+          import_marker = 'import javafx.scene.shape.Circle;\n'
+          if 'import javafx.scene.web.WebView;' not in text:
+              text = text.replace(import_marker, import_marker + 'import javafx.scene.web.WebView;\n', 1)
+
+          login_marker = '''        loginCard.getChildren().addAll(loginTitle, new Label("Use your cloud account."), fieldLabel("Username"), username,
+            fieldLabel("Password"), password, login, message);'''
+          login_replacement = '''        Label accountHelp = new Label("Account access");
+        accountHelp.setStyle("-fx-font-weight:bold;-fx-text-fill:#334155;-fx-font-size:12px;");
+        Button createAccount = new Button("Create account");
+        Button verifyEmail = new Button("Verify email");
+        Button forgotPassword = new Button("Forgot password");
+        Button forgotUsername = new Button("Forgot username");
+        for (Button b : new Button[]{createAccount, verifyEmail, forgotPassword, forgotUsername}) {
+            b.setStyle("-fx-background-color:#f8fafc;-fx-text-fill:#0f4c81;-fx-border-color:#c7d9e8;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-font-weight:bold;");
+            b.setMaxWidth(Double.MAX_VALUE);
+        }
+        createAccount.setOnAction(e -> showAccountAccess("signup"));
+        verifyEmail.setOnAction(e -> showAccountAccess("verify"));
+        forgotPassword.setOnAction(e -> showAccountAccess("forgot-password"));
+        forgotUsername.setOnAction(e -> showAccountAccess("forgot-username"));
+        GridPane accountActions = new GridPane();
+        accountActions.setHgap(8); accountActions.setVgap(8);
+        ColumnConstraints ac1 = new ColumnConstraints(); ac1.setPercentWidth(50);
+        ColumnConstraints ac2 = new ColumnConstraints(); ac2.setPercentWidth(50);
+        accountActions.getColumnConstraints().addAll(ac1, ac2);
+        accountActions.add(createAccount, 0, 0); accountActions.add(verifyEmail, 1, 0);
+        accountActions.add(forgotPassword, 0, 1); accountActions.add(forgotUsername, 1, 1);
+        GridPane.setHgrow(createAccount, Priority.ALWAYS); GridPane.setHgrow(verifyEmail, Priority.ALWAYS);
+        GridPane.setHgrow(forgotPassword, Priority.ALWAYS); GridPane.setHgrow(forgotUsername, Priority.ALWAYS);
+
+        loginCard.getChildren().addAll(loginTitle, new Label("Use your cloud account."), fieldLabel("Username"), username,
+            fieldLabel("Password"), password, login, message, new Separator(), accountHelp, accountActions);'''
+          if 'Button createAccount = new Button("Create account")' not in text:
+              if login_marker not in text:
+                  raise SystemExit('Desktop login marker not found')
+              text = text.replace(login_marker, login_replacement, 1)
+
+          method_marker = '    private void openCloudPath(String path) {\n'
+          method = '''    private void showAccountAccess(String tab) {
+        Stage accountStage = new Stage();
+        accountStage.initOwner(stage);
+        accountStage.setTitle("Electrical Workbench · Account Access");
+        accountStage.setMinWidth(760);
+        accountStage.setMinHeight(620);
+        WebView webView = new WebView();
+        webView.getEngine().setJavaScriptEnabled(true);
+        String safeTab = switch (tab == null ? "" : tab) {
+            case "verify", "forgot-password", "forgot-username" -> tab;
+            default -> "signup";
+        };
+        webView.getEngine().load(portal.baseUrl() + "/account.html#" + safeTab);
+        BorderPane root = new BorderPane(webView);
+        root.setStyle("-fx-background-color:#07111f;");
+        accountStage.setScene(new Scene(root, 980, 760));
+        accountStage.show();
+    }
+
+'''
+          if 'private void showAccountAccess(String tab)' not in text:
+              if method_marker not in text:
+                  raise SystemExit('Desktop cloud method marker not found')
+              text = text.replace(method_marker, method + method_marker, 1)
+          desktop.write_text(text, encoding='utf-8')
+
+          # Remove this one-time workflow after it has done its job.
+          Path('.github/workflows/native-account-ui-once.yml').unlink()
+      - name: Commit native account access
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Expose registration and account recovery in native clients"
+          git push origin HEAD:main
