@@ -124,3 +124,4 @@ jobs:
             --notes "Android build of Electrical Workbench. Update channel: stable. Signing mode: persistent."
 
 # Development releases are explicitly prereleases; stable releases are normal releases.
+# Trigger: advanced calculation pack navigation.
