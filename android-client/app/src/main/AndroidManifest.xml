@@ -10,9 +10,13 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".MobileWorkbenchActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity-alias
+            android:name=".MainActivity"
+            android:targetActivity=".MobileWorkbenchActivity"
+            android:exported="false" />
         <activity
             android:name=".UpdateGateActivity"
             android:exported="true">
