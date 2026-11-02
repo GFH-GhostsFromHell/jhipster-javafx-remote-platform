@@ -63,9 +63,29 @@ s26Panes.push(work(card('Capacitor bank worksheet',`<div class="grid">${field('C
 s26Panes.push(work(card('Power-factor correction',`<div class="grid">${field('Load kW','pf_kw',100)}${field('Existing PF','pf_old',.75)}${field('Target PF','pf_new',.95)}${field('Voltage V','pf_v',600)}${select('Phases','pf_ph',[1,3],3)}${field('Conductor factor','pf_cf',1.35)}${field('OCPD factor','pf_of',1.65)}</div>`),btn('Calculate PF correction','post(`/api/calculators/capacitor-bank`,{kw:n(`pf_kw`),existingPf:n(`pf_old`),targetPf:n(`pf_new`),voltage:n(`pf_v`),phases:i(`pf_ph`),conductorFactor:n(`pf_cf`),ocpdFactor:n(`pf_of`)},`o_pf`)'),'o_pf'));
 
 window.s28Panes=[];
-s28Panes.push(work(card('AC motor branch worksheet',`<div class="grid">${field('Motor FLC/FLA A','ac_flc',34)}${field('Conductor factor','ac_cf',1.25)}${field('OCPD factor','ac_of',1.75)}${field('Overload factor','ac_olf',1.25)}${field('Disconnect factor','ac_df',1.15)}</div><p class="note">Enter the Table 44/45 FLC or appropriate rated current from the question. Select exact OCPD factor based on device type and Table 29.</p>`),btn('Calculate AC motor','post(`/api/calculators/motor`,{flc:n(`ac_flc`),conductorFactor:n(`ac_cf`),overloadFactor:n(`ac_olf`),ocpdFactor:n(`ac_of`),disconnectFactor:n(`ac_df`)},`o_acm`)'),'o_acm'));
+s28Panes.push(work(card('AC motor branch worksheet',`<div class="grid">
+<div class="field"><label>AC motor type</label><select id="ac_type"><option>Single-phase — all types</option><option selected>Squirrel-cage / synchronous</option><option>Wound-rotor induction</option></select></div>
+${select('Phases','ac_ph',[1,3],3)}
+${field('Motor FLC / FLA (A)','ac_flc',34)}
+<div class="field"><label>Starting method</label><select id="ac_start"><option selected>Full voltage / resistor / reactor</option><option>Autotransformer / star-delta</option></select></div>
+<div class="field"><label>Branch protection</label><select id="ac_prot"><option selected>Time-delay fuse</option><option>Non-time-delay fuse</option><option>Inverse-time circuit breaker</option></select></div>
+<div class="field"><label>Motor duty</label><select id="ac_duty"><option value="1.25" selected>Continuous duty — 125%</option><option value="1.00">Custom / Table 27 — enter factor below</option></select></div>
+${field('Custom conductor factor','ac_cf_custom',1.25)}
+<div class="field"><label>Overload condition</label><select id="ac_ol"><option value="1.25" selected>SF ≥1.15 or temp rise ≤40°C — 125%</option><option value="1.15">Other motor — 115%</option></select></div>
+${field('Disconnect factor','ac_df',1.15)}
+</div><p class="note">The Table 29 OCPD multiplier is selected automatically from motor type, starting method and protective device. Continuous-duty conductor sizing defaults to 125%. Use the custom conductor factor only for a non-continuous-duty/Table 27 question.</p>`),btn('Calculate AC motor','calcAcMotor()'),'o_acm'));
 s28Panes.push(work(card('DC motor branch worksheet',`<div class="grid">${select('DC motor type','dc_type',['Shunt','Series','Cumulative compound','Differential compound','Permanent-magnet','Separately excited'],'Shunt')}${field('DC motor FLC/FLA A','dc_flc',40)}${field('Conductor factor','dc_cf',1.25)}${field('OCPD factor','dc_of',1.5)}${field('Overload factor','dc_olf',1.15)}${field('Disconnect factor','dc_df',1.15)}</div><p class="note">Branch sizing is current-based. Shunt-field resistance/speed-control theory is kept separate from supply-conductor sizing.</p>`),btn('Calculate DC motor','post(`/api/calculators/motor`,{flc:n(`dc_flc`),conductorFactor:n(`dc_cf`),overloadFactor:n(`dc_olf`),ocpdFactor:n(`dc_of`),disconnectFactor:n(`dc_df`)},`o_dcm`)'),'o_dcm'));
 s28Panes.push(work(card('Multiple motors',`<div class="grid"><div class="field wide"><label>Motor FLCs A, comma-separated</label><input id="mm_flc" value="42,27,20,10"></div>${field('Largest motor conductor factor','mm_cf',1.25)}${field('Largest branch OCPD factor','mm_of',1.75)}${field('Simultaneous-start extra','mm_extra',0)}</div>`),btn('Calculate multi-motor feeder','post(`/api/calculators/multi-motor`,{flcs:csvN(`mm_flc`),largestConductorFactor:n(`mm_cf`),largestBranchOcpdFactor:n(`mm_of`),simultaneousStartExtra:n(`mm_extra`)},`o_mm`)'),'o_mm'));
+s28Panes.push(work(card('Motor taps / splitter',`<div class="grid">
+<div class="field wide"><label>Tap arrangement</label><select id="mt_mode"><option selected>Feeder / splitter → individual motor branch OCPD (Rule 28-110)</option><option>One branch OCPD → individual motor tap (Rule 28-106)</option></select></div>
+${field('Feeder / source conductor ampacity (A)','mt_source',200)}
+${field('Motor FLC / FLA (A)','mt_flc',40)}
+${field('Selected tap conductor ampacity (A)','mt_tap',85)}
+${field('Tap length (m)','mt_len',5)}
+<div class="field"><label>Tap installation</label><select id="mt_install"><option>≤3 m and enclosed in metal</option><option selected>≤7.5 m and mechanically protected</option><option>Longer / no short-tap exception</option></select></div>
+<div class="field"><label>Motor duty</label><select id="mt_duty"><option value="1.25" selected>Continuous — 125%</option><option value="1">Custom / Table 27 factor</option></select></div>
+${field('Custom duty factor','mt_custom',1.25)}
+</div><p class="note">For a feeder/splitter tap, Rule 28-110(2) allows the motor branch-conductor calculation for a ≤3 m tap enclosed in metal, or for a ≤7.5 m protected tap when it is also at least one-third of the feeder ampacity. For a group-motor branch tap, Rule 28-106(3) uses the motor conductor calculation and the one-third minimum for taps not over 7.5 m.</p>`),btn('Calculate motor tap','calcMotorTap()'),'o_mt'));
 s28Panes.push(work(card('Refrigeration / hermetic compressor worksheet',`<div class="grid">${field('RLA A','ref_rla',20)}${field('LRA A (0 = use worksheet 6×RLA)','ref_lra',0)}</div><p class="note">Worksheet sequence: conductor 125% RLA → normal OCPD 50% LRA → not-starting OCPD 65% LRA → relay overload 140% RLA → fuse overload 125% RLA.</p>`),btn('Calculate refrigeration worksheet','post(`/api/calculators/refrigeration-worksheet`,{rla:n(`ref_rla`),lra:n(`ref_lra`)||null},`o_ref`)'),'o_ref'));
 
 window.s32Panes=[];s32Panes.push(`<div class="card"><h3>Fire alarm quick reference</h3>${refs([['Conductors / wiring','Section 32 fire-alarm conductors and wiring methods have dedicated requirements; keep fire-alarm wiring independent except where the Code specifically permits shared enclosures.'],['Power supply','Fire-alarm power-supply disconnect/OCPD is permanently identified for fire alarm service and arranged as required by Section 32.'],['Listed outputs','For NAC/SLC/auxiliary output fusing and conductor limits, use the listed FACP/power-supply ratings and manufacturer instructions; do not invent a generic fuse size.'],['Class 1 / Class 2','Where a fire-alarm ancillary/control circuit is actually classified under Section 16, the low-voltage calculator can check source current, OCPD limit and cable ampacity.']])}</div>`+lowVoltageWidget('fa_lv'));
@@ -83,7 +103,7 @@ s14:`<section id="s14" class="section"><h1>Section 14 — Protection & Control</
 s16:`<section id="s16" class="section"><h1>Section 16 — Class 1 & Class 2 Circuits</h1><p class="lead">Low-voltage source current, fuse/OCPD and conductor ampacity checks.</p>${tabSet('s16',['Low-Voltage Circuit'])}</section>`,
 s24:`<section id="s24" class="section"><h1>Section 24 — Patient Care Areas</h1><p class="lead">Patient-care environment planning, quick reference and low-voltage circuit checks.</p>${tabSet('s24',['Environment','Care / Isolated Systems'])}</section>`,
 s26:`<section id="s26" class="section"><h1>Section 26 — Installation of Electrical Equipment</h1><p class="lead">Dry-type, medium-voltage and high-voltage transformers plus capacitor banks.</p>${tabSet('s26',['Dry Transformer','Medium Voltage','High Voltage','Capacitor Bank','PF Correction'])}</section>`,
-s28:`<section id="s28" class="section"><h1>Section 28 — Motors & Generators</h1><p class="lead">AC motors, DC motors, multiple-motor feeders and refrigeration compressors.</p>${tabSet('s28',['AC Motor','DC Motor','Multiple Motors','Refrigeration'])}</section>`,
+s28:`<section id="s28" class="section"><h1>Section 28 — Motors & Generators</h1><p class="lead">Motor type and protective-device dropdowns, motor feeders, motor taps/splitters and refrigeration compressors.</p>${tabSet('s28',['AC Motor','DC Motor','Multiple Motors','Motor Taps / Splitter','Refrigeration'])}</section>`,
 s32:`<section id="s32" class="section"><h1>Section 32 — Fire Alarm / Fire Pumps</h1><p class="lead">Fire-alarm reference, low-voltage checks, EOL current and fire-pump conductor ampacity.</p>${tabSet('s32',['Fire Alarm / LV','EOL Current','Fire Pump'])}</section>`,
 s42:`<section id="s42" class="section"><h1>Section 42 — Electric Welders</h1><p class="lead">Single-welder and multiple-welder feeder worksheets.</p>${tabSet('s42',['Single Welder','Multiple Welder Feeder'])}</section>`};
 
@@ -91,6 +111,42 @@ nav.innerHTML=sections.map(([id,num,name],j)=>`<button class="${j?'':'active'}" 
 main.innerHTML=sections.map(x=>html[x[0]]).join('');document.getElementById('s2').classList.add('active');
 function showSection(id,button){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));button.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
 
+function motorFactor(type,start,prot,flc){
+  if(type.startsWith('Wound'))return 1.5;
+  if(type.startsWith('Single'))return prot==='Time-delay fuse'?1.75:prot==='Non-time-delay fuse'?3.0:2.5;
+  if(start.startsWith('Autotransformer')){
+    if(prot==='Time-delay fuse')return 1.75;
+    if(prot==='Non-time-delay fuse')return flc<=30?2.5:2.0;
+    return 2.0;
+  }
+  return prot==='Time-delay fuse'?1.75:prot==='Non-time-delay fuse'?3.0:2.5;
+}
+function calcAcMotor(){calcLocal('o_acm',()=>{
+  const type=s('ac_type'),ph=i('ac_ph'),flc=n('ac_flc'),start=s('ac_start'),prot=s('ac_prot');
+  const cf=s('ac_duty').startsWith('Custom')?n('ac_cf_custom'):1.25,olf=parseFloat(s('ac_ol')),df=n('ac_df'),of=motorFactor(type,start,prot,flc);
+  if(flc<=0||cf<=0||olf<=0||df<=0)throw new Error('motor values must be greater than zero');
+  const conductor=flc*cf,overload=flc*olf,ocpdCalc=flc*of,ocpd=notAbove(ocpdCalc),disconnect=flc*df;
+  return `AC MOTOR BRANCH WORKSHEET\n\nMotor type: ${type}\nPhases: ${ph}\nStarting method: ${start}\nProtection: ${prot}\n\n1) MOTOR CURRENT\nFLC / FLA = ${flc.toFixed(2)} A\n\n2) BRANCH CONDUCTOR\nFactor = ${(cf*100).toFixed(0)}%\nRequired ampacity = ${conductor.toFixed(2)} A\nStarter conductor = ${starterConductor(conductor)}\n\n3) SHORT-CIRCUIT / GROUND-FAULT OCPD\nTable 29 factor = ${(of*100).toFixed(0)}%\nMaximum calculated = ${ocpdCalc.toFixed(2)} A\nCommon size not exceeding calculation = ${ocpd} A\n\n4) OVERLOAD\nFactor = ${(olf*100).toFixed(0)}%\nMaximum worksheet setting = ${overload.toFixed(2)} A\n\n5) DISCONNECT\nFactor = ${(df*100).toFixed(0)}%\nMinimum current rating = ${disconnect.toFixed(2)} A\n\nReferences: CEC 2024 Rules 28-106, 28-200, 28-306 and Table 29. Verify the actual CEC table/current source, equipment markings and any permitted next-size or not-starting provisions before field use.`;
+})}
+function calcMotorTap(){calcLocal('o_mt',()=>{
+  const mode=s('mt_mode'),source=n('mt_source'),flc=n('mt_flc'),tap=n('mt_tap'),len=n('mt_len'),install=s('mt_install');
+  const duty=s('mt_duty').startsWith('Custom')?n('mt_custom'):1.25;
+  if(source<=0||flc<=0||tap<=0||len<0||duty<=0)throw new Error('check motor tap inputs');
+  const motorReq=flc*duty,third=source/3;let required,condition='',valid=true,ref='';
+  if(mode.startsWith('Feeder')){
+    ref='CEC 2024 Rule 28-110(2)';
+    if(install.startsWith('≤3')){valid=len<=3;required=motorReq;condition='≤3 m and enclosed in metal: motor branch-conductor calculation may be used.';}
+    else if(install.startsWith('≤7.5')){valid=len<=7.5;required=Math.max(motorReq,third);condition='≤7.5 m protected tap: use motor calculation, but not less than one-third feeder ampacity.';}
+    else{required=source;condition='Outside short-tap exception: tap ampacity must be at least feeder ampacity.';}
+  }else{
+    ref='CEC 2024 Rule 28-106(3)';
+    if(len<=7.5){required=Math.max(motorReq,third);condition='Individual motor tap ≤7.5 m: motor calculation, but not less than one-third of the branch-circuit conductor ampacity.';}
+    else{required=source;condition='Tap exceeds 7.5 m exception: use at least the branch-circuit conductor ampacity.';}
+    if(install.startsWith('≤3')&&len>3)valid=false;if(install.startsWith('≤7.5')&&len>7.5)valid=false;
+  }
+  const pass=valid&&tap>=required;
+  return `MOTOR TAP / SPLITTER WORKSHEET\n\nArrangement: ${mode}\nTap length: ${len.toFixed(2)} m\nInstallation selection: ${install}\n\nMotor conductor basis = ${flc.toFixed(2)} A × ${(duty*100).toFixed(0)}% = ${motorReq.toFixed(2)} A\nOne-third source conductor ampacity = ${source.toFixed(2)} ÷ 3 = ${third.toFixed(2)} A\n\nApplicable condition:\n${condition}\n\nMINIMUM REQUIRED TAP AMPACITY = ${required.toFixed(2)} A\nStarter conductor = ${starterConductor(required)}\nSelected tap ampacity = ${tap.toFixed(2)} A\nLength/installation condition = ${valid?'PASS':'FAIL — selected tap condition does not match entered length'}\nRESULT = ${pass?'PASS':'FAIL'}\n\nReference: ${ref}. Also verify mechanical protection, enclosure/termination conditions, conductor temperature/derating and the downstream motor branch protection arrangement.`;
+})}
 function calcBends(){calcLocal('o_bend',()=>{const deg=n('bend_angle'),rad=deg*Math.PI/180,r=n('bend_rise'),m=1/Math.sin(rad),space=r*m,shrink=r*Math.tan(rad/2),vo=n('bend_v'),ho=n('bend_h'),trueOff=Math.hypot(vo,ho),rollSpace=trueOff*m,rollShrink=trueOff*Math.tan(rad/2),stub=n('bend_stub')-n('bend_take');return `OFFSET BEND\nMultiplier: ${m.toFixed(3)}\nBend-mark spacing: ${space.toFixed(1)} mm\nShrink: ${shrink.toFixed(1)} mm\n\nROLLING OFFSET\nTrue offset: ${trueOff.toFixed(1)} mm\nBend-mark spacing: ${rollSpace.toFixed(1)} mm\nShrink: ${rollShrink.toFixed(1)} mm\n\n90° STUB\nMark from end: ${stub.toFixed(1)} mm\n\nUse actual bender take-up and verify minimum bend radius.`})}
 function supportRule(t,z){if(t==='Rigid metal conduit')return[z<=21?1.5:z<=35?2:3,0,'CEC 2024 Rule 12-1010'];if(t==='EMT')return[z<=21?1.5:z<=35?2:3,1,'CEC 2024 Rules 12-1406 / 12-1010'];if(t==='Rigid PVC conduit')return[z<=27?.75:z<=41?1.2:z<=53?1.5:z<=78?1.8:z<=129?2.1:2.5,0,'CEC 2024 Rule 12-1114'];if(t==='Flexible metal conduit')return[1.5,.3,'CEC 2024 Rule 12-1010(3)'];if(t==='Liquid-tight flexible conduit')return[1.5,.3,'CEC 2024 Rule 12-1308'];return[1,1,'CEC 2024 Rule 12-1504']}
 function calcSupport(){calcLocal('o_sup',()=>{const t=s('sup_type'),z=i('sup_size'),L=n('sup_run'),[space,near,ref]=supportRule(t,z);let count=near<=0?Math.max(1,Math.ceil(L/space)):(L<=2*near?1:2+Math.max(0,Math.ceil((L-2*near)/space)-1));return `${t}\nTrade size: ${z} mm\nMaximum support spacing: ${space.toFixed(2)} m\nNear box/fitting: ${near?`within ${near.toFixed(2)} m`:'see raceway-specific rule'}\nReference: ${ref}\n\nPlanning estimate for ${L.toFixed(2)} m straight run: about ${count} support point(s).\n\nLayout estimate only; field conditions can require additional supports.`})}
