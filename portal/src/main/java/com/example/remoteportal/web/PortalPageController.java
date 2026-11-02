@@ -22,12 +22,13 @@ public class PortalPageController {
   private static final String TIERS_BLOCK="<div id=\"tiers\" class=\"tier-row\"><div class=\"tier\" data-tier=\"TIER_1\"><h3>Tier 1</h3><div>Core tools</div></div><div class=\"tier\" data-tier=\"TIER_2\"><h3>Tier 2</h3><div>Expanded tools</div></div><div class=\"tier\" data-tier=\"TIER_3\"><h3>Tier 3</h3><div>Advanced tools</div></div></div>";
   private static final String BILLING_TIERS="""
 <div id="tiers" class="tier-row">
-  <div class="tier" data-tier="TIER_1"><h3>Tier 1</h3><div>Core tools</div><div style="margin-top:10px"><button id="buyTier1" class="btn ghost" disabled>Included / current base tier</button></div></div>
-  <div class="tier" data-tier="TIER_2"><h3>Tier 2</h3><div>Expanded tools + Engineering Power Systems</div><div style="margin-top:10px"><button id="buyTier2" class="btn ghost" onclick="buyTier('TIER_2')">Buy / upgrade</button></div></div>
-  <div class="tier" data-tier="TIER_3"><h3>Tier 3</h3><div>Advanced analytics + full engineering mode</div><div style="margin-top:10px"><button id="buyTier3" class="btn ghost" onclick="buyTier('TIER_3')">Buy / upgrade</button></div></div>
+  <div class="tier" data-tier="TIER_1"><h3>Tier 1</h3><div>Core tools</div><div style="margin-top:10px"><button id="buyTier1" class="btn ghost" disabled>Included / base tier</button></div></div>
+  <div class="tier" data-tier="TIER_2"><h3>Tier 2</h3><div>Expanded tools + Engineering Power Systems</div><div style="margin-top:10px"><button id="buyTier2" class="btn ghost" onclick="buyTier('TIER_2')">Subscribe / upgrade</button></div></div>
+  <div class="tier" data-tier="TIER_3"><h3>Tier 3</h3><div>Advanced analytics + full engineering mode</div><div style="margin-top:10px"><button id="buyTier3" class="btn ghost" onclick="buyTier('TIER_3')">Subscribe / upgrade</button></div></div>
 </div>
+<div style="margin-top:12px"><button id="manageBilling" class="btn secondary" style="display:none" onclick="openBillingPortal()">Manage Stripe billing</button></div>
 <div id="billingStatus" class="status"></div>
-<div class="photo-help">Paid-tier prices and checkout are supplied by the configured payment provider. Purchasing does not grant features until the subscription is activated by the billing integration.</div>
+<div class="photo-help">Stripe confirms subscription status by signed webhook before paid features are granted. Existing paid subscribers use the Stripe billing portal to change or cancel plans.</div>
 """;
   private static final String BILLING_SCRIPT="""
 <script>
@@ -40,18 +41,33 @@ async function loadBillingOptions(){
       if(!btn)return;
       const opt=(billingOptions.tiers||[]).find(x=>x.id===t);
       if(billingOptions.currentTier===t){btn.textContent='Current tier';btn.disabled=true;return;}
-      if(!opt?.checkoutConfigured){btn.textContent='Checkout not configured';btn.disabled=true;return;}
-      btn.textContent='Buy / upgrade to '+t.replace('_',' ');btn.disabled=false;
+      if(billingOptions.hasSubscription){btn.textContent='Change plan in billing portal';btn.disabled=false;return;}
+      if(!opt?.checkoutConfigured){btn.textContent='Stripe price not configured';btn.disabled=true;return;}
+      btn.textContent='Subscribe to '+t.replace('_',' ');btn.disabled=false;
     });
+    const manage=document.getElementById('manageBilling');
+    if(manage)manage.style.display=billingOptions.billingPortalAvailable?'inline-block':'none';
+    const qs=new URLSearchParams(location.search);
+    if(qs.get('billing')==='success')setStatus('billingStatus','Checkout completed. Stripe is confirming the subscription; paid features activate from the signed webhook.');
+    if(qs.get('billing')==='cancel')setStatus('billingStatus','Checkout was cancelled. No subscription change was made.',false);
+    if(qs.get('billing')==='return')setStatus('billingStatus','Returned from Stripe billing. Subscription changes sync automatically.');
   }catch(e){const s=document.getElementById('billingStatus');if(s){s.textContent='Billing options could not be loaded.';s.className='status bad'}}
 }
 async function buyTier(t){
   try{
     if(!billingOptions)await loadBillingOptions();
-    const opt=(billingOptions?.tiers||[]).find(x=>x.id===t);
-    if(!opt?.checkoutUrl){setStatus('billingStatus','Checkout for '+t.replace('_',' ')+' is not configured yet.',false);return;}
-    location.href=opt.checkoutUrl;
+    if(billingOptions?.hasSubscription){await openBillingPortal();return;}
+    const r=await api('/api/profile/checkout/'+encodeURIComponent(t),{method:'POST'});
+    if(!r.url)throw new Error('Stripe did not return a checkout URL.');
+    location.href=r.url;
   }catch(e){setStatus('billingStatus',e.message||'Checkout could not be opened.',false)}
+}
+async function openBillingPortal(){
+  try{
+    const r=await api('/api/profile/billing-portal',{method:'POST'});
+    if(!r.url)throw new Error('Stripe did not return a billing portal URL.');
+    location.href=r.url;
+  }catch(e){setStatus('billingStatus',e.message||'Billing portal could not be opened.',false)}
 }
 window.addEventListener('load',loadBillingOptions);
 </script>
