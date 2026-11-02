@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,12 +72,25 @@ internal class MobileWorkspaceStore(context: Context, username: String) {
 
 @Composable
 internal fun MWPage(title: String, subtitle: String, content: @Composable Column.() -> Unit) {
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(title, color = MWText, fontSize = 24.sp, fontWeight = FontWeight.Black)
         Text(subtitle, color = MWMuted, fontSize = 13.sp, lineHeight = 18.sp)
+        if (title == "CEC 2024 Workbench") {
+            MWCard("⚡ Engineering Power Systems") {
+                Text(
+                    "Per-unit and base values, transformer impedance/reflection, transmission-line models, symmetrical components, sequence faults and short-circuit studies.",
+                    color = MWMuted
+                )
+                Button(
+                    onClick = { context.startActivity(Intent(context, EngineeringPowerActivity::class.java)) },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Open Engineering Power") }
+            }
+        }
         content()
         Spacer(Modifier.height(20.dp))
     }
