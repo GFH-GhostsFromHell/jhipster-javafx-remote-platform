@@ -72,7 +72,7 @@ public class TierCheckoutService {
     result.put("currentTier", accounts.tier(username));
     result.put("tiers", options());
     result.put("stripeConfigured", stripe != null);
-    result.put("webhookConfigured", stripe != null && !webhookSecret.isBlank());
+    result.put("webhookConfigured", webhookConfigured());
     result.put("hasCustomer", !state.customerId().isBlank());
     result.put("hasSubscription", !state.subscriptionId().isBlank() && !isTerminalStatus(state.status()));
     result.put("subscriptionStatus", state.status());
@@ -84,7 +84,7 @@ public class TierCheckoutService {
   public boolean configured(String tier) {
     String t = normalize(tier);
     if ("TIER_1".equals(t)) return true;
-    return stripe != null && !priceId(t).isBlank();
+    return webhookConfigured() && !priceId(t).isBlank();
   }
 
   public boolean webhookConfigured() {
