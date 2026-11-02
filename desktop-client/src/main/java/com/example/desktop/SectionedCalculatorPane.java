@@ -74,6 +74,7 @@ public final class SectionedCalculatorPane extends BorderPane {
         addSectionButton(rail, "Section 28 — Motors / Refrigeration", this::section28);
         addSectionButton(rail, "Section 32 — Fire Alarm / Fire Pumps", this::section32);
         addSectionButton(rail, "Section 42 — Welders", this::section42);
+        addSectionButton(rail, "ADV — Advanced Calculations", AdvancedCalculationViews::create);
 
         ScrollPane railScroll = new ScrollPane(rail);
         railScroll.setFitToWidth(true);
