@@ -1,0 +1,9 @@
+Electrical Workbench Android synchronization note
+
+Section 12 cable/raceway support calculator synchronization:
+- NMD90 cable straps are handled separately from conduit/raceway supports.
+- BX/AC90 cable straps are handled separately from conduit/raceway supports.
+- Android Workbench opens the shared /calculators.html workspace, so it uses the same corrected Section 12 logic as the live web portal.
+- Raceway support calculations remain separate for EMT, rigid metal conduit, PVC, flexible raceway, and ENT.
+
+CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
