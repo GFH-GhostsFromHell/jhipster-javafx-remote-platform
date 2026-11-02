@@ -44,7 +44,7 @@ public final class SafetyPane extends BorderPane {
         VBox head = new VBox(4);
         Label title = new Label("Electrical Safety");
         title.setStyle("-fx-font-size:25px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label sub = new Label("PPE and boundary checks, unsafe-condition records, rubber-glove tracking and electrical safety-equipment maintenance. Core records work offline.");
+        Label sub = new Label("Thunderstorm stand-down tracking, PPE and boundary checks, unsafe-condition records, rubber-glove tracking and electrical safety-equipment maintenance. Core records work offline.");
         sub.setWrapText(true); sub.setStyle("-fx-text-fill:#64748b;");
         head.getChildren().addAll(title, sub);
         setTop(head);
@@ -54,6 +54,7 @@ public final class SafetyPane extends BorderPane {
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
             tab("Safety Dashboard", dashboard()),
+            tab("Thunderstorm / Lightning", new ThunderstormSafetyPane(json, username)),
             tab("PPE / Arc Flash", ppePlanner()),
             tab("Approach Distance", approachPlanner()),
             tab("Unsafe Conditions", unsafeConditions()),
