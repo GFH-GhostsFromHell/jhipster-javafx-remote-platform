@@ -113,7 +113,7 @@ private data class MobileSession(
     val featureCount: Int
 )
 
-private enum class MobileTab { Home, Workbench, Safety, More, Profile }
+private enum class MobileTab { Home, Workbench, Safety, ChatGPT, More, Profile }
 
 @Composable
 private fun MobileWorkbenchTheme(content: @Composable () -> Unit) {
@@ -320,6 +320,7 @@ private fun MobileShell(
                 MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
                 MobileTab.Workbench -> MobileWorkbenchPage(onOpenWeb)
                 MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
+                MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
                 MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
                 MobileTab.Profile -> MobileProfile(session, onOpenWeb, onLogout)
             }
@@ -355,6 +356,7 @@ private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, 
         Text("The Android app now includes the major desktop workspaces instead of only calculators/profile.", color = MobileMuted)
         MobileFeatureCard("🧮 CEC 2024 Workbench", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
         MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
+        MobileFeatureCard("🤖 Ask ChatGPT", "Connect an eligible ChatGPT account and ask questions directly inside Electrical Workbench") { onSelected(MobileTab.ChatGPT) }
         MobileFeatureCard("🎓 Learn", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onSelected(MobileTab.More) }
         MobileFeatureCard("🛠 Field", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onSelected(MobileTab.More) }
         MobileFeatureCard("📁 Projects", "Project log, material takeoff, records and cable planning") { onSelected(MobileTab.More) }
