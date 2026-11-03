@@ -38,75 +38,8 @@ jobs:
           $start = $text.IndexOf($startMarker)
           $end = $text.IndexOf($endMarker, $start)
           if ($start -lt 0 -or $end -lt 0) { throw "CredentialStore patch markers were not found." }
-          $replacement = @'
-        private String protect(String plain) throws Exception {
-            if (isWindows()) {
-                try {
-                    return "DPAPI:" + dpapi(plain, true);
-                } catch (Exception ignored) {
-                    // Some Windows installations cannot resolve ProtectedData from a
-                    // child PowerShell process. Keep tokens encrypted locally instead
-                    // of failing the ChatGPT connection after OAuth succeeds.
-                    return aesProtect(plain);
-                }
-            }
-            return aesProtect(plain);
-        }
-
-        private String unprotect(String protectedText) throws Exception {
-            if (protectedText == null || protectedText.isBlank()) throw new SecurityException("Empty local credential data");
-            if (protectedText.startsWith("DPAPI:")) return dpapi(protectedText.substring("DPAPI:".length()), false);
-            if (protectedText.startsWith("AESGCM:")) return aesUnprotect(protectedText);
-
-            // Backward compatibility: older Windows builds stored raw DPAPI base64
-            // without a format prefix.
-            if (isWindows()) {
-                try { return dpapi(protectedText, false); }
-                catch (Exception ignored) { }
-            }
-            return aesUnprotect(protectedText);
-        }
-
-        private String aesProtect(String plain) throws Exception {
-            SecretKey key = fallbackKey();
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            String iv = Base64.getEncoder().encodeToString(cipher.getIV());
-            String data = Base64.getEncoder().encodeToString(cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8)));
-            return "AESGCM:" + iv + ":" + data;
-        }
-
-        private String aesUnprotect(String protectedText) throws Exception {
-            String[] parts = protectedText.split(":", 3);
-            if (parts.length != 3 || !"AESGCM".equals(parts[0])) throw new SecurityException("Invalid local credential format");
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.DECRYPT_MODE, fallbackKey(), new GCMParameterSpec(128, Base64.getDecoder().decode(parts[1])));
-            return new String(cipher.doFinal(Base64.getDecoder().decode(parts[2])), StandardCharsets.UTF_8);
-        }
-
-        private static boolean isWindows() {
-            return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-        }
-
-        private String dpapi(String input, boolean protect) throws Exception {
-            String script = protect
-                ? "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Security;$s=[Console]::In.ReadToEnd();$b=[Text.Encoding]::UTF8.GetBytes($s);$e=[System.Security.Cryptography.ProtectedData]::Protect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Convert]::ToBase64String($e))"
-                : "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Security;$s=[Console]::In.ReadToEnd();$b=[Convert]::FromBase64String($s.Trim());$e=[System.Security.Cryptography.ProtectedData]::Unprotect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Text.Encoding]::UTF8.GetString($e))";
-            Process process = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-                .redirectErrorStream(true).start();
-            try (Writer writer = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8)) { writer.write(input); }
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-            int exit = process.waitFor();
-            if (exit != 0 || output.isBlank()) {
-                String detail = output.lines().findFirst().orElse("");
-                throw new IllegalStateException(detail.isBlank()
-                    ? "Windows credential protection failed."
-                    : "Windows credential protection failed: " + detail);
-            }
-            return output;
-        }
-
-'@
+          $encoded = 'ICAgICAgICBwcml2YXRlIFN0cmluZyBwcm90ZWN0KFN0cmluZyBwbGFpbikgdGhyb3dzIEV4Y2VwdGlvbiB7CiAgICAgICAgICAgIGlmIChpc1dpbmRvd3MoKSkgewogICAgICAgICAgICAgICAgdHJ5IHsKICAgICAgICAgICAgICAgICAgICByZXR1cm4gIkRQQVBJOiIgKyBkcGFwaShwbGFpbiwgdHJ1ZSk7CiAgICAgICAgICAgICAgICB9IGNhdGNoIChFeGNlcHRpb24gaWdub3JlZCkgewogICAgICAgICAgICAgICAgICAgIC8vIFNvbWUgV2luZG93cyBpbnN0YWxsYXRpb25zIGNhbm5vdCByZXNvbHZlIFByb3RlY3RlZERhdGEgZnJvbSBhCiAgICAgICAgICAgICAgICAgICAgLy8gY2hpbGQgUG93ZXJTaGVsbCBwcm9jZXNzLiBLZWVwIHRva2VucyBlbmNyeXB0ZWQgbG9jYWxseSBpbnN0ZWFkCiAgICAgICAgICAgICAgICAgICAgLy8gb2YgZmFpbGluZyB0aGUgQ2hhdEdQVCBjb25uZWN0aW9uIGFmdGVyIE9BdXRoIHN1Y2NlZWRzLgogICAgICAgICAgICAgICAgICAgIHJldHVybiBhZXNQcm90ZWN0KHBsYWluKTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgICByZXR1cm4gYWVzUHJvdGVjdChwbGFpbik7CiAgICAgICAgfQoKICAgICAgICBwcml2YXRlIFN0cmluZyB1bnByb3RlY3QoU3RyaW5nIHByb3RlY3RlZFRleHQpIHRocm93cyBFeGNlcHRpb24gewogICAgICAgICAgICBpZiAocHJvdGVjdGVkVGV4dCA9PSBudWxsIHx8IHByb3RlY3RlZFRleHQuaXNCbGFuaygpKSB0aHJvdyBuZXcgU2VjdXJpdHlFeGNlcHRpb24oIkVtcHR5IGxvY2FsIGNyZWRlbnRpYWwgZGF0YSIpOwogICAgICAgICAgICBpZiAocHJvdGVjdGVkVGV4dC5zdGFydHNXaXRoKCJEUEFQSToiKSkgcmV0dXJuIGRwYXBpKHByb3RlY3RlZFRleHQuc3Vic3RyaW5nKCJEUEFQSToiLmxlbmd0aCgpKSwgZmFsc2UpOwogICAgICAgICAgICBpZiAocHJvdGVjdGVkVGV4dC5zdGFydHNXaXRoKCJBRVNHQ006IikpIHJldHVybiBhZXNVbnByb3RlY3QocHJvdGVjdGVkVGV4dCk7CgogICAgICAgICAgICAvLyBCYWNrd2FyZCBjb21wYXRpYmlsaXR5OiBvbGRlciBXaW5kb3dzIGJ1aWxkcyBzdG9yZWQgcmF3IERQQVBJIGJhc2U2NAogICAgICAgICAgICAvLyB3aXRob3V0IGEgZm9ybWF0IHByZWZpeC4KICAgICAgICAgICAgaWYgKGlzV2luZG93cygpKSB7CiAgICAgICAgICAgICAgICB0cnkgeyByZXR1cm4gZHBhcGkocHJvdGVjdGVkVGV4dCwgZmFsc2UpOyB9CiAgICAgICAgICAgICAgICBjYXRjaCAoRXhjZXB0aW9uIGlnbm9yZWQpIHsgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIHJldHVybiBhZXNVbnByb3RlY3QocHJvdGVjdGVkVGV4dCk7CiAgICAgICAgfQoKICAgICAgICBwcml2YXRlIFN0cmluZyBhZXNQcm90ZWN0KFN0cmluZyBwbGFpbikgdGhyb3dzIEV4Y2VwdGlvbiB7CiAgICAgICAgICAgIFNlY3JldEtleSBrZXkgPSBmYWxsYmFja0tleSgpOwogICAgICAgICAgICBDaXBoZXIgY2lwaGVyID0gQ2lwaGVyLmdldEluc3RhbmNlKCJBRVMvR0NNL05vUGFkZGluZyIpOwogICAgICAgICAgICBjaXBoZXIuaW5pdChDaXBoZXIuRU5DUllQVF9NT0RFLCBrZXkpOwogICAgICAgICAgICBTdHJpbmcgaXYgPSBCYXNlNjQuZ2V0RW5jb2RlcigpLmVuY29kZVRvU3RyaW5nKGNpcGhlci5nZXRJVigpKTsKICAgICAgICAgICAgU3RyaW5nIGRhdGEgPSBCYXNlNjQuZ2V0RW5jb2RlcigpLmVuY29kZVRvU3RyaW5nKGNpcGhlci5kb0ZpbmFsKHBsYWluLmdldEJ5dGVzKFN0YW5kYXJkQ2hhcnNldHMuVVRGXzgpKSk7CiAgICAgICAgICAgIHJldHVybiAiQUVTR0NNOiIgKyBpdiArICI6IiArIGRhdGE7CiAgICAgICAgfQoKICAgICAgICBwcml2YXRlIFN0cmluZyBhZXNVbnByb3RlY3QoU3RyaW5nIHByb3RlY3RlZFRleHQpIHRocm93cyBFeGNlcHRpb24gewogICAgICAgICAgICBTdHJpbmdbXSBwYXJ0cyA9IHByb3RlY3RlZFRleHQuc3BsaXQoIjoiLCAzKTsKICAgICAgICAgICAgaWYgKHBhcnRzLmxlbmd0aCAhPSAzIHx8ICEiQUVTR0NNIi5lcXVhbHMocGFydHNbMF0pKSB0aHJvdyBuZXcgU2VjdXJpdHlFeGNlcHRpb24oIkludmFsaWQgbG9jYWwgY3JlZGVudGlhbCBmb3JtYXQiKTsKICAgICAgICAgICAgQ2lwaGVyIGNpcGhlciA9IENpcGhlci5nZXRJbnN0YW5jZSgiQUVTL0dDTS9Ob1BhZGRpbmciKTsKICAgICAgICAgICAgY2lwaGVyLmluaXQoQ2lwaGVyLkRFQ1JZUFRfTU9ERSwgZmFsbGJhY2tLZXkoKSwgbmV3IEdDTVBhcmFtZXRlclNwZWMoMTI4LCBCYXNlNjQuZ2V0RGVjb2RlcigpLmRlY29kZShwYXJ0c1sxXSkpKTsKICAgICAgICAgICAgcmV0dXJuIG5ldyBTdHJpbmcoY2lwaGVyLmRvRmluYWwoQmFzZTY0LmdldERlY29kZXIoKS5kZWNvZGUocGFydHNbMl0pKSwgU3RhbmRhcmRDaGFyc2V0cy5VVEZfOCk7CiAgICAgICAgfQoKICAgICAgICBwcml2YXRlIHN0YXRpYyBib29sZWFuIGlzV2luZG93cygpIHsKICAgICAgICAgICAgcmV0dXJuIFN5c3RlbS5nZXRQcm9wZXJ0eSgib3MubmFtZSIsICIiKS50b0xvd2VyQ2FzZShMb2NhbGUuUk9PVCkuY29udGFpbnMoIndpbiIpOwogICAgICAgIH0KCiAgICAgICAgcHJpdmF0ZSBTdHJpbmcgZHBhcGkoU3RyaW5nIGlucHV0LCBib29sZWFuIHByb3RlY3QpIHRocm93cyBFeGNlcHRpb24gewogICAgICAgICAgICBTdHJpbmcgc2NyaXB0ID0gcHJvdGVjdAogICAgICAgICAgICAgICAgPyAiJEVycm9yQWN0aW9uUHJlZmVyZW5jZT0nU3RvcCc7QWRkLVR5cGUgLUFzc2VtYmx5TmFtZSBTeXN0ZW0uU2VjdXJpdHk7JHM9W0NvbnNvbGVdOjpJbi5SZWFkVG9FbmQoKTskYj1bVGV4dC5FbmNvZGluZ106OlVURjguR2V0Qnl0ZXMoJHMpOyRlPVtTeXN0ZW0uU2VjdXJpdHkuQ3J5cHRvZ3JhcGh5LlByb3RlY3RlZERhdGFdOjpQcm90ZWN0KCRiLCRudWxsLFtTeXN0ZW0uU2VjdXJpdHkuQ3J5cHRvZ3JhcGh5LkRhdGFQcm90ZWN0aW9uU2NvcGVdOjpDdXJyZW50VXNlcik7W0NvbnNvbGVdOjpPdXQuV3JpdGUoW0NvbnZlcnRdOjpUb0Jhc2U2NFN0cmluZygkZSkpIgogICAgICAgICAgICAgICAgOiAiJEVycm9yQWN0aW9uUHJlZmVyZW5jZT0nU3RvcCc7QWRkLVR5cGUgLUFzc2VtYmx5TmFtZSBTeXN0ZW0uU2VjdXJpdHk7JHM9W0NvbnNvbGVdOjpJbi5SZWFkVG9FbmQoKTskYj1bQ29udmVydF06OkZyb21CYXNlNjRTdHJpbmcoJHMuVHJpbSgpKTskZT1bU3lzdGVtLlNlY3VyaXR5LkNyeXB0b2dyYXBoeS5Qcm90ZWN0ZWREYXRhXTo6VW5wcm90ZWN0KCRiLCRudWxsLFtTeXN0ZW0uU2VjdXJpdHkuQ3J5cHRvZ3JhcGh5LkRhdGFQcm90ZWN0aW9uU2NvcGVdOjpDdXJyZW50VXNlcik7W0NvbnNvbGVdOjpPdXQuV3JpdGUoW1RleHQuRW5jb2RpbmddOjpVVEY4LkdldFN0cmluZygkZSkpIjsKICAgICAgICAgICAgUHJvY2VzcyBwcm9jZXNzID0gbmV3IFByb2Nlc3NCdWlsZGVyKCJwb3dlcnNoZWxsLmV4ZSIsICItTm9Qcm9maWxlIiwgIi1Ob25JbnRlcmFjdGl2ZSIsICItQ29tbWFuZCIsIHNjcmlwdCkKICAgICAgICAgICAgICAgIC5yZWRpcmVjdEVycm9yU3RyZWFtKHRydWUpLnN0YXJ0KCk7CiAgICAgICAgICAgIHRyeSAoV3JpdGVyIHdyaXRlciA9IG5ldyBPdXRwdXRTdHJlYW1Xcml0ZXIocHJvY2Vzcy5nZXRPdXRwdXRTdHJlYW0oKSwgU3RhbmRhcmRDaGFyc2V0cy5VVEZfOCkpIHsgd3JpdGVyLndyaXRlKGlucHV0KTsgfQogICAgICAgICAgICBTdHJpbmcgb3V0cHV0ID0gbmV3IFN0cmluZyhwcm9jZXNzLmdldElucHV0U3RyZWFtKCkucmVhZEFsbEJ5dGVzKCksIFN0YW5kYXJkQ2hhcnNldHMuVVRGXzgpLnRyaW0oKTsKICAgICAgICAgICAgaW50IGV4aXQgPSBwcm9jZXNzLndhaXRGb3IoKTsKICAgICAgICAgICAgaWYgKGV4aXQgIT0gMCB8fCBvdXRwdXQuaXNCbGFuaygpKSB7CiAgICAgICAgICAgICAgICBTdHJpbmcgZGV0YWlsID0gb3V0cHV0LmxpbmVzKCkuZmluZEZpcnN0KCkub3JFbHNlKCIiKTsKICAgICAgICAgICAgICAgIHRocm93IG5ldyBJbGxlZ2FsU3RhdGVFeGNlcHRpb24oZGV0YWlsLmlzQmxhbmsoKQogICAgICAgICAgICAgICAgICAgID8gIldpbmRvd3MgY3JlZGVudGlhbCBwcm90ZWN0aW9uIGZhaWxlZC4iCiAgICAgICAgICAgICAgICAgICAgOiAiV2luZG93cyBjcmVkZW50aWFsIHByb3RlY3Rpb24gZmFpbGVkOiAiICsgZGV0YWlsKTsKICAgICAgICAgICAgfQogICAgICAgICAgICByZXR1cm4gb3V0cHV0OwogICAgICAgIH0KCg=='
+          $replacement = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))
           $newText = $text.Substring(0, $start) + $replacement + $text.Substring($end)
           Set-Content -Path $path -Value $newText -Encoding utf8
 
