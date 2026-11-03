@@ -621,25 +621,29 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node refrigerationDetailed() {
-        TextField rla=field("28"), mca=field(""), mocp=field("");
+        TextField rla=field("28"), lra=field(""), mca=field(""), mocp=field("");
+        CheckBox failsToStart=new CheckBox("Compressor fails to start — allow up to 65% of LRA instead of the normal 50% maximum");
         ChoiceBox<String> overload=choice("Current-responsive overload relay — max 140% RLA",
             "Current-responsive overload relay — max 140% RLA",
             "Other overload device / fuse — max 125% RLA");
         return apiForm("Refrigeration / compressor nameplate worksheet",
-            "Enter nameplate MCA/MOCP when available. If not marked, the worksheet uses its branch-circuit fallback while overload selection follows Rule 28-710.",
+            "Enter marked RLA/LRA and equipment MCA/MOCP when available. Marked MCA/MOCP governs. If MOCP is not marked, the worksheet uses the Rule 28-708 LRA path: 50% normally, or up to 65% if the normal device will not permit starting.",
             "/refrigeration","Calculate refrigeration circuit",
             () -> payload(
                 "rla",number(rla),
+                "lra",optionalNumber(lra),
                 "mca",optionalNumber(mca),
                 "mocp",optionalNumber(mocp),
                 "conductorFactor",1.25,
-                "ocpdFactor",1.75,
                 "overloadFactor",overload.getValue().contains("140%")?1.40:1.25,
+                "motorFailsToStart",failsToStart.isSelected(),
                 "edition","CEC_2024"
             ),
             row("Rated-load current / RLA (A)",rla),
-            row("Nameplate MCA (optional — preferred)",mca),
-            row("Nameplate MOCP (optional — preferred)",mocp),
+            row("Locked-rotor current / LRA (optional; blank derives 6×RLA for worksheet practice)",lra),
+            row("Nameplate MCA (optional — governing when marked)",mca),
+            row("Nameplate MOCP (optional — governing when marked)",mocp),
+            row("Starting condition",failsToStart),
             row("Overload device type",overload)
         );
     }
