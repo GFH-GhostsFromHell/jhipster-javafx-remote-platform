@@ -7,22 +7,19 @@ Section 12 cable/raceway support calculator synchronization:
 - Raceway support calculations remain separate for EMT, rigid metal conduit, PVC, flexible raceway, and ENT.
 
 Section 28 motor calculator synchronization:
-- Multiple-motor calculations now identify each motor separately by FLC, motor/starting type, branch OCPD type, duty class, and duty rating.
+- Multiple-motor calculations identify each motor separately by FLC, motor/starting type, branch OCPD type, duty class, and duty rating.
 - The shared calculator returns the minimum splitter/feeder supply ampacity and conductor size for the motor group.
 - A dedicated splitter-to-motor feeder tap worksheet includes 2 m, 5 m, and custom-length paths under CEC Rule 28-110(2).
 - The 5 m path checks both the motor/branch requirement and the one-third feeder ampacity requirement.
 - Copper and aluminum 75 C raceway/cable conductor lookups are available for the motor splitter/tap worksheet.
-- Multiple refrigeration / hermetic motor-compressors now support individual RLA/LRA, failed-start 50%/65% protection, overload type, optional equipment MCA/MOCP overrides, other simultaneous loads, group conductor sizing, and group OCPD results.
-- The single refrigeration/nameplate worksheet now follows the same LRA protection path: 50% LRA normally, up to 65% LRA when the normal device will not permit starting, with marked MCA/MOCP taking priority.
-- The Android Workbench has a direct Multiple refrigeration motors shortcut into the shared Section 28 calculator.
+- Multiple refrigeration / hermetic motor-compressors support individual RLA/LRA, failed-start 50%/65% protection, overload type, optional equipment MCA/MOCP overrides, other simultaneous loads, group conductor sizing, and group OCPD results.
+- The single refrigeration/nameplate worksheet follows the same LRA protection path: 50% LRA normally, up to 65% LRA when the normal device will not permit starting, with marked MCA/MOCP taking priority.
 
-CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
 Guided calculator usability upgrade:
-- Guided C of Q Worksheets is now the first calculator shortcut on Android.
+- Guided C of Q Worksheets is the first calculator shortcut on Android.
 - Guided/Advanced input modes, numbered worked solutions, rule-path explanations and rounding-direction notes are included.
 - Combined conductor/voltage-drop, D3/K, grounding/bonding, transformer, motor tap, refrigeration, fire-pump, neutral, fire-alarm and service-demand worksheets are available.
-- Common worksheet presets are included.
+- Common worksheet presets include motor taps, transformers, failed-start compressors, hospital/apartment services and fire-alarm EOL calculations.
 - Worked solutions can be copied, saved locally, or turned into practice-question drafts.
-
 
 CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
