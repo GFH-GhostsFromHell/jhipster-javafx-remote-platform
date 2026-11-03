@@ -11,10 +11,10 @@ public final class Launcher {
     private Launcher() {}
 
     public static void main(String[] args) {
-        // Account creation, verification and recovery are now integrated into the
-        // JavaFX login screen. Do not invoke JavaFX UI before Application.launch(),
-        // because the JavaFX toolkit is not initialized yet at this point.
-        startPreLoginUpdateCheck();
+        // Keep a lightweight updater monitor alive for the lifetime of the desktop app.
+        // It checks immediately at startup and then once per minute so users are notified
+        // when a new release becomes available while they are already using the app.
+        startUpdateMonitor();
         try {
             ElectricalWorkbenchNativeApp.main(args);
         } catch (Throwable t) {
@@ -31,22 +31,37 @@ public final class Launcher {
         }
     }
 
-    private static void startPreLoginUpdateCheck() {
+    private static void startUpdateMonitor() {
         if (!System.getProperty("os.name", "").toLowerCase().contains("win")) return;
 
         Thread checker = new Thread(() -> {
-            try {
-                UpdateService updater = new UpdateService();
-                UpdateService.UpdateInfo info = updater.check();
-                if (!info.updateAvailable()) return;
-                if (!confirmWindowsUpdate(info.latestVersion())) return;
-                Path installer = updater.downloadAndVerify(info);
-                updater.launchInstallerAndRelaunch(installer);
-                System.exit(0);
-            } catch (Throwable ex) {
-                System.err.println("Pre-login update check failed: " + ex.getMessage());
+            String lastPromptedVersion = null;
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    UpdateService updater = new UpdateService();
+                    UpdateService.UpdateInfo info = updater.check();
+                    if (info.updateAvailable()
+                        && (lastPromptedVersion == null || !lastPromptedVersion.equals(info.latestVersion()))) {
+                        lastPromptedVersion = info.latestVersion();
+                        if (confirmWindowsUpdate(info.latestVersion())) {
+                            Path installer = updater.downloadAndVerify(info);
+                            updater.launchInstallerAndRelaunch(installer);
+                            System.exit(0);
+                            return;
+                        }
+                    }
+                } catch (Throwable ex) {
+                    logUpdateFailure(ex);
+                }
+
+                try {
+                    Thread.sleep(60_000L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
-        }, "electrical-workbench-pre-login-update");
+        }, "electrical-workbench-update-monitor");
         checker.setDaemon(true);
         checker.start();
     }
@@ -64,7 +79,24 @@ public final class Launcher {
             ).start();
             return process.waitFor() == 0;
         } catch (Exception ex) {
+            logUpdateFailure(ex);
             return false;
+        }
+    }
+
+    private static void logUpdateFailure(Throwable error) {
+        try {
+            Path log = Path.of(System.getProperty("user.home"), "RemoteJavaFXClient-update.log");
+            String detail = java.time.Instant.now() + "  " + error.getClass().getSimpleName() + ": " +
+                (error.getMessage() == null ? error.toString() : error.getMessage()) + System.lineSeparator();
+            java.nio.file.Files.writeString(
+                log,
+                detail,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch (Throwable ignored) {
+            // Update logging must never block application startup.
         }
     }
 }
