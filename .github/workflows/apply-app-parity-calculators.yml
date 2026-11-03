@@ -1,0 +1,35 @@
+name: Apply calculator parity to Web and Android
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/apply-app-parity-calculators.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply cross-platform calculator patch
+        run: python .github/scripts/app_parity_calculator_patch.py
+      - name: Compile portal
+        run: mvn -q -f portal/pom.xml -DskipTests package
+      - name: Commit Web and Android parity changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal/src/main/resources/static/calculators.html android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt
+          git commit -m "Keep calculator UX in parity across Web and Android"
+          git push origin main
