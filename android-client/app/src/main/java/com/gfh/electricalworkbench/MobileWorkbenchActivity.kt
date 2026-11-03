@@ -411,6 +411,7 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
         MWHubCard("Motor & protection wizard", "Motor type, starting method, time-delay/non-time-delay fuse, inverse-time breaker, overload and disconnect selections") { onOpenWeb("/calculators.html?section=s28") }
+        MWHubCard("Multiple refrigeration motors", "Multiple hermetic/semi-hermetic compressors with RLA/LRA, failed-start 50/65% protection, overload type, equipment MCA/MOCP and group conductor sizing") { onOpenWeb("/calculators.html?section=s28&tab=6") }
         MWHubCard("CEC calculator workspace", "Selection-driven services, conductors, transformers, motors, refrigeration, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Visual conduit bender", "Offset, saddle and bend planning tools") { onOpenWeb("/bend-calcs.html") }

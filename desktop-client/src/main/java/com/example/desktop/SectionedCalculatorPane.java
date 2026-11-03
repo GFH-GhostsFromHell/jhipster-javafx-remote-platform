@@ -517,7 +517,7 @@ public final class SectionedCalculatorPane extends BorderPane {
 
     private Node section28() {
         return sectionTabs("Section 28 — Motors & Generators", "AC motors, DC motors, multiple motors and refrigeration/compressor worksheets.",
-            tab("AC Motor", motor(false)),tab("DC Motor", motor(true)),tab("Multiple Motors", multiMotor()),tab("Splitter / Motor Taps", motorSplitterTap()),tab("Refrigeration Worksheet", refrigerationWorksheet()),tab("Nameplate MCA/MOCP", refrigerationDetailed()));
+            tab("AC Motor", motor(false)),tab("DC Motor", motor(true)),tab("Multiple Motors", multiMotor()),tab("Splitter / Motor Taps", motorSplitterTap()),tab("Refrigeration Worksheet", refrigerationWorksheet()),tab("Nameplate MCA/MOCP", refrigerationDetailed()),tab("Multiple Refrigeration", refrigerationGroup()));
     }
 
     private Node motor(boolean dc) {
@@ -642,6 +642,37 @@ public final class SectionedCalculatorPane extends BorderPane {
             row("Nameplate MOCP (optional — preferred)",mocp),
             row("Overload device type",overload)
         );
+    }
+
+    private Node refrigerationGroup() {
+        final int count=6;
+        TextField[] rla=new TextField[count], lra=new TextField[count];
+        CheckBox[] fail=new CheckBox[count];
+        @SuppressWarnings("unchecked") ChoiceBox<String>[] overload=new ChoiceBox[count];
+        String[] defaults={"28","18","","","",""};
+        List<Node> rows=new ArrayList<>();
+        for(int x=0;x<count;x++){
+            rla[x]=field(defaults[x]);lra[x]=field("");fail[x]=new CheckBox("Fails to start — allow 65% LRA maximum instead of 50%");
+            overload[x]=choice("Current-responsive overload relay — 140% RLA","Current-responsive overload relay — 140% RLA","Other overload device / fuse — 125% RLA");
+            rows.add(row("Compressor "+(x+1)+" RLA (A; blank = omit)",rla[x]));
+            rows.add(row("Compressor "+(x+1)+" LRA (A; blank = derive 6×RLA)",lra[x]));
+            rows.add(row("Compressor "+(x+1)+" starting",fail[x]));
+            rows.add(row("Compressor "+(x+1)+" overload",overload[x]));
+        }
+        TextField other=field("0"), mca=field(""), mocp=field("");ChoiceBox<String> material=choice("Copper","Copper","Aluminum");
+        rows.add(row("Other motor / simultaneous load current (A)",other));
+        rows.add(row("Equipment nameplate MCA (optional — governing when marked)",mca));
+        rows.add(row("Equipment nameplate MOCP (optional — governing when marked)",mocp));
+        rows.add(row("Supply conductor material",material));
+        return apiForm("Multiple refrigeration / hermetic motor-compressors",
+            "Enter each compressor separately. The worksheet derives LRA as 6×RLA when it is not marked, checks the 50% / 65% LRA overcurrent path, applies the selected overload limit, and calculates group supply ampacity/OCPD. Equipment MCA/MOCP values take priority when entered.",
+            "/refrigeration-group","Calculate refrigeration group",
+            () -> {
+                List<Map<String,Object>> compressors=new ArrayList<>();
+                for(int x=0;x<count;x++){String raw=rla[x].getText().trim();if(raw.isEmpty())continue;double rr=number(rla[x]);Double ll=optionalNumber(lra[x]);compressors.add(payload("rla",rr,"lra",ll==null?0:ll,"failsToStart",fail[x].isSelected(),"overloadType",overload[x].getValue().startsWith("Current-responsive")?"RELAY":"OTHER"));}
+                if(compressors.isEmpty())throw new IllegalArgumentException("Enter at least one compressor RLA");
+                return payload("compressors",compressors,"otherLoadA",number(other),"equipmentMca",optionalNumber(mca),"equipmentMocp",optionalNumber(mocp),"conductorMaterial",material.getValue().equals("Aluminum")?"ALUMINUM":"COPPER","edition","CEC_2024");
+            },rows.toArray(Node[]::new));
     }
 
     private Node section32() {
