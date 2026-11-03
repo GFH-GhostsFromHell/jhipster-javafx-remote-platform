@@ -406,11 +406,12 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 @Composable
 private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
     val context = LocalContext.current
-    MWPage("CEC 2024 Workbench", "Full calculation pages use the shared cloud calculation backend inside the app; Safety/Learn/Field/Projects/Career are native Android workspaces.") {
+    MWPage("CEC 2024 Workbench", "The shared calculator workspace now uses the same selection-driven motor, transformer, refrigeration, welder and protection choices as desktop.") {
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
-        MWHubCard("CEC calculator workspace", "Services, conductors, transformers, motors, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
+        MWHubCard("Motor & protection wizard", "Motor type, starting method, time-delay/non-time-delay fuse, inverse-time breaker, overload and disconnect selections") { onOpenWeb("/calculators.html?section=s28") }
+        MWHubCard("CEC calculator workspace", "Selection-driven services, conductors, transformers, motors, refrigeration, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Visual conduit bender", "Offset, saddle and bend planning tools") { onOpenWeb("/bend-calcs.html") }
     }
