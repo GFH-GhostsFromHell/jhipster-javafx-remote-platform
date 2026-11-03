@@ -8,7 +8,7 @@ import java.util.*;
 
 @Service
 public class PortalStore {
-  public static final List<String> FEATURES=List.of("ELECTRICAL_CALCULATORS","RESIDENTIAL_REFERENCE","ASK_CHATGPT","DASHBOARD","REPORTS","PLC_CONNECT","REMOTE_DIAGNOSTICS","ENGINEERING_POWER_SYSTEMS","ADVANCED_ANALYTICS","ENGINEERING_MODE","ADMIN_TOOLS");
+  public static final List<String> FEATURES=List.of("ELECTRICAL_CALCULATORS","RESIDENTIAL_REFERENCE","ASK_CHATGPT","DASHBOARD","REPORTS","PLC_CONNECT","REMOTE_DIAGNOSTICS","ENGINEERING_POWER_SYSTEMS","ADVANCED_ANALYTICS","ENGINEERING_MODE","ENTERPRISE_TEAM_MANAGEMENT","ADMIN_TOOLS");
   private final JdbcTemplate db;
   private final ClientAccountStore accounts;
   public PortalStore(JdbcTemplate db, ClientAccountStore accounts){this.db=db;this.accounts=accounts;}
@@ -34,14 +34,17 @@ public class PortalStore {
     m.put("ASK_CHATGPT",true);
     m.put("DASHBOARD",true);
     m.put("REPORTS",true);
-    if (List.of("TIER_2","TIER_3").contains(tier)) {
+    if (List.of("TIER_2","TIER_3","TIER_4").contains(tier)) {
       m.put("PLC_CONNECT",true);
       m.put("REMOTE_DIAGNOSTICS",true);
       m.put("ENGINEERING_POWER_SYSTEMS",true);
     }
-    if ("TIER_3".equals(tier)) {
+    if (List.of("TIER_3","TIER_4").contains(tier)) {
       m.put("ADVANCED_ANALYTICS",true);
       m.put("ENGINEERING_MODE",true);
+    }
+    if ("TIER_4".equals(tier)) {
+      m.put("ENTERPRISE_TEAM_MANAGEMENT",true);
     }
     overrides(user).forEach((k,v)->{
       if(v.equals("ENABLED"))m.put(k,true);
