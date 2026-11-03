@@ -48,7 +48,7 @@ public final class GuidedWorksheetPane extends BorderPane {
         advanced.setSelected(false); advanced.setStyle("-fx-font-weight:bold;-fx-text-fill:#0e7490;");
         head.getChildren().addAll(title,sub,advanced); head.setPadding(new Insets(0,0,10,0)); setTop(head);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabs.getTabs().addAll(tab("Quick Start",quickStart()),tab("Conductor + VD",conductor()),tab("Table D3 / K",d3()),tab("Ground / Bond",groundBond()),tab("Transformer",transformer()),tab("Motor / Tap",motorTap()),tab("Refrigeration",refrigeration()),tab("Fire Pump",firePump()),tab("Neutral",neutral()),tab("Fire Alarm",fireAlarm()),tab("Service Demand",serviceDemand()));
+        tabs.getTabs().addAll(tab("Quick Start",quickStart()),tab("Conductor Ampacity",conductorAmpacity()),tab("Conductor + VD",conductor()),tab("Table D3 / K",d3()),tab("Ground / Bond",groundBond()),tab("Transformer",transformer()),tab("Motor / Tap",motorTap()),tab("Refrigeration",refrigeration()),tab("Fire Pump",firePump()),tab("Neutral",neutral()),tab("Fire Alarm",fireAlarm()),tab("Service Demand",serviceDemand()));
         setCenter(tabs);
     }
 
@@ -56,22 +56,74 @@ public final class GuidedWorksheetPane extends BorderPane {
         VBox root=page("Question presets & shortcuts","Jump directly to the question families that appeared repeatedly in the worksheets. The destination opens with useful starter values that you can replace with the numbers in the question.");
         TilePane p=new TilePane();p.setHgap(10);p.setVgap(10);p.setPrefColumns(3);
         p.getChildren().addAll(
-            shortcut("40 A · 120 V voltage drop",1,()->{}),
-            shortcut("Table D3 / conductor length",2,()->{}),
-            shortcut("Transformer · 75 kVA · 600/208 V",4,()->{}),
-            shortcut("42 A motor · 2 m splitter tap",5,()->{if(tapLengthChoice!=null)tapLengthChoice.setValue("2 m");}),
-            shortcut("42 A motor · 5 m splitter tap",5,()->{if(tapLengthChoice!=null)tapLengthChoice.setValue("5 m");}),
-            shortcut("Compressor fails to start",6,()->{if(firstCompressorFails!=null)firstCompressorFails.setSelected(true);}),
-            shortcut("Fire pump feeder",7,()->{}),
-            shortcut("347/600 V vector neutral",8,()->{}),
-            shortcut("24 V / 3.9 kΩ fire alarm EOL",9,()->{}),
-            shortcut("Hospital service",10,()->{if(serviceOccupancy!=null)serviceOccupancy.setValue("Hospital");}),
-            shortcut("Apartment service",10,()->{if(serviceOccupancy!=null)serviceOccupancy.setValue("Apartment / multi-suite");})
+            shortcut("Conductor ampacity · derating · branch limits",1,()->{}),
+            shortcut("40 A · 120 V voltage drop",2,()->{}),
+            shortcut("Table D3 / conductor length",3,()->{}),
+            shortcut("Transformer · 75 kVA · 600/208 V",5,()->{}),
+            shortcut("42 A motor · 2 m splitter tap",6,()->{if(tapLengthChoice!=null)tapLengthChoice.setValue("2 m");}),
+            shortcut("42 A motor · 5 m splitter tap",6,()->{if(tapLengthChoice!=null)tapLengthChoice.setValue("5 m");}),
+            shortcut("Compressor fails to start",7,()->{if(firstCompressorFails!=null)firstCompressorFails.setSelected(true);}),
+            shortcut("Fire pump feeder",8,()->{}),
+            shortcut("347/600 V vector neutral",9,()->{}),
+            shortcut("24 V / 3.9 kΩ fire alarm EOL",10,()->{}),
+            shortcut("Hospital service",11,()->{if(serviceOccupancy!=null)serviceOccupancy.setValue("Hospital");}),
+            shortcut("Apartment service",11,()->{if(serviceOccupancy!=null)serviceOccupancy.setValue("Apartment / multi-suite");})
         );
         VBox note=card("How Guided mode works","1. Enter only the facts given in the question.\n2. Read the numbered calculation steps.\n3. Check the rounding direction and final selection.\n4. Copy, save, or turn the solved worksheet into a practice-question draft.\n\nCEC/OESC table values and equipment markings must still be verified against the currently adopted code and listed equipment.");
         root.getChildren().addAll(p,note);return scroll(root);
     }
     private Node shortcut(String text,int tabIndex,Runnable preset){Button b=new Button(text);b.setWrapText(true);b.setPrefSize(240,70);b.setStyle("-fx-background-color:white;-fx-border-color:#bae6fd;-fx-border-radius:12;-fx-background-radius:12;-fx-text-fill:#0f4c81;-fx-font-weight:bold;-fx-padding:10;");b.setOnAction(e->{preset.run();tabs.getSelectionModel().select(tabIndex);});return b;}
+
+
+    private Node conductorAmpacity(){
+        VBox f=new VBox(9);
+        TextField load=field("16"),ocpd=field("20"),ambientTemp=field("30"),ambient=field("1.00"),ccc=field("2"),grouping=field("1.00"),manualBase=field(""),manualTerminal=field("");
+        ChoiceBox<String> circuit=choice("General / feeder","General / feeder","Dwelling-unit lighting","General-use receptacle — 15 A","General-use receptacle — 20 A","Dwelling dryer receptacle — 30 A","Motor / HVAC / nameplate special rule");
+        ChoiceBox<String> material=choice("Copper","Copper","Aluminum"),terminal=choice("75 °C","60 °C","75 °C","90 °C"),loading=choice("Non-continuous / 100% load","Non-continuous / 100% load","Continuous on 80%-rated equipment — 125%","Continuous on 100%-rated equipment — 100%");
+        f.getChildren().addAll(row("Load current (A)",load),row("Circuit / use",circuit),row("Selected OCPD / breaker (A)",ocpd),row("Load treatment",loading),row("Conductor material",material),row("Equipment terminal temperature",terminal));
+        advancedOnly(ambientTemp);advancedOnly(ambient);advancedOnly(ccc);advancedOnly(grouping);advancedOnly(manualBase);advancedOnly(manualTerminal);
+        f.getChildren().addAll(advancedRow("Ambient temperature °C (reference only)",ambientTemp),advancedRow("Ambient correction factor — Table 5A input",ambient),advancedRow("Current-carrying conductors",ccc),advancedRow("Grouping factor — Table 5C input",grouping),advancedRow("Selected conductor insulation-column ampacity A (optional exact verification)",manualBase),advancedRow("Terminal-temperature ampacity limit A (optional exact verification)",manualTerminal));
+        return worksheet("Conductor ampacity / derating / branch-circuit limits","Sizes a conductor from load current and correction factors, then separately checks the branch-circuit/OCPD restrictions that can govern even when the raw conductor ampacity is higher. Automatic size selection uses the same built-in 75 °C starter dataset as the rest of Electrical Workbench; use the two optional exact-verification fields when a 60 °C or 90 °C table column controls.",f,()->{
+            double i=num(load),oc=num(ocpd),af=num(ambient),gf=num(grouping);if(i<0||oc<=0||af<=0||gf<=0)throw new IllegalArgumentException("Load, breaker and correction factors must be valid positive values");
+            double loadFactor=loading.getValue().startsWith("Continuous on 80")?1.25:1.0;
+            double required=i*loadFactor,requiredTable=required/(af*gf);
+            LinkedHashMap<String,Double> map=material.getValue().equals("Aluminum")?AL:CU;
+            String ampacitySize=findAmpacity(map,requiredTable);if(ampacitySize==null)return "Required corrected ampacity exceeds the starter conductor dataset.";
+            List<String> sizes=new ArrayList<>(map.keySet());int idx=sizes.indexOf(ampacitySize);String finalSize=ampacitySize;
+            boolean special=circuit.getValue().startsWith("Motor / HVAC");double circuitCap=Double.POSITIVE_INFINITY;String circuitMinimum=null;String circuitRule="No additional branch-circuit preset selected; apply the normal conductor/OCPD rules.";
+            if(circuit.getValue().equals("Dwelling-unit lighting")){circuitCap=15;circuitMinimum="14 AWG";circuitRule="Dwelling lighting study path: 15 A branch-circuit restriction discussed under Rule 30-104.";}
+            else if(circuit.getValue().equals("General-use receptacle — 15 A")){circuitCap=15;circuitMinimum="14 AWG";circuitRule="15 A general-use receptacle preset.";}
+            else if(circuit.getValue().equals("General-use receptacle — 20 A")){circuitCap=20;circuitMinimum="12 AWG";circuitRule="20 A general-use/T-slot receptacle preset; #12 Cu is the minimum normal small-conductor path.";}
+            else if(circuit.getValue().equals("Dwelling dryer receptacle — 30 A")){circuitCap=30;circuitMinimum="10 AWG";circuitRule="Dwelling dryer preset: 30 A branch-circuit/receptacle path previously discussed under Rule 26-744.";}
+            else if(special){circuitRule="Motor/HVAC/nameplate path selected: special Section 28/62 or marked MCA/MOCP rules can permit conductor/OCPD relationships that differ from ordinary Rule 14-104 small-conductor circuits.";}
+            if(material.getValue().equals("Copper")&&!special){
+                if(circuitMinimum!=null){int min=sizes.indexOf(circuitMinimum);if(min>=0&&min>idx){idx=min;finalSize=sizes.get(idx);}}
+                while(idx<sizes.size()-1){double cap=finalSize.equals("14 AWG")?15:finalSize.equals("12 AWG")?20:finalSize.equals("10 AWG")?30:Double.POSITIVE_INFINITY;if(oc<=cap)break;finalSize=sizes.get(++idx);}
+            }
+            double corrected=map.get(finalSize)*af*gf;
+            String circuitStatus=Double.isFinite(circuitCap)&&oc>circuitCap?String.format(Locale.US,"REVIEW — selected %.0f A OCPD exceeds this preset's %.0f A branch-circuit limit; increasing conductor size does not remove that circuit restriction.",oc,circuitCap):"PASS / no preset OCPD conflict detected.";
+            String smallRule;
+            if(material.getValue().equals("Copper")&&!special)smallRule="Rule 14-104(2) small-copper check: #14 Cu → 15 A max normal OCPD; #12 Cu → 20 A; #10 Cu → 30 A. Final size after this check = "+finalSize+".";
+            else if(material.getValue().equals("Aluminum")&&!special)smallRule="Aluminum selected: automatic small-conductor OCPD limits are not embedded because the exact aluminum limits were not verified in the source material; verify Rule 14-104 before field use.";
+            else smallRule="Special equipment path selected; verify the applicable motor/HVAC/nameplate rule instead of applying the ordinary small-conductor cap blindly.";
+            String manual="Not entered.";
+            if(!manualBase.getText().trim().isEmpty()){
+                double base=Double.parseDouble(manualBase.getText().trim()),allow=base*af*gf;String termText="";
+                if(!manualTerminal.getText().trim().isEmpty()){double tl=Double.parseDouble(manualTerminal.getText().trim());allow=Math.min(allow,tl);termText=String.format(Locale.US," and terminal limit %.2f A",tl);}
+                manual=String.format(Locale.US,"Exact verification: %.2f A table value × %.3f × %.3f%s → allowable %.2f A → %s required %.2f A.",base,af,gf,termText,allow,allow>=required?"PASS":"DOES NOT PASS",required);
+            }
+            return lines(
+                "GIVEN",String.format(Locale.US,"Load %.2f A · OCPD %.0f A · %s · %s · terminal %s",i,oc,circuit.getValue(),material.getValue(),terminal.getValue()),
+                "1 — LOAD AMPACITY",String.format(Locale.US,"Required load ampacity = %.2f × %.3f = %.2f A",i,loadFactor,required),
+                "2 — DERATING",String.format(Locale.US,"Required uncorrected table ampacity = %.2f /(ambient %.3f × grouping %.3f) = %.2f A. Current-carrying conductors entered: %.0f; ambient reference: %.1f °C.",required,af,gf,requiredTable,num(ccc),num(ambientTemp)),
+                "3 — STARTER SIZE","75 °C starter lookup gives "+ampacitySize+" ("+fmt(map.get(ampacitySize))+" A). After branch/OCPD restrictions: "+finalSize+". Corrected starter ampacity = "+fmt(corrected)+" A.",
+                "4 — SMALL-CONDUCTOR / CIRCUIT CHECK",smallRule+"\n"+circuitRule+"\n"+circuitStatus,
+                "5 — EXACT TABLE VERIFICATION",manual,
+                "FINAL","Study selection: "+finalSize+" or larger, provided the applicable CEC/OESC table column, terminal rating, correction factors, wiring method and special circuit rule all pass.",
+                "WHY","Raw table ampacity, derated allowable ampacity, terminal-temperature limitation and branch-circuit/OCPD restrictions are separate checks. A higher insulation ampacity does not by itself authorize a larger breaker on an ordinary small-conductor circuit."
+            );
+        },"conductor-ampacity");
+    }
 
     private Node conductor(){
         VBox f=new VBox(9);TextField load=field("40"),ambient=field("1.00"),grouping=field("1.00"),voltage=field("120"),length=field("30"),vdPct=field("3"),k=field("12.9");CheckBox continuous=new CheckBox("Continuous load — apply 125% / 80% sizing relationship");ChoiceBox<String> material=choice("Copper","Copper","Aluminum"),term=choice("75 °C","60 °C","75 °C","90 °C"),phase=choice("1-phase / DC","1-phase / DC","3-phase");
