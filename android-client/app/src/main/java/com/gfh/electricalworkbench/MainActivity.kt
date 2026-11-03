@@ -376,6 +376,9 @@ private fun LoginScreen(
                         }
                     }
 
+                    Spacer(Modifier.height(10.dp))
+                    MobileAccountRecovery()
+
                     Spacer(Modifier.height(15.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
