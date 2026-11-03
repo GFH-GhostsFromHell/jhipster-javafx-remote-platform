@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequestMapping("/api/public/releases")
 public class ReleaseResource {
     private static final String RELEASES_API = "https://api.github.com/repos/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases?per_page=40";
-    private static final Duration CACHE_TTL = Duration.ofSeconds(30);
+    private static final Duration RELEASE_LIST_TTL = Duration.ofMinutes(3);
+    private static final Duration RESOLVED_RELEASE_TTL = Duration.ofSeconds(45);
 
     private final HttpClient http = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
@@ -32,6 +33,8 @@ public class ReleaseResource {
         .build();
     private final ObjectMapper json = new ObjectMapper();
     private final Map<String, CachedRelease> cache = new ConcurrentHashMap<>();
+    private final Object releaseListLock = new Object();
+    private volatile CachedReleaseList releaseListCache;
 
     @GetMapping("/android")
     public ResponseEntity<?> android(@RequestParam(defaultValue = "stable") String channel) {
@@ -68,66 +71,87 @@ public class ReleaseResource {
         Instant now = Instant.now();
         if (cached != null && cached.expiresAt().isAfter(now)) return cached.payload();
 
-        synchronized (cache) {
-            cached = cache.get(cacheKey);
-            if (cached != null && cached.expiresAt().isAfter(now)) return cached.payload();
+        JsonNode releases = releaseList();
+        boolean dev = "development".equals(channel);
+        String prefix = dev ? devPrefix : stablePrefix;
+        JsonNode selected = null;
+        for (JsonNode release : releases) {
+            if (release.path("draft").asBoolean(false)) continue;
+            String tag = release.path("tag_name").asText("");
+            boolean prerelease = release.path("prerelease").asBoolean(false);
+            if (!tag.startsWith(prefix)) continue;
+            if (!dev && prerelease) continue;
+            selected = release;
+            break;
+        }
+        if (selected == null) throw new IOException("No " + channel + " " + platform + " release is available");
 
-            boolean dev = "development".equals(channel);
-            String prefix = dev ? devPrefix : stablePrefix;
-            HttpRequest request = HttpRequest.newBuilder(URI.create(RELEASES_API))
-                .timeout(Duration.ofSeconds(25))
-                .header("Accept", "application/vnd.github+json")
-                .header("User-Agent", "ElectricalWorkbench-Portal")
-                .GET()
-                .build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) throw new IOException("GitHub releases returned HTTP " + response.statusCode());
+        String tag = selected.path("tag_name").asText();
+        String version = tag.substring(prefix.length());
+        String downloadUrl = null;
+        String sha256 = null;
+        long size = 0L;
+        for (JsonNode asset : selected.path("assets")) {
+            if (!assetName.equals(asset.path("name").asText())) continue;
+            downloadUrl = asset.path("browser_download_url").asText(null);
+            sha256 = asset.path("digest").asText(null);
+            size = asset.path("size").asLong(0L);
+            break;
+        }
+        if (downloadUrl == null || downloadUrl.isBlank()) throw new IOException("Release does not contain " + assetName);
+        if (sha256 != null && sha256.startsWith("sha256:")) sha256 = sha256.substring(7);
 
-            JsonNode selected = null;
-            for (JsonNode release : json.readTree(response.body())) {
-                if (release.path("draft").asBoolean(false)) continue;
-                String tag = release.path("tag_name").asText("");
-                boolean prerelease = release.path("prerelease").asBoolean(false);
-                if (!tag.startsWith(prefix)) continue;
-                // Development releases have their own explicit tag prefix. Trust that prefix even if
-                // GitHub metadata was accidentally published without the prerelease flag. Stable
-                // releases must still be non-prerelease.
-                if (!dev && prerelease) continue;
-                selected = release;
-                break;
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("platform", platform);
+        payload.put("channel", channel);
+        payload.put("version", version);
+        payload.put("tag", tag);
+        payload.put("downloadUrl", downloadUrl);
+        payload.put("releaseUrl", selected.path("html_url").asText(""));
+        payload.put("sha256", sha256 == null ? "" : sha256);
+        payload.put("sizeBytes", size);
+        payload.put("publishedAt", selected.path("published_at").asText(""));
+        payload.put("assetName", assetName);
+        payload.put("checkedAt", now.toString());
+        Map<String, Object> immutable = Map.copyOf(payload);
+        cache.put(cacheKey, new CachedRelease(immutable, now.plus(RESOLVED_RELEASE_TTL)));
+        return immutable;
+    }
+
+    private JsonNode releaseList() throws Exception {
+        Instant now = Instant.now();
+        CachedReleaseList cached = releaseListCache;
+        if (cached != null && cached.expiresAt().isAfter(now)) return cached.releases();
+
+        synchronized (releaseListLock) {
+            cached = releaseListCache;
+            now = Instant.now();
+            if (cached != null && cached.expiresAt().isAfter(now)) return cached.releases();
+
+            try {
+                HttpRequest request = HttpRequest.newBuilder(URI.create(RELEASES_API))
+                    .timeout(Duration.ofSeconds(25))
+                    .header("Accept", "application/vnd.github+json")
+                    .header("User-Agent", "ElectricalWorkbench-Portal")
+                    .GET()
+                    .build();
+                HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    throw new IOException("GitHub releases returned HTTP " + response.statusCode());
+                }
+                JsonNode releases = json.readTree(response.body());
+                if (!releases.isArray()) throw new IOException("GitHub releases returned an invalid response");
+                releaseListCache = new CachedReleaseList(releases, now.plus(RELEASE_LIST_TTL));
+                return releases;
+            } catch (Exception ex) {
+                // Release metadata changes slowly. If GitHub is temporarily unavailable or rate-limited,
+                // serving the last known-good list is safer than breaking every installed updater.
+                if (cached != null && cached.releases() != null && cached.releases().isArray()) {
+                    releaseListCache = new CachedReleaseList(cached.releases(), now.plus(Duration.ofMinutes(1)));
+                    return cached.releases();
+                }
+                throw ex;
             }
-            if (selected == null) throw new IOException("No " + channel + " " + platform + " release is available");
-
-            String tag = selected.path("tag_name").asText();
-            String version = tag.substring(prefix.length());
-            String downloadUrl = null;
-            String sha256 = null;
-            long size = 0L;
-            for (JsonNode asset : selected.path("assets")) {
-                if (!assetName.equals(asset.path("name").asText())) continue;
-                downloadUrl = asset.path("browser_download_url").asText(null);
-                sha256 = asset.path("digest").asText(null);
-                size = asset.path("size").asLong(0L);
-                break;
-            }
-            if (downloadUrl == null || downloadUrl.isBlank()) throw new IOException("Release does not contain " + assetName);
-            if (sha256 != null && sha256.startsWith("sha256:")) sha256 = sha256.substring(7);
-
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("platform", platform);
-            payload.put("channel", channel);
-            payload.put("version", version);
-            payload.put("tag", tag);
-            payload.put("downloadUrl", downloadUrl);
-            payload.put("releaseUrl", selected.path("html_url").asText(""));
-            payload.put("sha256", sha256 == null ? "" : sha256);
-            payload.put("sizeBytes", size);
-            payload.put("publishedAt", selected.path("published_at").asText(""));
-            payload.put("assetName", assetName);
-            payload.put("checkedAt", now.toString());
-            Map<String, Object> immutable = Map.copyOf(payload);
-            cache.put(cacheKey, new CachedRelease(immutable, now.plus(CACHE_TTL)));
-            return payload;
         }
     }
 
@@ -140,4 +164,5 @@ public class ReleaseResource {
     }
 
     private record CachedRelease(Map<String, Object> payload, Instant expiresAt) {}
+    private record CachedReleaseList(JsonNode releases, Instant expiresAt) {}
 }
