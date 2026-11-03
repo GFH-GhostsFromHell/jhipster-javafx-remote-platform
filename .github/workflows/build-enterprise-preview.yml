@@ -1,0 +1,73 @@
+name: Build Enterprise Modules Preview MSI
+
+on:
+  push:
+    branches: [ draft-enterprise-modules ]
+    paths:
+      - 'desktop-client/**'
+      - '.github/workflows/build-enterprise-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-preview-msi:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-client
+    steps:
+      - name: Checkout draft branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build desktop client
+        run: mvn -B -DskipTests clean package
+
+      - name: Build isolated Preview MSI
+        shell: pwsh
+        run: |
+          $version = "0.1.${{ github.run_number }}"
+          New-Item -ItemType Directory -Force -Path target/preview-installer | Out-Null
+          jpackage `
+            --type msi `
+            --name ElectricalWorkbenchPreview `
+            --app-version $version `
+            --vendor "Electrical Workbench" `
+            --description "Electrical Workbench Enterprise Modules Preview" `
+            --input target/jpackage-input `
+            --main-jar remote-javafx-client-0.1.0.jar `
+            --main-class com.example.desktop.Launcher `
+            --java-options "-Dapp.version=$version" `
+            --java-options "-Dapp.previewBuild=true" `
+            --dest target/preview-installer `
+            --win-menu `
+            --win-shortcut `
+            --win-dir-chooser
+          $msi = Get-ChildItem target/preview-installer/*.msi | Select-Object -First 1
+          Copy-Item $msi.FullName target/preview-installer/ElectricalWorkbenchPreview-Setup.msi
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElectricalWorkbench-Enterprise-Preview
+          path: desktop-client/target/preview-installer/ElectricalWorkbenchPreview-Setup.msi
+
+      - name: Publish preview prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "preview-enterprise-modules-v0.1.${{ github.run_number }}"
+          gh release create $tag target/preview-installer/ElectricalWorkbenchPreview-Setup.msi `
+            --repo "${{ github.repository }}" `
+            --title "Enterprise Modules Preview 0.1.${{ github.run_number }}" `
+            --notes "Reversible preview build from draft-enterprise-modules. Installs as ElectricalWorkbenchPreview, uses a different Windows application name from the stable client, and disables the normal stable updater. This preview does not modify stable billing or production entitlements." `
+            --prerelease
