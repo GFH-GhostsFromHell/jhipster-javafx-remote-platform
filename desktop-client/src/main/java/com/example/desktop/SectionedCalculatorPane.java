@@ -661,34 +661,43 @@ public final class SectionedCalculatorPane extends BorderPane {
 
     private Node singleWelder() {
         ChoiceBox<String> type=choice("Transformer / inverter arc welder",
-            "Transformer / inverter arc welder","Resistance welder");
+            "Transformer / inverter arc welder","Motor-generator arc welder","Resistance welder");
         ChoiceBox<String> duty=choice("60%","100%","90%","80%","70%","60%","50%","40%","30%","20%","1 hour");
-        TextField kva=field("30"), voltage=field("600"), amp=field("35");
+        TextField kva=field("30"), voltage=field("600"), ratedPrimary=field("50"), amp=field("35");
 
-        type.setOnAction(e -> {
+        Runnable sync = () -> {
+            boolean resistance=type.getValue().startsWith("Resistance");
+            boolean motorGenerator=type.getValue().startsWith("Motor-generator");
             duty.getItems().clear();
-            if(type.getValue().startsWith("Resistance")){
+            if(resistance){
                 duty.getItems().addAll("50%","40%","30%","25%","20%","15%","10%","7.5%","5%");
                 duty.setValue("30%");
             } else {
                 duty.getItems().addAll("100%","90%","80%","70%","60%","50%","40%","30%","20%","1 hour");
                 duty.setValue("60%");
             }
-        });
+            kva.setDisable(motorGenerator);
+            voltage.setDisable(motorGenerator);
+            ratedPrimary.setDisable(!motorGenerator);
+        };
+        type.setOnAction(e -> sync.run());
+        sync.run();
 
         return apiForm("Single welder worksheet",
-            "Choose the welder type and nameplate duty cycle. The app converts the selection to the CEC 2024 Table 42A or 42C conductor multiplier automatically.",
+            "Choose the CEC welder category and duty cycle. Transformer/inverter arc uses Table 42A, motor-generator arc uses Table 42B and Section 28 protection/control rules, and resistance uses Table 42C.",
             "/welder-worksheet","Calculate single welder",
             () -> payload(
                 "kva",number(kva),
                 "voltage",number(voltage),
+                "ratedPrimaryCurrentA",type.getValue().startsWith("Motor-generator")?number(ratedPrimary):0,
                 "dutyFactor",welderDutyFactor(type.getValue(),duty.getValue()),
-                "type",type.getValue().startsWith("Resistance")?"RESISTANCE":"TRANSFORMER_ARC",
+                "type",type.getValue().startsWith("Resistance")?"RESISTANCE":type.getValue().startsWith("Motor-generator")?"MOTOR_GENERATOR":"TRANSFORMER_ARC",
                 "selectedConductorAmpacity",number(amp)
             ),
             row("Welder type",type),
-            row("Rating (kVA)",kva),
-            row("Primary voltage (V)",voltage),
+            row("Rating (kVA — transformer/inverter or resistance)",kva),
+            row("Primary voltage (V — transformer/inverter or resistance)",voltage),
+            row("Rated primary current (A — motor-generator)",ratedPrimary),
             row("Nameplate duty cycle",duty),
             row("Selected conductor ampacity (A)",amp)
         );
@@ -758,10 +767,17 @@ public final class SectionedCalculatorPane extends BorderPane {
                 default->throw new IllegalArgumentException("Select a resistance-welder duty cycle");
             };
         }
+        if(type.startsWith("Motor-generator")){
+            return switch(d){
+                case "100%"->1.00; case "90%"->.96; case "80%"->.91; case "70%"->.86; case "60%"->.81;
+                case "50%"->.75; case "40%"->.69; case "30%"->.62; case "20%"->.55; case "1 hour"->.80;
+                default->throw new IllegalArgumentException("Select a motor-generator welder duty cycle");
+            };
+        }
         return switch(d){
             case "100%"->1.00; case "90%"->.95; case "80%"->.89; case "70%"->.84; case "60%"->.78;
             case "50%"->.71; case "40%"->.63; case "30%"->.55; case "20%"->.45; case "1 hour"->.75;
-            default->throw new IllegalArgumentException("Select an arc-welder duty cycle");
+            default->throw new IllegalArgumentException("Select a transformer/inverter arc-welder duty cycle");
         };
     }
 
