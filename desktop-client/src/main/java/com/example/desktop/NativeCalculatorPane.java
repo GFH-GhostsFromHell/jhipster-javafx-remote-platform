@@ -18,7 +18,7 @@ public final class NativeCalculatorPane extends BorderPane {
     public NativeCalculatorPane(PortalClient portal, ObjectMapper json, String username, String password) {
         Label title = new Label("Electrical Workbench Calculators");
         title.setStyle("-fx-font-size:16px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label detail = new Label("Guided Worksheets are optimized for C of Q-style questions. The full CEC section workspace remains available for direct section-based calculation.");
+        Label detail = new Label("Use Integrated Design for coordinated field design, Guided Worksheets for C of Q-style work, or the full CEC section workspace for direct section-based calculations.");
         detail.setWrapText(true);
         detail.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");
         Button engineering = new Button("⚡ Engineering Power Systems");
@@ -27,7 +27,7 @@ public final class NativeCalculatorPane extends BorderPane {
             try { Desktop.getDesktop().browse(URI.create(portal.baseUrl() + "/engineering-power.html")); }
             catch (Exception ex) { engineering.setText("Could not open browser"); }
         });
-        Label update = new Label("✓ Conduit & Box Fill now has mixed-conductor rows, automatic CEC fill limits and raceway/box presets. Ampacity / Derating adds ambient-temperature correction and current-carrying-conductor adjustment with a combined pass/fail ampacity check.");
+        Label update = new Label("✓ Integrated Design coordinates conductor sizing, ambient/group derating, voltage drop, OCPD/bonding screening, raceway sizing, panel balancing, transformer and motor workflows, estimating, project records and exportable calculation reports. Dedicated Conduit/Box Fill and Ampacity/Derating tools remain available.");
         update.setWrapText(true);
         update.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-text-fill:#155e75;-fx-font-weight:bold;-fx-font-size:12px;");
         VBox bar = new VBox(5, title, detail, engineering, update);
@@ -37,11 +37,12 @@ public final class NativeCalculatorPane extends BorderPane {
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
+        Tab design = new Tab("Integrated Design", new IntegratedDesignPane(json, username));
         Tab fill = new Tab("Conduit & Box Fill", new FillCalculatorPane());
         Tab derating = new Tab("Ampacity / Derating", new AmpacityDeratingPane());
         Tab sections = new Tab("CEC Sections / Advanced", new SectionedCalculatorPane(portal, json, username, password));
-        tabs.getTabs().addAll(guided, fill, derating, sections);
-        tabs.getSelectionModel().select(guided);
+        tabs.getTabs().addAll(guided, design, fill, derating, sections);
+        tabs.getSelectionModel().select(design);
         setCenter(tabs);
     }
 }
