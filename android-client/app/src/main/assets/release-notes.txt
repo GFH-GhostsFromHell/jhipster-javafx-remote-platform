@@ -12,5 +12,7 @@ Section 28 motor calculator synchronization:
 - A dedicated splitter-to-motor feeder tap worksheet includes 2 m, 5 m, and custom-length paths under CEC Rule 28-110(2).
 - The 5 m path checks both the motor/branch requirement and the one-third feeder ampacity requirement.
 - Copper and aluminum 75 C raceway/cable conductor lookups are available for the motor splitter/tap worksheet.
+- Multiple refrigeration / hermetic motor-compressors now support individual RLA/LRA, failed-start 50%/65% protection, overload type, optional equipment MCA/MOCP overrides, other simultaneous loads, group conductor sizing, and group OCPD results.
+- The Android Workbench has a direct Multiple refrigeration motors shortcut into the shared Section 28 calculator.
 
 CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
