@@ -1,6 +1,11 @@
 name: Build Enterprise Modules Preview MSI
 
 on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'desktop-client/**'
+      - '.github/workflows/build-enterprise-preview.yml'
   push:
     branches: [ draft-enterprise-modules ]
     paths:
@@ -18,7 +23,7 @@ jobs:
       run:
         working-directory: desktop-client
     steps:
-      - name: Checkout draft branch
+      - name: Checkout draft
         uses: actions/checkout@v4
 
       - name: Set up Java 21
