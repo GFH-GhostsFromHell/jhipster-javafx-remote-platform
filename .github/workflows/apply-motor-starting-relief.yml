@@ -1,0 +1,44 @@
+name: Apply motor starting-relief checkbox
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/fix_motor_starting_relief.py'
+      - '.github/workflows/apply-motor-starting-relief.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply motor starting-relief patch
+        run: python .github/fix_motor_starting_relief.py
+      - name: Compile portal
+        run: mvn -f portal/pom.xml -DskipTests package
+      - name: Compile desktop client
+        run: mvn -f desktop-client/pom.xml -DskipTests package
+      - name: Commit permanent source changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add portal/src/main/java/com/example/remoteportal/service/ElectricalCalculatorService.java \
+                  portal/src/main/java/com/example/remoteportal/web/CalculatorResource.java \
+                  portal/src/main/resources/static/calculators.html \
+                  desktop-client/src/main/java/com/example/desktop/SectionedCalculatorPane.java
+          git diff --cached --quiet && exit 0
+          git commit -m 'Add motor failed-start OCPD relief option'
+          git push origin main
