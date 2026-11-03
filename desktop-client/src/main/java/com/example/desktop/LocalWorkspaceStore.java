@@ -16,7 +16,8 @@ public final class LocalWorkspaceStore {
 
     private static final String[] COLLECTIONS = new String[]{
         "projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials",
-        "safetyAssessments","unsafeConditions","rubberGloves","safetyMaintenance","stormStandDowns"
+        "safetyAssessments","unsafeConditions","rubberGloves","safetyMaintenance","stormStandDowns",
+        "guidedSolutions","practiceDrafts"
     };
 
     public LocalWorkspaceStore(ObjectMapper json, String username) {

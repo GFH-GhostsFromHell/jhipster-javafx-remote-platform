@@ -86,7 +86,10 @@ public final class ElectricianPlatformPane extends BorderPane {
         Label progress = new Label(); progress.setStyle("-fx-font-weight:bold;-fx-text-fill:#0e7490;");
         Label category = new Label(); category.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#64748b;");
         Label question = new Label(); question.setWrapText(true); question.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        VBox answers = new VBox(8); ToggleGroup group = new ToggleGroup();
+        VBox answers = new VBox(10); ToggleGroup group = new ToggleGroup();
+        answers.setFillWidth(true);
+        answers.setMinHeight(190);
+        answers.setStyle("-fx-background-color:#f8fafc;-fx-border-color:#e2e8f0;-fx-border-radius:10;-fx-background-radius:10;-fx-padding:10;");
         Label feedback = new Label(); feedback.setWrapText(true); feedback.setStyle("-fx-text-fill:#334155;");
         Button action = button("Check answer");
         Label scoreLabel = new Label("Score: 0 / 0"); scoreLabel.setStyle("-fx-font-weight:bold;");
@@ -103,7 +106,24 @@ public final class ElectricianPlatformPane extends BorderPane {
             answered[0] = false; group.getToggles().clear(); answers.getChildren().clear(); feedback.setText(""); action.setText("Check answer");
             PracticeQuestionBank.Question q = questions.get(index[0]);
             progress.setText("Question " + (index[0] + 1) + " of " + questions.size()); category.setText(q.category()); question.setText(q.question());
-            for (int i=0;i<q.options().size();i++) { RadioButton rb = new RadioButton((char)('A'+i) + ". " + q.options().get(i)); rb.setToggleGroup(group); rb.setUserData(i); rb.setWrapText(true); answers.getChildren().add(rb); }
+            for (int i=0;i<q.options().size();i++) {
+                RadioButton rb = new RadioButton((char)('A'+i) + ". " + q.options().get(i));
+                rb.setToggleGroup(group);
+                rb.setUserData(i);
+                rb.setWrapText(true);
+                rb.setMaxWidth(Double.MAX_VALUE);
+                rb.setPrefWidth(900);
+                rb.setMinHeight(38);
+                rb.setVisible(true);
+                rb.setManaged(true);
+                rb.setStyle("-fx-text-fill:#0f172a;-fx-font-size:14px;-fx-font-weight:600;-fx-background-color:white;-fx-border-color:#cbd5e1;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:9 12;");
+                answers.getChildren().add(rb);
+            }
+            if (q.options().isEmpty()) {
+                Label missing = new Label("No answer choices were loaded for this question. The question bank entry needs repair.");
+                missing.setStyle("-fx-text-fill:#b91c1c;-fx-font-weight:bold;");
+                answers.getChildren().add(missing);
+            }
         };
         action.setOnAction(e -> {
             if (index[0] >= questions.size()) return;

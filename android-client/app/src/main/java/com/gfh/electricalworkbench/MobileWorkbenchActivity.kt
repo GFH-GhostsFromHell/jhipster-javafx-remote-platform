@@ -406,7 +406,8 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 @Composable
 private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
     val context = LocalContext.current
-    MWPage("CEC 2024 Workbench", "The shared calculator workspace now uses the same selection-driven motor, transformer, refrigeration, welder and protection choices as desktop.") {
+    MWPage("CEC 2024 Workbench", "Guided Worksheets is the default exam-style workflow; the full section calculators and advanced pack remain available for detailed work.") {
+        MWHubCard("Guided C of Q Worksheets", "Default guided workflow with worked steps, Why-this-answer explanations, conductor + voltage drop, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm, service demand, presets and saved solutions") { onOpenWeb("/guided-calculators.html") }
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }

@@ -17,3 +17,12 @@ Section 28 motor calculator synchronization:
 - The Android Workbench has a direct Multiple refrigeration motors shortcut into the shared Section 28 calculator.
 
 CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
+Guided calculator usability upgrade:
+- Guided C of Q Worksheets is now the first calculator shortcut on Android.
+- Guided/Advanced input modes, numbered worked solutions, rule-path explanations and rounding-direction notes are included.
+- Combined conductor/voltage-drop, D3/K, grounding/bonding, transformer, motor tap, refrigeration, fire-pump, neutral, fire-alarm and service-demand worksheets are available.
+- Common worksheet presets are included.
+- Worked solutions can be copied, saved locally, or turned into practice-question drafts.
+
+
+CEC/OESC values must be verified against the applicable current code edition, Ontario amendments, equipment instructions, and site requirements.
