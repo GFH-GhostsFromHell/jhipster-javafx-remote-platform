@@ -64,7 +64,7 @@ public final class PracticeQuestionBank {
 
     public static List<Question> daily25(LocalDate date, String username) {
         Map<String,List<Question>> by = new LinkedHashMap<>();
-        for (Question q : all()) by.computeIfAbsent(q.category(), k -> new ArrayList<>()).add(q);
+        for (Question q : ExpandedPracticeBank.combined()) by.computeIfAbsent(q.category(), k -> new ArrayList<>()).add(q);
         long seed = Objects.hash(date, username == null ? "" : username);
         Random random = new Random(seed);
         List<Question> out = new ArrayList<>();
