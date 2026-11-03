@@ -517,7 +517,7 @@ public final class SectionedCalculatorPane extends BorderPane {
 
     private Node section28() {
         return sectionTabs("Section 28 — Motors & Generators", "AC motors, DC motors, multiple motors and refrigeration/compressor worksheets.",
-            tab("AC Motor", motor(false)),tab("DC Motor", motor(true)),tab("Multiple Motors", multiMotor()),tab("Refrigeration Worksheet", refrigerationWorksheet()),tab("Nameplate MCA/MOCP", refrigerationDetailed()));
+            tab("AC Motor", motor(false)),tab("DC Motor", motor(true)),tab("Multiple Motors", multiMotor()),tab("Splitter / Motor Taps", motorSplitterTap()),tab("Refrigeration Worksheet", refrigerationWorksheet()),tab("Nameplate MCA/MOCP", refrigerationDetailed()));
     }
 
     private Node motor(boolean dc) {
@@ -569,39 +569,49 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node multiMotor() {
-        TextField flcs=field("42,27,20,10"), extra=field("0");
-        ChoiceBox<String> largestType=choice("Squirrel-cage / synchronous — full-voltage, resistor or reactor",
-            "Single-phase AC — all types",
-            "Squirrel-cage / synchronous — full-voltage, resistor or reactor",
-            "Squirrel-cage / synchronous — autotransformer or star-delta",
-            "Wound-rotor AC");
-        ChoiceBox<String> protection=choice("Time-delay fuse","Time-delay fuse","Non-time-delay fuse","Inverse-time circuit breaker");
-        ChoiceBox<String> starting=choice("No simultaneous-start allowance",
-            "No simultaneous-start allowance",
-            "Simultaneous starting — include entered extra amperes");
-
-        return apiForm("Multiple motors",
-            "Enter the motor FLCs, then identify the largest motor and its branch protective device. The Table 29 factor is selected automatically instead of entered as a decimal.",
-            "/multi-motor","Calculate multi-motor feeder",
+        final int count=6;
+        TextField[] flc=new TextField[count];
+        @SuppressWarnings("unchecked") ChoiceBox<String>[] type=new ChoiceBox[count], protection=new ChoiceBox[count], duty=new ChoiceBox[count], rating=new ChoiceBox[count];
+        String[] defaults={"42","27","20","10","",""};
+        List<Node> rows=new ArrayList<>();
+        for(int x=0;x<count;x++){
+            flc[x]=field(defaults[x]);
+            type[x]=choice("Squirrel-cage / synchronous — full-voltage, resistor or reactor","Single-phase AC — all types","Squirrel-cage / synchronous — full-voltage, resistor or reactor","Squirrel-cage / synchronous — autotransformer or star-delta","Wound-rotor AC","DC motor");
+            protection[x]=choice("Time-delay fuse","Time-delay fuse","Non-time-delay fuse","Inverse-time circuit breaker");
+            duty[x]=choice("Continuous","Continuous","Short-time","Intermittent","Periodic","Varying");
+            rating[x]=choice("5 min","5 min","15 min","30/60 min","Continuous rating");
+            rows.add(row("Motor "+(x+1)+" FLC (A; blank = omit)",flc[x]));
+            rows.add(row("Motor "+(x+1)+" type / starting method",type[x]));
+            rows.add(row("Motor "+(x+1)+" branch OCPD type",protection[x]));
+            rows.add(row("Motor "+(x+1)+" duty class",duty[x]));
+            rows.add(row("Motor "+(x+1)+" duty rating",rating[x]));
+        }
+        TextField extra=field("0");ChoiceBox<String> material=choice("Copper","Copper","Aluminum");
+        rows.add(row("Simultaneous-start extra amperes (advanced)",extra));rows.add(row("Splitter/feeder conductor material",material));
+        return apiForm("Multiple motors / splitter supply",
+            "Describe each motor separately. The splitter supply conductor follows Rule 28-108, including Table 27 duty factors for non-continuous motors. Feeder OCPD uses the motor permitted the highest branch OCPD under Rule 28-204.",
+            "/multi-motor-detailed","Calculate motor group and splitter supply",
             () -> {
-                List<Double> values=csvD(flcs.getText());
-                if(values.isEmpty())throw new IllegalArgumentException("Enter at least one motor FLC");
-                double largest=values.stream().mapToDouble(Double::doubleValue).max().orElseThrow();
-                double factor=motorOcpdFactor(false,largestType.getValue(),protection.getValue(),largest,null,0);
-                return payload(
-                    "flcs",values,
-                    "largestConductorFactor",1.25,
-                    "largestBranchOcpdFactor",factor,
-                    "simultaneousStartExtra",starting.getValue().startsWith("Simultaneous")?number(extra):0,
-                    "edition","CEC_2024"
-                );
-            },
-            row("Motor FLCs (A, comma-separated)",flcs),
-            row("Largest motor / starting type",largestType),
-            row("Largest motor OCPD type",protection),
-            row("Starting condition",starting),
-            row("Simultaneous-start extra amperes",extra)
-        );
+                List<Map<String,Object>> motors=new ArrayList<>();
+                for(int x=0;x<count;x++){String text=flc[x].getText().trim();if(text.isEmpty())continue;double f=number(flc[x]);boolean continuous=duty[x].getValue().equals("Continuous");boolean dc=type[x].getValue().equals("DC motor");double df=continuous?1.0:motorDutyFactor(duty[x].getValue(),rating[x].getValue());double branch=motorOcpdFactor(dc,type[x].getValue(),protection[x].getValue(),f,null,0);motors.add(payload("flc",f,"continuous",continuous,"dutyFactor",df,"branchOcpdFactor",branch,"motorType",type[x].getValue(),"deviceType",motorOcpdDeviceCode(protection[x].getValue())));}
+                if(motors.isEmpty())throw new IllegalArgumentException("Enter at least one motor");
+                return payload("motors",motors,"simultaneousStartExtra",number(extra),"conductorMaterial",material.getValue().equals("Aluminum")?"ALUMINUM":"COPPER","edition","CEC_2024");
+            },rows.toArray(Node[]::new));
+    }
+
+    private Node motorSplitterTap(){
+        TextField flc=field("42"), feeder=field("125"), customLength=field("2");
+        ChoiceBox<String> duty=choice("Continuous","Continuous","Short-time","Intermittent","Periodic","Varying");
+        ChoiceBox<String> rating=choice("5 min","5 min","15 min","30/60 min","Continuous rating");
+        ChoiceBox<String> length=choice("2 m","2 m","5 m","Custom length");
+        ChoiceBox<String> material=choice("Copper","Copper","Aluminum");
+        CheckBox metal=new CheckBox("Tap is enclosed in metal (required for the ≤3 m exception)");metal.setSelected(true);
+        CheckBox mechanical=new CheckBox("Tap is suitably protected from mechanical damage (required for the ≤7.5 m exception)");mechanical.setSelected(true);
+        return apiForm("Motor splitter / feeder tap conductor",
+            "Handles the common 2 m and 5 m splitter-to-motor-branch questions. The 2 m path checks Rule 28-110(2)(a); the 5 m path checks Rule 28-110(2)(b) and the one-third feeder requirement.",
+            "/motor-splitter-tap","Calculate motor tap conductor",
+            () -> {boolean continuous=duty.getValue().equals("Continuous");double df=continuous?1.0:motorDutyFactor(duty.getValue(),rating.getValue());double len=length.getValue().startsWith("2")?2:length.getValue().startsWith("5")?5:number(customLength);return payload("motorFlc",number(flc),"continuous",continuous,"dutyFactor",df,"feederAmpacity",number(feeder),"tapLengthM",len,"enclosedInMetal",metal.isSelected(),"mechanicallyProtected",mechanical.isSelected(),"conductorMaterial",material.getValue().equals("Aluminum")?"ALUMINUM":"COPPER","edition","CEC_2024");},
+            row("Motor FLC (A)",flc),row("Motor duty class",duty),row("Duty rating",rating),row("Feeder / splitter supply ampacity (A)",feeder),row("Tap length preset",length),row("Custom tap length (m)",customLength),row("Conductor material",material),row("≤3 m enclosure condition",metal),row("≤7.5 m protection condition",mechanical));
     }
 
     private Node refrigerationWorksheet() {
@@ -760,6 +770,16 @@ public final class SectionedCalculatorPane extends BorderPane {
         if(td)return 1.75;
         if(ntd)return 3.00;
         return 2.50;
+    }
+
+
+    private double motorDutyFactor(String duty,String rating){
+        if("Continuous".equals(duty))return 1.0;
+        if("Short-time".equals(duty)){return switch(rating){case "5 min"->1.10;case "15 min"->1.20;case "30/60 min"->1.50;default->throw new IllegalArgumentException("Short-time duty does not use the continuous-rating column");};}
+        if("Intermittent".equals(duty)){return switch(rating){case "5 min","15 min"->.85;case "30/60 min"->.90;case "Continuous rating"->1.40;default->throw new IllegalArgumentException("Select a duty rating");};}
+        if("Periodic".equals(duty)){return switch(rating){case "5 min"->.85;case "15 min"->.90;case "30/60 min"->.95;case "Continuous rating"->1.40;default->throw new IllegalArgumentException("Select a duty rating");};}
+        if("Varying".equals(duty)){return switch(rating){case "5 min"->1.10;case "15 min"->1.20;case "30/60 min"->1.50;case "Continuous rating"->2.00;default->throw new IllegalArgumentException("Select a duty rating");};}
+        throw new IllegalArgumentException("Select a motor duty class");
     }
 
     private String motorOcpdDeviceCode(String device){
