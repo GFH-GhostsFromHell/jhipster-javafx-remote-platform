@@ -72,6 +72,10 @@ async function openBillingPortal(){
 window.addEventListener('load',loadBillingOptions);
 </script>
 """;
+  private static final String MANAGEMENT_SCRIPTS="""
+<script src="/admin-tier-inline.js"></script>
+<script src="/enterprise-team.js"></script>
+""";
 
   private final Resource portal;
 
@@ -88,6 +92,7 @@ window.addEventListener('load',loadBillingOptions);
     }
     if(!html.contains("id=\"buyTier2\"")) html=html.replace(TIERS_BLOCK,BILLING_TIERS);
     if(!html.contains("function buyTier(t)")) html=html.replace("</body>",BILLING_SCRIPT+"\n</body>");
+    if(!html.contains("/enterprise-team.js")) html=html.replace("</body>",MANAGEMENT_SCRIPTS+"\n</body>");
     return html;
   }
 }
