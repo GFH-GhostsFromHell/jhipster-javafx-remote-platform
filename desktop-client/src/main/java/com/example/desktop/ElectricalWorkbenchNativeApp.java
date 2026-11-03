@@ -99,11 +99,12 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         BorderPane root=new BorderPane();root.setStyle("-fx-background-color:#eef3f8;");
         HBox top=new HBox(12);top.setAlignment(Pos.CENTER_LEFT);top.setPadding(new Insets(12,18,12,18));top.setStyle("-fx-background-color:linear-gradient(to right,#050b14,#0b2743,#0e7490);");
         Label brand=new Label("⚡ Electrical Workbench Canada");brand.setStyle("-fx-text-fill:white;-fx-font-size:18px;-fx-font-weight:bold;");
-        Label version=new Label("v"+updater.currentVersion());version.setStyle("-fx-text-fill:#a5f3fc;-fx-font-size:11px;");Region push=new Region();HBox.setHgrow(push,Priority.ALWAYS);
-        Button update=new Button("Checking updates…");update.setVisible(false);update.setManaged(false);update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:8;-fx-padding:7 10;");
+        Label version=new Label("Installed v"+updater.currentVersion());version.setStyle("-fx-text-fill:#a5f3fc;-fx-font-size:12px;-fx-font-weight:bold;");Region push=new Region();HBox.setHgrow(push,Priority.ALWAYS);
+        Button update=new Button("Check for Updates");update.setVisible(true);update.setManaged(true);update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:8;-fx-padding:7 10;");
+        update.setOnAction(e->checkForUpdates(update,true));
         HBox cloud=new HBox(cloudStatus);cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:9;-fx-padding:4 7;");
         Button logout=new Button("Sign out");logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");logout.setOnAction(e->{currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
-        top.getChildren().addAll(brand,version,push,update,cloud,logout);root.setTop(top);checkForUpdates(update);
+        top.getChildren().addAll(brand,version,push,update,cloud,logout);root.setTop(top);checkForUpdates(update,false);
 
         VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");
         Label navTitle=new Label("WORKSPACE");navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
@@ -194,7 +195,27 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     private Button tile(String title,String detail,Runnable action){Button b=new Button(title+"\n"+detail);b.setWrapText(true);b.setPrefWidth(460);b.setPrefHeight(95);b.setMaxWidth(Double.MAX_VALUE);b.setAlignment(Pos.CENTER_LEFT);b.setStyle("-fx-background-color:white;-fx-text-fill:#0f172a;-fx-font-weight:bold;-fx-background-radius:14;-fx-border-color:#dbe5ef;-fx-border-radius:14;-fx-padding:17 19;-fx-font-size:14px;");b.setOnAction(e->action.run());return b;}
     private void setWorkspace(Node node){workspace.getChildren().setAll(node);}
 
-    private void checkForUpdates(Button button){CompletableFuture.supplyAsync(()->{try{return updater.check();}catch(Exception ex){return null;}}).thenAccept(info->Platform.runLater(()->{if(info==null||!info.updateAvailable())return;button.setText("Update v"+info.latestVersion());button.setVisible(true);button.setManaged(true);button.setOnAction(e->installUpdate(info,button));}));}
+    private void checkForUpdates(Button button){checkForUpdates(button,false);}
+    private void checkForUpdates(Button button,boolean manual){
+        button.setDisable(true);button.setText("Checking updates…");
+        CompletableFuture.supplyAsync(()->{try{return updater.check();}catch(Exception ex){throw new RuntimeException(ex);}})
+            .whenComplete((info,err)->Platform.runLater(()->{
+                button.setDisable(false);
+                if(err!=null){
+                    button.setText("Update check failed — retry");
+                    button.setOnAction(e->checkForUpdates(button,true));
+                    if(manual)new Alert(Alert.AlertType.ERROR,"Could not check for updates: "+message(unwrap(err))).showAndWait();
+                    return;
+                }
+                if(info.updateAvailable()){
+                    button.setText("Update v"+info.latestVersion());
+                    button.setOnAction(e->installUpdate(info,button));
+                }else{
+                    button.setText("Up to date");
+                    button.setOnAction(e->checkForUpdates(button,true));
+                }
+            }));
+    }
     private void installUpdate(UpdateService.UpdateInfo info,Button button){Alert confirm=new Alert(Alert.AlertType.CONFIRMATION);confirm.initOwner(stage);confirm.setTitle("Update Electrical Workbench");confirm.setHeaderText("Install version "+info.latestVersion()+"?");confirm.setContentText("The MSI will download, verify, install, and relaunch the desktop app.");Optional<ButtonType> answer=confirm.showAndWait();if(answer.isEmpty()||answer.get()!=ButtonType.OK)return;button.setDisable(true);button.setText("Downloading…");CompletableFuture.supplyAsync(()->{try{return updater.downloadAndVerify(info);}catch(Exception ex){throw new RuntimeException(ex);}}).whenComplete((msi,err)->Platform.runLater(()->{if(err!=null){button.setDisable(false);button.setText("Update v"+info.latestVersion());new Alert(Alert.AlertType.ERROR,message(unwrap(err))).showAndWait();return;}try{updater.launchInstallerAndRelaunch(msi);Platform.exit();}catch(Exception ex){button.setDisable(false);new Alert(Alert.AlertType.ERROR,ex.getMessage()).showAndWait();}}));}
 
     private static String escapeHtml(String text){if(text==null)return "";return text.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;");}
