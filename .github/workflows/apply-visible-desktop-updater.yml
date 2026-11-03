@@ -1,0 +1,38 @@
+name: Apply visible desktop updater
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/fix_visible_desktop_updater.py'
+      - '.github/workflows/apply-visible-desktop-updater.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Apply patch
+        run: python .github/fix_visible_desktop_updater.py
+      - name: Compile desktop
+        working-directory: desktop-client
+        run: mvn -B -DskipTests package
+      - name: Commit desktop source change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add desktop-client/src/main/java/com/example/desktop/ElectricalWorkbenchNativeApp.java
+          git diff --cached --quiet && exit 0
+          git commit -m "Make desktop update status visible and retryable"
+          git push origin main
