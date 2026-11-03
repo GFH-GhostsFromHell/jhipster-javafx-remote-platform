@@ -4,10 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,8 @@ class AccountEntryActivity : ComponentActivity() {
         val cyan = Color(0xFF22D3EE)
         val text = Color(0xFFF1F5F9)
         val muted = Color(0xFFB6C4D4)
+        val recoveryFill = Color(0xFF0B2032)
+        val recoveryBorder = Color(0xFF3F6178)
         MaterialTheme(
             colorScheme = darkColorScheme(
                 primary = cyan,
@@ -78,29 +81,54 @@ class AccountEntryActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Trouble signing in?", color = cyan, fontWeight = FontWeight.Bold)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(
-                                onClick = { openAccount("forgot-username") },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Find username") }
-                            OutlinedButton(
-                                onClick = { openAccount("forgot-password") },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Reset password") }
+                        Text("Need help signing in?", color = cyan, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Recover your account access in a few quick steps.", color = muted, fontSize = 13.sp)
+
+                        OutlinedButton(
+                            onClick = { openAccount("forgot-username") },
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, recoveryBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = recoveryFill,
+                                contentColor = text
+                            ),
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Text("Forgot username", fontWeight = FontWeight.Bold)
                         }
+
+                        OutlinedButton(
+                            onClick = { openAccount("forgot-password") },
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, recoveryBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = recoveryFill,
+                                contentColor = text
+                            ),
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Text("Reset password", fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(Modifier.height(4.dp))
 
                         Button(
                             onClick = { startActivity(Intent(this@AccountEntryActivity, MobileWorkbenchActivity::class.java)); finish() },
-                            modifier = Modifier.fillMaxWidth().height(50.dp)
-                        ) { Text("Sign in") }
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) { Text("Sign in", fontWeight = FontWeight.Bold) }
 
-                        OutlinedButton(onClick = { openAccount("signup") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Create account")
-                        }
-                        OutlinedButton(onClick = { openAccount("verify") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Verify email code")
-                        }
+                        OutlinedButton(
+                            onClick = { openAccount("signup") },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) { Text("Create account", fontWeight = FontWeight.SemiBold) }
+
+                        OutlinedButton(
+                            onClick = { openAccount("verify") },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) { Text("Verify email code", fontWeight = FontWeight.SemiBold) }
                     }
                 }
 
