@@ -27,7 +27,7 @@ public final class NativeCalculatorPane extends BorderPane {
             try { Desktop.getDesktop().browse(URI.create(portal.baseUrl() + "/engineering-power.html")); }
             catch (Exception ex) { engineering.setText("Could not open browser"); }
         });
-        Label update = new Label("✓ Integrated Design coordinates conductor sizing, ambient/group derating, voltage drop, OCPD/bonding screening, raceway sizing, panel balancing, transformer and motor workflows, estimating, project records and exportable calculation reports. Dedicated Conduit/Box Fill and Ampacity/Derating tools remain available.");
+        Label update = new Label("✓ Integrated Design coordinates conductor sizing, ambient/group derating, voltage drop, OCPD/bonding screening, raceway sizing, panel balancing, transformer and motor workflows, estimating, project records and reports. Raceway + Derating combines physical fill and current-carrying-conductor checks on one sheet, and Report Center exports saved work directly to PDF.");
         update.setWrapText(true);
         update.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-text-fill:#155e75;-fx-font-weight:bold;-fx-font-size:12px;");
         VBox bar = new VBox(5, title, detail, engineering, update);
@@ -38,10 +38,12 @@ public final class NativeCalculatorPane extends BorderPane {
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
         Tab design = new Tab("Integrated Design", new IntegratedDesignPane(json, username));
+        Tab raceway = new Tab("Raceway + Derating", new RacewayAmpacityPane());
         Tab fill = new Tab("Conduit & Box Fill", new FillCalculatorPane());
         Tab derating = new Tab("Ampacity / Derating", new AmpacityDeratingPane());
+        Tab reports = new Tab("Report Center", new PdfReportCenterPane(json, username));
         Tab sections = new Tab("CEC Sections / Advanced", new SectionedCalculatorPane(portal, json, username, password));
-        tabs.getTabs().addAll(guided, design, fill, derating, sections);
+        tabs.getTabs().addAll(guided, design, raceway, fill, derating, reports, sections);
         tabs.getSelectionModel().select(design);
         setCenter(tabs);
     }
