@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Dashboard
@@ -123,7 +124,7 @@ private data class Session(
     val featureCount: Int
 )
 
-private enum class AppTab { Dashboard, Calculators, Profile }
+private enum class AppTab { Dashboard, Calculators, Business, Profile }
 
 @Composable
 private fun WorkbenchTheme(content: @Composable () -> Unit) {
@@ -468,6 +469,15 @@ private fun MainShell(
                     label = { Text("Calculators") },
                     colors = navColors()
                 )
+                if (session.tier == "TIER_4") {
+                    NavigationBarItem(
+                        selected = selected == AppTab.Business,
+                        onClick = { onSelected(AppTab.Business) },
+                        icon = { Icon(Icons.Default.Business, null) },
+                        label = { Text("Business") },
+                        colors = navColors()
+                    )
+                }
                 NavigationBarItem(
                     selected = selected == AppTab.Profile,
                     onClick = { onSelected(AppTab.Profile) },
@@ -486,6 +496,7 @@ private fun MainShell(
             when (selected) {
                 AppTab.Dashboard -> DashboardScreen(session, onOpenWeb)
                 AppTab.Calculators -> CalculatorsScreen(onOpenWeb)
+                AppTab.Business -> EnterpriseMobileScreen(session.username, session.password, onOpenWeb)
                 AppTab.Profile -> ProfileScreen(session, onOpenWeb, onLogout)
             }
         }
@@ -514,8 +525,22 @@ private fun DashboardScreen(session: Session, onOpenWeb: (String) -> Unit) {
         Text("Your electrical workspace is connected and ready.", color = TextSecondary)
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatCard("Plan", session.tier.replace('_', ' '), Modifier.weight(1f))
+            StatCard("Plan", if (session.tier == "TIER_4") "BUSINESS / ENTERPRISE" else session.tier.replace('_', ' '), Modifier.weight(1f))
             StatCard("Features", session.featureCount.toString(), Modifier.weight(1f))
+        }
+
+        if (session.tier == "TIER_4") {
+            ElectricalCard {
+                Text("Business / Enterprise", color = ElectricCyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.height(6.dp))
+                Text("Manage your electricians, apprentices and field staff from the Business tab.", color = TextSecondary)
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { onOpenWeb("/portal.html#enterprise") }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Business, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open Business Team Manager", fontWeight = FontWeight.Bold)
+                }
+            }
         }
 
         ElectricalCard {
@@ -642,8 +667,16 @@ private fun ProfileScreen(session: Session, onOpenWeb: (String) -> Unit, onLogou
             ProfileLine("Display name", session.displayName)
             ProfileLine("Username", session.username)
             ProfileLine("Email", session.email.ifBlank { "Not set" })
-            ProfileLine("Subscription", session.tier.replace('_', ' '))
+            ProfileLine("Subscription", if (session.tier == "TIER_4") "Business / Enterprise" else session.tier.replace('_', ' '))
             ProfileLine("Sign-in method", session.loginProvider.ifBlank { "LOCAL" })
+        }
+        BusinessMembershipCard(session.username, session.password)
+        if (session.tier == "TIER_4") {
+            Button(onClick = { onOpenWeb("/portal.html#enterprise") }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Business, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Manage Business Team")
+            }
         }
         Button(onClick = { onOpenWeb("/portal.html") }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Person, null)
