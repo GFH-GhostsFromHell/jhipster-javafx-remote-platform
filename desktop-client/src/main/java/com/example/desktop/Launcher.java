@@ -11,10 +11,9 @@ public final class Launcher {
     private Launcher() {}
 
     public static void main(String[] args) {
-        // Keep a lightweight updater monitor alive for the lifetime of the desktop app.
-        // It checks immediately at startup and then once per minute so users are notified
-        // when a new release becomes available while they are already using the app.
-        startUpdateMonitor();
+        // Preview builds deliberately skip the normal updater so they can be installed
+        // beside the stable Electrical Workbench without ever replacing it.
+        if (!Boolean.getBoolean("app.previewBuild")) startUpdateMonitor();
         try {
             ElectricalWorkbenchNativeApp.main(args);
         } catch (Throwable t) {
