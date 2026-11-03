@@ -30,7 +30,10 @@ public final class NativeCalculatorPane extends BorderPane {
                 engineering.setText("Could not open browser");
             }
         });
-        VBox engineeringBar = new VBox(5, engineeringTitle, engineeringDetail, engineering);
+        Label motorUpdate = new Label("✓ Section 28 updated: detailed Multiple Motors + Splitter / Motor Taps (2 m / 5 m / custom)");
+        motorUpdate.setWrapText(true);
+        motorUpdate.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-text-fill:#155e75;-fx-font-weight:bold;-fx-font-size:12px;");
+        VBox engineeringBar = new VBox(5, engineeringTitle, engineeringDetail, engineering, motorUpdate);
         engineeringBar.setPadding(new Insets(0, 0, 14, 0));
         setTop(engineeringBar);
         setCenter(new SectionedCalculatorPane(portal, json, username, password));
