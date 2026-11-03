@@ -11,14 +11,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Serves the existing portal page unchanged except for one additive Ask ChatGPT
- * navigation link. Keeping this as a tiny server-side enhancement avoids
- * duplicating or replacing the established portal UI.
+ * Serves the existing portal page with additive navigation and management scripts.
  */
 @Controller
 public class PortalPageController {
   private static final String CALCULATOR_LINK="<a href=\"/calculators.html\"><span class=\"icon\">∑</span><span class=\"label\">CEC Calculators</span></a>";
   private static final String CHATGPT_LINK="<a href=\"/chatgpt.html\"><span class=\"icon\">✦</span><span class=\"label\">Ask ChatGPT</span></a>";
+  private static final String MANAGEMENT_SCRIPTS="""
+<script src="/admin-tier-inline.js"></script>
+<script src="/enterprise-team.js"></script>
+""";
   private final Resource portal;
 
   public PortalPageController(ResourceLoader resources){this.portal=resources.getResource("classpath:/static/portal.html");}
@@ -27,7 +29,8 @@ public class PortalPageController {
   @ResponseBody
   public String portal() throws IOException {
     String html=portal.getContentAsString(StandardCharsets.UTF_8);
-    if(html.contains(CHATGPT_LINK))return html;
-    return html.replace(CALCULATOR_LINK,CALCULATOR_LINK+"\n      "+CHATGPT_LINK);
+    if(!html.contains(CHATGPT_LINK)) html=html.replace(CALCULATOR_LINK,CALCULATOR_LINK+"\n      "+CHATGPT_LINK);
+    if(!html.contains("/enterprise-team.js")) html=html.replace("</body>",MANAGEMENT_SCRIPTS+"\n</body>");
+    return html;
   }
 }
