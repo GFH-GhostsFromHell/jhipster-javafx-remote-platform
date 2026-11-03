@@ -1,0 +1,41 @@
+name: Apply multiple refrigeration calculator
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/upgrade_multiple_refrigeration.py'
+      - '.github/workflows/apply-multiple-refrigeration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Apply patch
+        run: python .github/upgrade_multiple_refrigeration.py
+      - name: Compile portal
+        working-directory: portal
+        run: mvn -B -DskipTests package
+      - name: Compile desktop
+        working-directory: desktop-client
+        run: mvn -B -DskipTests package
+      - name: Commit permanent source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portal/src/main/java/com/example/remoteportal/service/ElectricalCalculatorService.java portal/src/main/java/com/example/remoteportal/web/CalculatorResource.java portal/src/main/resources/static/calculators.html desktop-client/src/main/java/com/example/desktop/SectionedCalculatorPane.java android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt
+          git diff --cached --quiet && exit 0
+          git commit -m "Add multiple refrigeration motor-compressor calculator"
+          git push origin main
