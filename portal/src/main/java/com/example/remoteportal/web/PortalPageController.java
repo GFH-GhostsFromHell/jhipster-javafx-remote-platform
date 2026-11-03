@@ -20,7 +20,9 @@ public class PortalPageController {
   private static final String MANAGEMENT_SCRIPTS="""
 <script src="/admin-tier-inline.js"></script>
 <script src="/enterprise-team.js"></script>
+<script src="/enterprise-deeplink.js"></script>
 """;
+  private static final String DEEPLINK_SCRIPT="<script src=\"/enterprise-deeplink.js\"></script>";
   private final Resource portal;
 
   public PortalPageController(ResourceLoader resources){this.portal=resources.getResource("classpath:/static/portal.html");}
@@ -31,6 +33,7 @@ public class PortalPageController {
     String html=portal.getContentAsString(StandardCharsets.UTF_8);
     if(!html.contains(CHATGPT_LINK)) html=html.replace(CALCULATOR_LINK,CALCULATOR_LINK+"\n      "+CHATGPT_LINK);
     if(!html.contains("/enterprise-team.js")) html=html.replace("</body>",MANAGEMENT_SCRIPTS+"\n</body>");
+    else if(!html.contains("/enterprise-deeplink.js")) html=html.replace("</body>",DEEPLINK_SCRIPT+"\n</body>");
     return html;
   }
 }
