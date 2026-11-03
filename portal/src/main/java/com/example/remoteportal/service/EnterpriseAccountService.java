@@ -22,6 +22,8 @@ public class EnterpriseAccountService {
 
   @PostConstruct
   void init() {
+    db.execute("alter table client_account add column if not exists requested_tier varchar(20) default 'TIER_1'");
+    db.execute("alter table client_account add column if not exists stripe_subscription_status varchar(40)");
     db.execute("create table if not exists enterprise_account (owner_username varchar(255) primary key, business_name varchar(255) not null, created_at timestamp not null, updated_at timestamp not null)");
     db.execute("create table if not exists enterprise_member (member_username varchar(255) primary key, owner_username varchar(255) not null, assigned_tier varchar(20) not null, prior_tier varchar(20) not null, role_label varchar(120), added_at timestamp not null, updated_at timestamp not null)");
   }
