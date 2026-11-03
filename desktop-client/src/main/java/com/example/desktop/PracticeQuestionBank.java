@@ -5,9 +5,28 @@ import java.util.*;
 
 /** Starter import of the user's existing 309A/Red Seal study bank, five questions per task category. */
 public final class PracticeQuestionBank {
-    public record Question(String category, String question, List<String> options, int correctIndex, String explanation, String reference) {}
+    public record Question(String category, String question, List<String> options, int correctIndex, String explanation, String reference) {
+        /** Compact import constructor used by the expanded PDF-derived practice bank. */
+        public Question(String id, String categoryCode, String question, String a, String b, String c, String d,
+                        String correctLetter, String explanation, String reference) {
+            this(expandCategory(categoryCode), question, List.of(a,b,c,d),
+                Math.max(0, "ABCD".indexOf(correctLetter == null ? "" : correctLetter.trim().toUpperCase(Locale.ROOT))),
+                explanation, reference);
+        }
+    }
 
     private PracticeQuestionBank() {}
+
+    private static String expandCategory(String code) {
+        return switch (code == null ? "" : code.trim().toUpperCase(Locale.ROOT)) {
+            case "A" -> "A — Common Occupational Skills";
+            case "B" -> "B — Generating, Distribution and Service Systems";
+            case "C" -> "C — Wiring Systems";
+            case "D" -> "D — Motors and Control Systems";
+            case "E" -> "E — Signalling and Communication Systems";
+            default -> code == null ? "Uncategorized" : code;
+        };
+    }
 
     public static List<Question> all() {
         return List.of(
