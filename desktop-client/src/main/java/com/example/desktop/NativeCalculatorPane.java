@@ -24,7 +24,7 @@ public final class NativeCalculatorPane extends BorderPane {
 
         Label title = new Label("Electrical Workbench Calculators");
         title.setStyle("-fx-font-size:16px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label detail = new Label("Use Integrated Design for coordinated field design, the Exam Simulator for blueprint-balanced 309A practice, Guided Worksheets for worked problems, or Tools & Presets to search the Workbench and reuse field defaults.");
+        Label detail = new Label("Use Integrated Design for coordinated field design, Transformer Sizer to select a standard transformer directly from connected loads, the Exam Simulator for blueprint-balanced 309A practice, or Tools & Presets to search the Workbench.");
         detail.setWrapText(true);
         detail.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");
         Button engineering = new Button("⚡ Engineering Power Systems");
@@ -44,7 +44,7 @@ public final class NativeCalculatorPane extends BorderPane {
             darkMode.setStyle(dark ? "-fx-font-weight:bold;-fx-text-fill:#e2e8f0;" : "-fx-font-weight:bold;-fx-text-fill:#334155;");
         });
         HBox controls = new HBox(12, engineering, darkMode); controls.setAlignment(Pos.CENTER_LEFT);
-        Label update = new Label("✓ Integrated Design coordinates conductor sizing, derating, voltage drop, OCPD/bonding screening, raceway sizing, panels, transformers, motors, estimating, projects and reports. Raceway + Derating combines fill and CCC checks. Exam Simulator uses the expanded local bank with timed 100/50/25-question modes. Tools & Presets adds search, favorites, saved field defaults and unit/electrical conversions. Report Center exports saved work directly to PDF.");
+        Label update = new Label("✓ Transformer Sizer now builds required kVA from mixed loads entered as A, VA, kVA, W or kW, applies quantity/PF/demand/continuous-load factors and spare capacity, then selects the next common 1φ or 3φ transformer size and shows primary/secondary current and headroom. Integrated Design, raceway/derating, exam simulation, reports and presets remain available beside it.");
         update.setWrapText(true);
         update.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-text-fill:#155e75;-fx-font-weight:bold;-fx-font-size:12px;");
         VBox bar = new VBox(5, title, detail, controls, update);
@@ -53,6 +53,7 @@ public final class NativeCalculatorPane extends BorderPane {
 
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
         Tab design = new Tab("Integrated Design", new IntegratedDesignPane(json, username));
+        Tab transformerSizer = new Tab("Transformer Sizer", new TransformerLoadSizingPane(json, username));
         Tab raceway = new Tab("Raceway + Derating", new RacewayAmpacityPane());
         Tab fill = new Tab("Conduit & Box Fill", new FillCalculatorPane());
         Tab derating = new Tab("Ampacity / Derating", new AmpacityDeratingPane());
@@ -64,8 +65,8 @@ public final class NativeCalculatorPane extends BorderPane {
         Tab tools = new Tab("Tools & Presets", new WorkbenchToolsPane(json, username, name -> {
             for (Tab t : tabs.getTabs()) if (t.getText().equals(name)) { tabs.getSelectionModel().select(t); break; }
         }));
-        tabs.getTabs().addAll(tools, exam, guided, design, raceway, fill, derating, reports, sections);
-        tabs.getSelectionModel().select(design);
+        tabs.getTabs().addAll(tools, exam, guided, design, transformerSizer, raceway, fill, derating, reports, sections);
+        tabs.getSelectionModel().select(transformerSizer);
         setCenter(tabs);
     }
 }
