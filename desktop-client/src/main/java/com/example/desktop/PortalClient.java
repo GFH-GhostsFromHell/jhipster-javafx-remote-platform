@@ -47,6 +47,34 @@ public final class PortalClient {
         return authorizedJson("/api/profile/password", "PUT", username, password, jsonBody);
     }
 
+    public String enterpriseDashboard(String username, String password) throws Exception {
+        return authorizedGet("/api/enterprise", username, password);
+    }
+
+    public String enterpriseMembership(String username, String password) throws Exception {
+        return authorizedGet("/api/enterprise/membership", username, password);
+    }
+
+    public String renameEnterprise(String username, String password, String jsonBody) throws Exception {
+        return authorizedJson("/api/enterprise", "PUT", username, password, jsonBody);
+    }
+
+    public String addEnterpriseMember(String username, String password, String jsonBody) throws Exception {
+        return authorizedJson("/api/enterprise/members", "POST", username, password, jsonBody);
+    }
+
+    public String updateEnterpriseMemberTier(String username, String password, String memberUsername, String jsonBody) throws Exception {
+        return authorizedJson("/api/enterprise/members/" + memberUsername + "/tier", "PUT", username, password, jsonBody);
+    }
+
+    public String updateEnterpriseMemberRole(String username, String password, String memberUsername, String jsonBody) throws Exception {
+        return authorizedJson("/api/enterprise/members/" + memberUsername + "/role", "PUT", username, password, jsonBody);
+    }
+
+    public String removeEnterpriseMember(String username, String password, String memberUsername) throws Exception {
+        return authorizedJson("/api/enterprise/members/" + memberUsername, "DELETE", username, password, "{}");
+    }
+
     public String calculatorCatalog(String username, String password) throws Exception {
         return authorizedGet("/api/calculators/catalog", username, password);
     }
