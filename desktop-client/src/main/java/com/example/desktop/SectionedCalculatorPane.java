@@ -346,11 +346,32 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node section14() {
-        TextField source=field("225"), amp=field("100"), ratio=field("0.333333"), length=field("3"), down=field("100");
-        return sectionTabs("Section 14 — Protection & Control", "Tap/splitter checks restored from the earlier workspace.", tab("Tap / Splitter",
-            apiForm("Tap / splitter worksheet", "Checks selected tap ampacity ratio and downstream OCPD values; verify exact length/installation conditions.", "/tap", "Calculate tap check",
-                () -> payload("sourceOcpd",number(source),"tapAmpacity",number(amp),"minimumRatio",number(ratio),"lengthM",number(length),"downstreamOcpd",number(down),"edition","CEC_2024"),
-                row("Source OCPD (A)",source),row("Tap conductor ampacity (A)",amp),row("Minimum ratio",ratio),row("Tap length (m)",length),row("Downstream OCPD (A)",down))));
+        TextField source=field("225"), amp=field("100"), length=field("3"), down=field("100"), customRatio=field("0.333333");
+        ChoiceBox<String> ratio=choice("1/3 minimum (common tap worksheet)",
+            "1/3 minimum (common tap worksheet)","Custom ratio");
+        return sectionTabs("Section 14 — Protection & Control",
+            "Tap/splitter checks with readable rule selections.",
+            tab("Tap / Splitter",
+                apiForm("Tap / splitter worksheet",
+                    "Choose the tap-rule ratio instead of entering a decimal multiplier. Custom remains available for a verified special condition.",
+                    "/tap","Calculate tap check",
+                    () -> payload(
+                        "sourceOcpd",number(source),
+                        "tapAmpacity",number(amp),
+                        "minimumRatio",ratio.getValue().startsWith("1/3")?1d/3d:number(customRatio),
+                        "lengthM",number(length),
+                        "downstreamOcpd",number(down),
+                        "edition","CEC_2024"
+                    ),
+                    row("Source OCPD (A)",source),
+                    row("Tap conductor ampacity (A)",amp),
+                    row("Tap rule / minimum ratio",ratio),
+                    row("Custom ratio (advanced)",customRatio),
+                    row("Tap length (m)",length),
+                    row("Downstream OCPD (A)",down)
+                )
+            )
+        );
     }
 
     private Node section16() {
@@ -382,10 +403,39 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node transformer() {
-        TextField kva=field("75"), pv=field("600"), sv=field("208"), design=field("1.25"), po=field("1.25"), so=field("1.25"); ChoiceBox<Integer> ph=phaseChoice(3);
-        return apiForm("Transformer sizing", "Primary/secondary current, design ampacity and primary/secondary OCPD worksheet.", "/transformer", "Calculate transformer",
-            ()->payload("kva",number(kva),"primaryVoltage",number(pv),"secondaryVoltage",number(sv),"phases",ph.getValue(),"designFactor",number(design),"primaryOcpdFactor",number(po),"secondaryOcpdFactor",number(so),"edition","CEC_2024"),
-            row("Transformer kVA",kva),row("Primary voltage",pv),row("Secondary voltage",sv),row("Phases",ph),row("Conductor design factor",design),row("Primary OCPD factor",po),row("Secondary OCPD factor",so));
+        TextField kva=field("75"), pv=field("600"), sv=field("208");
+        TextField customDesign=field("1.25"), customPrimary=field("1.25"), customSecondary=field("1.25");
+        ChoiceBox<Integer> ph=phaseChoice(3);
+        ChoiceBox<String> design=choice("125% design ampacity","125% design ampacity","100% design ampacity","Custom");
+        ChoiceBox<String> primary=choice("125% primary protection preset",
+            "125% primary protection preset","150% primary protection preset","200% primary protection preset","300% primary protection preset","Custom");
+        ChoiceBox<String> secondary=choice("125% secondary protection preset",
+            "125% secondary protection preset","150% secondary protection preset","200% secondary protection preset","300% secondary protection preset","Custom");
+
+        return apiForm("Transformer sizing",
+            "Primary/secondary current, design ampacity and OCPD worksheet. Choose a readable calculation preset; Custom is retained for verified special arrangements.",
+            "/transformer","Calculate transformer",
+            () -> payload(
+                "kva",number(kva),
+                "primaryVoltage",number(pv),
+                "secondaryVoltage",number(sv),
+                "phases",ph.getValue(),
+                "designFactor",percentPreset(design.getValue(),customDesign),
+                "primaryOcpdFactor",percentPreset(primary.getValue(),customPrimary),
+                "secondaryOcpdFactor",percentPreset(secondary.getValue(),customSecondary),
+                "edition","CEC_2024"
+            ),
+            row("Transformer kVA",kva),
+            row("Primary voltage",pv),
+            row("Secondary voltage",sv),
+            row("System phases",ph),
+            row("Conductor design basis",design),
+            row("Primary protection basis",primary),
+            row("Secondary protection basis",secondary),
+            row("Custom design factor (advanced)",customDesign),
+            row("Custom primary factor (advanced)",customPrimary),
+            row("Custom secondary factor (advanced)",customSecondary)
+        );
     }
 
     private Node dryTransformer() {
@@ -395,11 +445,37 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node hvTransformer(boolean high) {
-        TextField mva=field(high?"10":"2.5"), pk=field(high?"44":"13.8"), sk=field(high?"27.6":"7.2"), factor=field("3");
-        ChoiceBox<String> protection=choice("BREAKER","BREAKER","FUSE"), material=choice(high?"COPPER":"ALUMINUM","COPPER","ALUMINUM"), wiring=choice(high?"BURIED_CONDUIT":"OUTDOOR_VENTILATED_TRAY","BURIED_CONDUIT","OUTDOOR_VENTILATED_TRAY"), vclass=choice(high?"25-46_KV":"5-15_KV","5-15_KV","25-46_KV");
-        return apiForm((high?"High":"Medium")+"-voltage transformer worksheet", "Current, protection and conductor/raceway worksheet for the selected voltage class.", "/transformer-hv-worksheet", "Calculate transformer",
-            ()->payload("mva",number(mva),"primaryKv",number(pk),"secondaryKv",number(sk),"protection",protection.getValue(),"protectionFactor",number(factor),"material",material.getValue(),"wiringMethod",wiring.getValue(),"voltageClass",vclass.getValue()),
-            row("Rating (MVA)",mva),row("Primary (kV)",pk),row("Secondary (kV)",sk),row("Protection",protection),row("Protection multiplier",factor),row("Material",material),row("Wiring method",wiring),row("Voltage class",vclass));
+        TextField mva=field(high?"10":"2.5"), pk=field(high?"44":"13.8"), sk=field(high?"27.6":"7.2"), customFactor=field("3.0");
+        ChoiceBox<String> protection=choice("Circuit breaker","Circuit breaker","Fuse");
+        ChoiceBox<String> factorPreset=choice("300% protection calculation preset",
+            "300% protection calculation preset","250% protection calculation preset","200% protection calculation preset","150% protection calculation preset","125% protection calculation preset","Custom");
+        ChoiceBox<String> material=choice(high?"Copper":"Aluminum","Copper","Aluminum");
+        ChoiceBox<String> wiring=choice(high?"Buried conduit":"Outdoor ventilated tray","Buried conduit","Outdoor ventilated tray");
+        ChoiceBox<String> vclass=choice(high?"25–46 kV":"5–15 kV","5–15 kV","25–46 kV");
+
+        return apiForm((high?"High":"Medium")+"-voltage transformer worksheet",
+            "Choose the protection device, conductor material, wiring method and voltage class from readable options; backend table keys are handled automatically.",
+            "/transformer-hv-worksheet","Calculate transformer",
+            () -> payload(
+                "mva",number(mva),
+                "primaryKv",number(pk),
+                "secondaryKv",number(sk),
+                "protection",protection.getValue().startsWith("Fuse")?"FUSE":"BREAKER",
+                "protectionFactor",percentPreset(factorPreset.getValue(),customFactor),
+                "material",material.getValue().equals("Copper")?"COPPER":"ALUMINUM",
+                "wiringMethod",wiring.getValue().startsWith("Buried")?"BURIED_CONDUIT":"OUTDOOR_VENTILATED_TRAY",
+                "voltageClass",vclass.getValue().startsWith("5")?"5-15_KV":"25-46_KV"
+            ),
+            row("Rating (MVA)",mva),
+            row("Primary (kV)",pk),
+            row("Secondary (kV)",sk),
+            row("Protection device",protection),
+            row("Protection calculation preset",factorPreset),
+            row("Custom protection factor (advanced)",customFactor),
+            row("Conductor material",material),
+            row("Wiring method",wiring),
+            row("Voltage class",vclass)
+        );
     }
 
     private Node capacitorWorksheet() {
@@ -408,10 +484,35 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node pfCorrection() {
-        TextField kw=field("100"), old=field("0.75"), target=field("0.95"), voltage=field("600"), cf=field("1.35"), of=field("1.65"); ChoiceBox<Integer> ph=phaseChoice(3);
-        return apiForm("Power-factor correction", "Required kVAR, capacitor current, conductor and OCPD worksheet.", "/capacitor-bank", "Calculate PF correction",
-            ()->payload("kw",number(kw),"existingPf",number(old),"targetPf",number(target),"voltage",number(voltage),"phases",ph.getValue(),"conductorFactor",number(cf),"ocpdFactor",number(of),"edition","CEC_2024"),
-            row("Load (kW)",kw),row("Existing PF",old),row("Target PF",target),row("Voltage",voltage),row("Phases",ph),row("Conductor factor",cf),row("OCPD factor",of));
+        TextField kw=field("100"), old=field("0.75"), target=field("0.95"), voltage=field("600");
+        TextField customCf=field("1.35"), customOf=field("1.65");
+        ChoiceBox<Integer> ph=phaseChoice(3);
+        ChoiceBox<String> preset=choice("CEC capacitor worksheet preset — 135% conductor / 165% OCPD",
+            "CEC capacitor worksheet preset — 135% conductor / 165% OCPD",
+            "Custom factors");
+
+        return apiForm("Power-factor correction",
+            "Required kVAR, capacitor current, conductor and OCPD worksheet. Normal use selects the CEC worksheet preset instead of entering raw multipliers.",
+            "/capacitor-bank","Calculate PF correction",
+            () -> payload(
+                "kw",number(kw),
+                "existingPf",number(old),
+                "targetPf",number(target),
+                "voltage",number(voltage),
+                "phases",ph.getValue(),
+                "conductorFactor",preset.getValue().startsWith("CEC")?1.35:number(customCf),
+                "ocpdFactor",preset.getValue().startsWith("CEC")?1.65:number(customOf),
+                "edition","CEC_2024"
+            ),
+            row("Load (kW)",kw),
+            row("Existing power factor",old),
+            row("Target power factor",target),
+            row("Voltage",voltage),
+            row("System phases",ph),
+            row("Sizing method",preset),
+            row("Custom conductor factor (advanced)",customCf),
+            row("Custom OCPD factor (advanced)",customOf)
+        );
     }
 
     private Node section28() {
@@ -420,19 +521,83 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node motor(boolean dc) {
-        ChoiceBox<String> type=choice("Shunt","Shunt","Series","Cumulative compound","Differential compound","Permanent-magnet","Separately excited");
-        TextField flc=field(dc?"40":"34"), cf=field("1.25"), of=field(dc?"1.5":"1.75"), ol=field(dc?"1.15":"1.25"), dis=field("1.15");
-        Node form=apiForm((dc?"DC":"AC")+" motor branch worksheet", "Conductor, branch OCPD, overload and disconnect worksheet.", "/motor", "Calculate motor",
-            ()->payload("flc",number(flc),"conductorFactor",number(cf),"overloadFactor",number(ol),"ocpdFactor",number(of),"disconnectFactor",number(dis),"edition","CEC_2024"),
-            row("Motor FLC/FLA (A)",flc),row("Conductor factor",cf),row("OCPD factor",of),row("Overload factor",ol),row("Disconnect factor",dis));
-        if(!dc)return form; VBox box=new VBox(10,new Label("DC motor type: "),type,form); return box;
+        TextField flc=field(dc?"40":"34"), hp=field(dc?"25":"20"), lockedRotor=field("");
+        ChoiceBox<String> acType=choice("Squirrel-cage / synchronous — full-voltage, resistor or reactor",
+            "Single-phase AC — all types",
+            "Squirrel-cage / synchronous — full-voltage, resistor or reactor",
+            "Squirrel-cage / synchronous — autotransformer or star-delta",
+            "Wound-rotor AC");
+        ChoiceBox<String> dcType=choice("Shunt","Shunt","Series","Cumulative compound","Differential compound","Permanent-magnet","Separately excited");
+        ChoiceBox<String> protection=choice("Time-delay fuse",
+            "Time-delay fuse","Non-time-delay fuse","Inverse-time circuit breaker",
+            "Instantaneous-trip (magnetic only) — FLC method",
+            "Instantaneous-trip (magnetic only) — locked-rotor method");
+        ChoiceBox<String> overload=choice("Service factor ≥ 1.15 — overload at 125% FLC",
+            "Service factor ≥ 1.15 — overload at 125% FLC",
+            "Service factor < 1.15 or unknown — overload at 115% FLC");
+        ChoiceBox<String> disconnect=choice("Moulded-case switch / circuit breaker — 115% FLC",
+            "Moulded-case switch / circuit breaker — 115% FLC",
+            "General-use AC switch, single-phase — 125% FLC");
+
+        return apiForm((dc?"DC":"AC")+" motor branch worksheet",
+            "Select the actual motor and protective-device type. The app applies the CEC 2024 Table 29 / Rule 28-210 factor automatically. Overload selection follows Rule 28-306 and disconnect current follows Rule 28-602.",
+            "/motor","Calculate motor",
+            () -> {
+                double f=number(flc);
+                double ocpd=motorOcpdFactor(dc,dc?dcType.getValue():acType.getValue(),protection.getValue(),f,optionalNumber(lockedRotor),number(hp));
+                return payload(
+                    "flc",f,
+                    "conductorFactor",1.25,
+                    "overloadFactor",overload.getValue().contains("125%")?1.25:1.15,
+                    "ocpdFactor",ocpd,
+                    "disconnectFactor",disconnect.getValue().contains("125%")?1.25:1.15,
+                    "edition","CEC_2024"
+                );
+            },
+            row("Full-load current / nameplate FLA (A)",flc),
+            row("Motor horsepower",hp),
+            row(dc?"DC motor type":"AC motor / starting type",dc?dcType:acType),
+            row("Branch OCPD type",protection),
+            row("Locked-rotor current (A; LRC instantaneous method only)",lockedRotor),
+            row("Motor overload selection",overload),
+            row("Disconnect type",disconnect)
+        );
     }
 
     private Node multiMotor() {
-        TextField flcs=field("42,27,20,10"), cf=field("1.25"), of=field("1.75"), extra=field("0");
-        return apiForm("Multiple motors", "Feeder ampacity and feeder OCPD worksheet including simultaneous-start allowance.", "/multi-motor", "Calculate multi-motor feeder",
-            ()->payload("flcs",csvD(flcs.getText()),"largestConductorFactor",number(cf),"largestBranchOcpdFactor",number(of),"simultaneousStartExtra",number(extra),"edition","CEC_2024"),
-            row("Motor FLCs (A, comma-separated)",flcs),row("Largest motor conductor factor",cf),row("Largest branch OCPD factor",of),row("Simultaneous-start extra",extra));
+        TextField flcs=field("42,27,20,10"), extra=field("0");
+        ChoiceBox<String> largestType=choice("Squirrel-cage / synchronous — full-voltage, resistor or reactor",
+            "Single-phase AC — all types",
+            "Squirrel-cage / synchronous — full-voltage, resistor or reactor",
+            "Squirrel-cage / synchronous — autotransformer or star-delta",
+            "Wound-rotor AC");
+        ChoiceBox<String> protection=choice("Time-delay fuse","Time-delay fuse","Non-time-delay fuse","Inverse-time circuit breaker");
+        ChoiceBox<String> starting=choice("No simultaneous-start allowance",
+            "No simultaneous-start allowance",
+            "Simultaneous starting — include entered extra amperes");
+
+        return apiForm("Multiple motors",
+            "Enter the motor FLCs, then identify the largest motor and its branch protective device. The Table 29 factor is selected automatically instead of entered as a decimal.",
+            "/multi-motor","Calculate multi-motor feeder",
+            () -> {
+                List<Double> values=csvD(flcs.getText());
+                if(values.isEmpty())throw new IllegalArgumentException("Enter at least one motor FLC");
+                double largest=values.stream().mapToDouble(Double::doubleValue).max().orElseThrow();
+                double factor=motorOcpdFactor(false,largestType.getValue(),protection.getValue(),largest,null,0);
+                return payload(
+                    "flcs",values,
+                    "largestConductorFactor",1.25,
+                    "largestBranchOcpdFactor",factor,
+                    "simultaneousStartExtra",starting.getValue().startsWith("Simultaneous")?number(extra):0,
+                    "edition","CEC_2024"
+                );
+            },
+            row("Motor FLCs (A, comma-separated)",flcs),
+            row("Largest motor / starting type",largestType),
+            row("Largest motor OCPD type",protection),
+            row("Starting condition",starting),
+            row("Simultaneous-start extra amperes",extra)
+        );
     }
 
     private Node refrigerationWorksheet() {
@@ -442,10 +607,27 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node refrigerationDetailed() {
-        TextField rla=field("28"), mca=field(""), mocp=field(""), cf=field("1.25"), of=field("1.75"), ol=field("1.15");
-        return apiForm("Refrigeration / compressor nameplate worksheet", "Uses entered MCA/MOCP where provided; otherwise worksheet factors are applied.", "/refrigeration", "Calculate refrigeration circuit",
-            ()->payload("rla",number(rla),"mca",optionalNumber(mca),"mocp",optionalNumber(mocp),"conductorFactor",number(cf),"ocpdFactor",number(of),"overloadFactor",number(ol),"edition","CEC_2024"),
-            row("RLA (A)",rla),row("Nameplate MCA (optional)",mca),row("Nameplate MOCP (optional)",mocp),row("Conductor factor",cf),row("OCPD factor",of),row("Overload factor",ol));
+        TextField rla=field("28"), mca=field(""), mocp=field("");
+        ChoiceBox<String> overload=choice("Current-responsive overload relay — max 140% RLA",
+            "Current-responsive overload relay — max 140% RLA",
+            "Other overload device / fuse — max 125% RLA");
+        return apiForm("Refrigeration / compressor nameplate worksheet",
+            "Enter nameplate MCA/MOCP when available. If not marked, the worksheet uses its branch-circuit fallback while overload selection follows Rule 28-710.",
+            "/refrigeration","Calculate refrigeration circuit",
+            () -> payload(
+                "rla",number(rla),
+                "mca",optionalNumber(mca),
+                "mocp",optionalNumber(mocp),
+                "conductorFactor",1.25,
+                "ocpdFactor",1.75,
+                "overloadFactor",overload.getValue().contains("140%")?1.40:1.25,
+                "edition","CEC_2024"
+            ),
+            row("Rated-load current / RLA (A)",rla),
+            row("Nameplate MCA (optional — preferred)",mca),
+            row("Nameplate MOCP (optional — preferred)",mocp),
+            row("Overload device type",overload)
+        );
     }
 
     private Node section32() {
@@ -478,10 +660,38 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node singleWelder() {
-        ChoiceBox<String> type=choice("TRANSFORMER_ARC","TRANSFORMER_ARC","RESISTANCE"); TextField kva=field("30"), voltage=field("600"), duty=field("0.55"), amp=field("35");
-        return apiForm("Single welder worksheet", "Rating, duty-cycle and selected-conductor worksheet.", "/welder-worksheet", "Calculate single welder",
-            ()->payload("kva",number(kva),"voltage",number(voltage),"dutyFactor",number(duty),"type",type.getValue(),"selectedConductorAmpacity",number(amp)),
-            row("Welder type",type),row("Rating (kVA)",kva),row("Voltage (V)",voltage),row("Duty-cycle multiplier",duty),row("Selected conductor ampacity (A)",amp));
+        ChoiceBox<String> type=choice("Transformer / inverter arc welder",
+            "Transformer / inverter arc welder","Resistance welder");
+        ChoiceBox<String> duty=choice("60%","100%","90%","80%","70%","60%","50%","40%","30%","20%","1 hour");
+        TextField kva=field("30"), voltage=field("600"), amp=field("35");
+
+        type.setOnAction(e -> {
+            duty.getItems().clear();
+            if(type.getValue().startsWith("Resistance")){
+                duty.getItems().addAll("50%","40%","30%","25%","20%","15%","10%","7.5%","5%");
+                duty.setValue("30%");
+            } else {
+                duty.getItems().addAll("100%","90%","80%","70%","60%","50%","40%","30%","20%","1 hour");
+                duty.setValue("60%");
+            }
+        });
+
+        return apiForm("Single welder worksheet",
+            "Choose the welder type and nameplate duty cycle. The app converts the selection to the CEC 2024 Table 42A or 42C conductor multiplier automatically.",
+            "/welder-worksheet","Calculate single welder",
+            () -> payload(
+                "kva",number(kva),
+                "voltage",number(voltage),
+                "dutyFactor",welderDutyFactor(type.getValue(),duty.getValue()),
+                "type",type.getValue().startsWith("Resistance")?"RESISTANCE":"TRANSFORMER_ARC",
+                "selectedConductorAmpacity",number(amp)
+            ),
+            row("Welder type",type),
+            row("Rating (kVA)",kva),
+            row("Primary voltage (V)",voltage),
+            row("Nameplate duty cycle",duty),
+            row("Selected conductor ampacity (A)",amp)
+        );
     }
 
     private Node multipleWelders() {
@@ -509,6 +719,52 @@ public final class SectionedCalculatorPane extends BorderPane {
     private TextField field(String value){TextField f=new TextField(value);f.setStyle(INPUT);return f;}
     private <T> ChoiceBox<T> choice(T selected,@SuppressWarnings("unchecked") T... items){ChoiceBox<T> c=new ChoiceBox<>();c.getItems().addAll(items);c.setValue(selected);c.setMaxWidth(Double.MAX_VALUE);return c;}
     private ChoiceBox<Integer> phaseChoice(int selected){ChoiceBox<Integer> c=choice(selected,1,3);return c;}
+    private double percentPreset(String label,TextField custom){
+        if(label==null||label.startsWith("Custom"))return number(custom);
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)%").matcher(label);
+        if(!m.find())throw new IllegalArgumentException("No percentage found in selected preset");
+        return Double.parseDouble(m.group(1))/100.0;
+    }
+
+    private double motorOcpdFactor(boolean dc,String motorType,String device,double flc,Double lockedRotor,double hp){
+        if(device.startsWith("Instantaneous-trip")){
+            if(dc)return hp<=50?2.50:2.00;
+            if(device.contains("locked-rotor")){
+                if(lockedRotor==null||lockedRotor<=0)throw new IllegalArgumentException("Enter the motor locked-rotor current for the locked-rotor instantaneous-trip method");
+                return (2.15*lockedRotor)/flc;
+            }
+            return 13.00;
+        }
+        if(dc)return 1.50;
+        boolean td=device.startsWith("Time-delay");
+        boolean ntd=device.startsWith("Non-time-delay");
+        if(motorType.startsWith("Wound-rotor"))return 1.50;
+        if(motorType.contains("autotransformer")||motorType.contains("star-delta")){
+            if(td)return 1.75;
+            if(flc<=30)return ntd?2.50:2.00;
+            return 2.00;
+        }
+        if(td)return 1.75;
+        if(ntd)return 3.00;
+        return 2.50;
+    }
+
+    private double welderDutyFactor(String type,String duty){
+        String d=duty==null?"":duty.trim();
+        if(type.startsWith("Resistance")){
+            return switch(d){
+                case "50%"->.71; case "40%"->.63; case "30%"->.55; case "25%"->.50;
+                case "20%"->.45; case "15%"->.39; case "10%"->.32; case "7.5%"->.27; case "5%"->.22;
+                default->throw new IllegalArgumentException("Select a resistance-welder duty cycle");
+            };
+        }
+        return switch(d){
+            case "100%"->1.00; case "90%"->.95; case "80%"->.89; case "70%"->.84; case "60%"->.78;
+            case "50%"->.71; case "40%"->.63; case "30%"->.55; case "20%"->.45; case "1 hour"->.75;
+            default->throw new IllegalArgumentException("Select an arc-welder duty cycle");
+        };
+    }
+
     private Button button(String text){Button b=new Button(text);b.setStyle(PRIMARY);return b;}
     private TextArea resultArea(){TextArea a=new TextArea("Enter the question facts, then calculate.");a.setEditable(false);a.setWrapText(false);a.setPrefRowCount(13);a.setStyle("-fx-font-family:Consolas;-fx-font-size:12px;-fx-control-inner-background:#0f172a;-fx-text-fill:#e2e8f0;");return a;}
     private Label statusLabel(){Label l=new Label();l.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");return l;}
