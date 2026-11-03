@@ -27,7 +27,7 @@ public final class NativeCalculatorPane extends BorderPane {
             try { Desktop.getDesktop().browse(URI.create(portal.baseUrl() + "/engineering-power.html")); }
             catch (Exception ex) { engineering.setText("Could not open browser"); }
         });
-        Label update = new Label("✓ Guided mode now includes conductor + VD, D3/K, grounding/bonding, transformer, motor taps, multiple refrigeration, fire pump, neutral, fire alarm and service-demand worksheets with worked solutions and save/copy actions.");
+        Label update = new Label("✓ Guided mode includes conductor + VD, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm and service-demand worksheets. Conduit & Box Fill now has a dedicated advanced workspace with mixed conductor rows, dropdowns, automatic CEC fill limits, standard box/raceway presets and detailed pass/fail results.");
         update.setWrapText(true);
         update.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 10;-fx-text-fill:#155e75;-fx-font-weight:bold;-fx-font-size:12px;");
         VBox bar = new VBox(5, title, detail, engineering, update);
@@ -37,8 +37,9 @@ public final class NativeCalculatorPane extends BorderPane {
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
+        Tab fill = new Tab("Conduit & Box Fill", new FillCalculatorPane());
         Tab sections = new Tab("CEC Sections / Advanced", new SectionedCalculatorPane(portal, json, username, password));
-        tabs.getTabs().addAll(guided, sections);
+        tabs.getTabs().addAll(guided, fill, sections);
         tabs.getSelectionModel().select(guided);
         setCenter(tabs);
     }
