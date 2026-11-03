@@ -10,6 +10,12 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".AccountAccessActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AccountEntryActivity"
+            android:exported="false" />
+        <activity
             android:name=".EngineeringPowerActivity"
             android:exported="false" />
         <activity
@@ -18,7 +24,7 @@
             android:windowSoftInputMode="adjustResize" />
         <activity-alias
             android:name=".MainActivity"
-            android:targetActivity=".MobileWorkbenchActivity"
+            android:targetActivity=".AccountEntryActivity"
             android:exported="false" />
         <activity
             android:name=".UpdateGateActivity"
