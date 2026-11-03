@@ -28,6 +28,88 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Harden ChatGPT Windows credential storage
+        shell: pwsh
+        run: |
+          $path = "src/main/java/com/example/desktop/ChatGptDesktopClient.java"
+          $text = Get-Content -Raw -Path $path
+          $startMarker = '        private String protect(String plain) throws Exception {'
+          $endMarker = '        private SecretKey fallbackKey() throws Exception {'
+          $start = $text.IndexOf($startMarker)
+          $end = $text.IndexOf($endMarker, $start)
+          if ($start -lt 0 -or $end -lt 0) { throw "CredentialStore patch markers were not found." }
+          $replacement = @'
+        private String protect(String plain) throws Exception {
+            if (isWindows()) {
+                try {
+                    return "DPAPI:" + dpapi(plain, true);
+                } catch (Exception ignored) {
+                    // Some Windows installations cannot resolve ProtectedData from a
+                    // child PowerShell process. Keep tokens encrypted locally instead
+                    // of failing the ChatGPT connection after OAuth succeeds.
+                    return aesProtect(plain);
+                }
+            }
+            return aesProtect(plain);
+        }
+
+        private String unprotect(String protectedText) throws Exception {
+            if (protectedText == null || protectedText.isBlank()) throw new SecurityException("Empty local credential data");
+            if (protectedText.startsWith("DPAPI:")) return dpapi(protectedText.substring("DPAPI:".length()), false);
+            if (protectedText.startsWith("AESGCM:")) return aesUnprotect(protectedText);
+
+            // Backward compatibility: older Windows builds stored raw DPAPI base64
+            // without a format prefix.
+            if (isWindows()) {
+                try { return dpapi(protectedText, false); }
+                catch (Exception ignored) { }
+            }
+            return aesUnprotect(protectedText);
+        }
+
+        private String aesProtect(String plain) throws Exception {
+            SecretKey key = fallbackKey();
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            String iv = Base64.getEncoder().encodeToString(cipher.getIV());
+            String data = Base64.getEncoder().encodeToString(cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8)));
+            return "AESGCM:" + iv + ":" + data;
+        }
+
+        private String aesUnprotect(String protectedText) throws Exception {
+            String[] parts = protectedText.split(":", 3);
+            if (parts.length != 3 || !"AESGCM".equals(parts[0])) throw new SecurityException("Invalid local credential format");
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, fallbackKey(), new GCMParameterSpec(128, Base64.getDecoder().decode(parts[1])));
+            return new String(cipher.doFinal(Base64.getDecoder().decode(parts[2])), StandardCharsets.UTF_8);
+        }
+
+        private static boolean isWindows() {
+            return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+        }
+
+        private String dpapi(String input, boolean protect) throws Exception {
+            String script = protect
+                ? "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Security;$s=[Console]::In.ReadToEnd();$b=[Text.Encoding]::UTF8.GetBytes($s);$e=[System.Security.Cryptography.ProtectedData]::Protect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Convert]::ToBase64String($e))"
+                : "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Security;$s=[Console]::In.ReadToEnd();$b=[Convert]::FromBase64String($s.Trim());$e=[System.Security.Cryptography.ProtectedData]::Unprotect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser);[Console]::Out.Write([Text.Encoding]::UTF8.GetString($e))";
+            Process process = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+                .redirectErrorStream(true).start();
+            try (Writer writer = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8)) { writer.write(input); }
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            int exit = process.waitFor();
+            if (exit != 0 || output.isBlank()) {
+                String detail = output.lines().findFirst().orElse("");
+                throw new IllegalStateException(detail.isBlank()
+                    ? "Windows credential protection failed."
+                    : "Windows credential protection failed: " + detail);
+            }
+            return output;
+        }
+
+'@
+          $newText = $text.Substring(0, $start) + $replacement + $text.Substring($end)
+          Set-Content -Path $path -Value $newText -Encoding utf8
+
       - name: Build client and collect dependencies
         shell: pwsh
         run: mvn -B clean package
@@ -70,7 +152,7 @@ jobs:
           gh release create $tag target/installer/RemoteJavaFXClient-Setup.msi `
             --repo "${{ github.repository }}" `
             --title "Desktop Client 0.1.${{ github.run_number }}" `
-            --notes "Stable Windows MSI build. In-app updates stay on the stable channel. Default cloud portal: https://remote-javafx-portal.onrender.com" `
+            --notes "Stable Windows MSI build. ChatGPT credential storage uses Windows DPAPI with an encrypted AES-GCM fallback. Default cloud portal: https://remote-javafx-portal.onrender.com" `
             --latest
 
 # Trigger: stable advanced CEC calculation pack.
