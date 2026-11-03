@@ -56,7 +56,7 @@ public final class ExamSimulatorPane extends BorderPane {
         page.setPadding(new Insets(2));
         Label title = new Label("309A / Red Seal Exam Simulator");
         title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label sub = new Label("Uses the expanded local practice bank and Construction Electrician major-work-activity weighting. Full mode uses A 11 / B 28 / C 30 / D 21 / E 10; 50-question mode uses A 6 / B 14 / C 15 / D 10 / E 5; Quick 25 uses five from each category.");
+        Label sub = new Label("Uses the expanded local practice bank and Construction Electrician major-work-activity weighting. Full mode uses A 11 / B 28 / C 30 / D 21 / E 10; 50-question mode uses A 6 / B 14 / C 15 / D 10 / E 5; Quick 25 uses five from each category. Figure-dependent imported questions are retained in the bank but skipped until their diagrams are embedded in the desktop client.");
         sub.setWrapText(true); sub.setStyle("-fx-text-fill:#64748b;");
         page.getChildren().addAll(title,sub);
 
@@ -127,9 +127,9 @@ public final class ExamSimulatorPane extends BorderPane {
         for(int i=0;i<5;i++) {
             char code=(char)('A'+i);
             List<PracticeQuestionBank.Question> pool=new ArrayList<>();
-            for(PracticeQuestionBank.Question q:bank) if(categoryCode(q)==code) pool.add(q);
+            for(PracticeQuestionBank.Question q:bank) if(categoryCode(q)==code && !requiresFigure(q)) pool.add(q);
             Collections.shuffle(pool,rnd);
-            if(pool.size()<counts[i]) throw new IllegalStateException("Not enough category "+code+" questions in the local bank.");
+            if(pool.size()<counts[i]) throw new IllegalStateException("Not enough category "+code+" non-figure questions in the local bank.");
             selected.addAll(pool.subList(0,counts[i]));
         }
         startSpecific(selected,seconds);
@@ -193,7 +193,8 @@ public final class ExamSimulatorPane extends BorderPane {
     private void updateProgress() {
         if(exam.isEmpty()){progress.setText("No exam started");return;}
         int answered=0;for(int a:answers)if(a>=0)answered++;
-        progress.setText("Answered "+answered+" / "+exam.size()+" · Remaining "+(exam.size()-answered)+" · Bank size "+bank.size());
+        long ready=bank.stream().filter(q->!requiresFigure(q)).count();
+        progress.setText("Answered "+answered+" / "+exam.size()+" · Remaining "+(exam.size()-answered)+" · Bank "+bank.size()+" total / "+ready+" ready without figures");
     }
 
     private void finishExam(boolean timeExpired) {
@@ -226,6 +227,7 @@ public final class ExamSimulatorPane extends BorderPane {
 
     private int countMissed(){if(!finished)return 0;int n=0;for(int i=0;i<exam.size();i++)if(answers[i]!=exam.get(i).correctIndex())n++;return n;}
     private void setExamControls(boolean enabled){for(RadioButton rb:optionButtons)rb.setDisable(!enabled);prev.setDisable(!enabled);next.setDisable(!enabled);grade.setDisable(!enabled);question.setText(enabled?question.getText():"Start an exam to load the first question.");category.setText(enabled?category.getText():"");}
+    private static boolean requiresFigure(PracticeQuestionBank.Question q){String s=q.question()==null?"":q.question().toLowerCase(Locale.ROOT);return s.contains("refer to figure")||s.matches(".*figure\\s+[a-z]+[-–]?\\d+.*");}
     private static char categoryCode(PracticeQuestionBank.Question q){String s=q.category();return s==null||s.isBlank()?'?':Character.toUpperCase(s.charAt(0));}
     private static String toolFor(char c){return switch(c){case 'A'->"Guided Worksheets";case 'B'->"Integrated Design";case 'C'->"Raceway + Derating";case 'D'->"Integrated Design";case 'E'->"CEC Sections / Advanced";default->"Integrated Design";};}
 
