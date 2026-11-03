@@ -538,6 +538,7 @@ public final class SectionedCalculatorPane extends BorderPane {
         ChoiceBox<String> disconnect=choice("Moulded-case switch / circuit breaker — 115% FLC",
             "Moulded-case switch / circuit breaker — 115% FLC",
             "General-use AC switch, single-phase — 125% FLC");
+        CheckBox failsToStart=new CheckBox("Motor fails to start — try next permitted standard OCPD size (Rule 28-200(4))");
 
         return apiForm((dc?"DC":"AC")+" motor branch worksheet",
             "Select the actual motor and protective-device type. The app applies the CEC 2024 Table 29 / Rule 28-210 factor automatically. Overload selection follows Rule 28-306 and disconnect current follows Rule 28-602.",
@@ -551,6 +552,8 @@ public final class SectionedCalculatorPane extends BorderPane {
                     "overloadFactor",overload.getValue().contains("125%")?1.25:1.15,
                     "ocpdFactor",ocpd,
                     "disconnectFactor",disconnect.getValue().contains("125%")?1.25:1.15,
+                    "ocpdDeviceType",motorOcpdDeviceCode(protection.getValue()),
+                    "motorFailsToStart",failsToStart.isSelected(),
                     "edition","CEC_2024"
                 );
             },
@@ -559,6 +562,7 @@ public final class SectionedCalculatorPane extends BorderPane {
             row(dc?"DC motor type":"AC motor / starting type",dc?dcType:acType),
             row("Branch OCPD type",protection),
             row("Locked-rotor current (A; LRC instantaneous method only)",lockedRotor),
+            row("Starting relief",failsToStart),
             row("Motor overload selection",overload),
             row("Disconnect type",disconnect)
         );
@@ -756,6 +760,15 @@ public final class SectionedCalculatorPane extends BorderPane {
         if(td)return 1.75;
         if(ntd)return 3.00;
         return 2.50;
+    }
+
+    private String motorOcpdDeviceCode(String device){
+        if(device==null)return "";
+        if(device.startsWith("Time-delay"))return "TIME_DELAY_FUSE";
+        if(device.startsWith("Non-time-delay"))return "NON_TIME_DELAY_FUSE";
+        if(device.startsWith("Inverse-time"))return "INVERSE_TIME_BREAKER";
+        if(device.startsWith("Instantaneous-trip"))return "INSTANTANEOUS_TRIP";
+        return "";
     }
 
     private double welderDutyFactor(String type,String duty){
