@@ -1,0 +1,28 @@
+name: Trigger robust calculator migration
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/calculator-migration-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Touch migration workflow
+        shell: bash
+        run: |
+          printf '\n# migration-triggered\n' >> .github/workflows/robust-calculator-ux.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/robust-calculator-ux.yml
+          git commit -m "Trigger robust calculator UX migration"
+          git push origin main
