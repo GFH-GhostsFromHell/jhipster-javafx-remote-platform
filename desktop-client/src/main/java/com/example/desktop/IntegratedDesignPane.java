@@ -147,11 +147,12 @@ public final class IntegratedDesignPane extends BorderPane {
                     Wire w=en.getValue(); double base=amp(w,insulation.getValue()), adjusted=base*tf*gf;
                     int termRating=Math.min(termination.getValue(),insulation.getValue()); double termAmp=amp(w,termRating); double allowable=Math.min(adjusted,termAmp);
                     double vd=(phase.getValue().equals("3φ")?Math.sqrt(3):2)*metres*amps*w.rOhmKm()/1000.0; double pct=vd/v*100.0;
-                    if(allowable+1e-9>=design && pct<=limit+1e-9) passing.add(new Option(en.getKey(),w,allowable,vd,pct));
+                    int smallCap=smallConductorCap(material.getValue(),en.getKey());
+                    boolean smallConductorAllowed=smallCap==0 || design<=smallCap+1e-9;
+                    if(smallConductorAllowed && allowable+1e-9>=design && pct<=limit+1e-9) passing.add(new Option(en.getKey(),w,allowable,vd,pct));
                 }
-                if(passing.isEmpty()) throw new IllegalArgumentException("No conductor in the built-in range passes both adjusted ampacity and voltage-drop limits. Increase the dataset/raceway arrangement or revise the design.");
-                Option pick=passing.get(0); int ocpd=nextOcpd(design); int smallCap=smallConductorCap(material.getValue(),pick.size()); if(smallCap>0) ocpd=Math.min(ocpd,smallCap);
-                if(ocpd<design) ocpd=nextOcpd(design);
+                if(passing.isEmpty()) throw new IllegalArgumentException("No conductor in the built-in range passes adjusted ampacity, Rule 14-104 small-conductor screening and the entered voltage-drop limit. Increase the conductor/raceway arrangement or revise the design.");
+                Option pick=passing.get(0); int ocpd=nextOcpd(design);
                 String bond=bondSize(ocpd); double occupied=pick.w().fillArea()*nIns;
                 if(includeBond.isSelected()) occupied+=bondArea(bond);
                 int physicalCount=nIns+(includeBond.isSelected()?1:0); double fillPct=physicalCount==1?53:physicalCount==2?31:40;
