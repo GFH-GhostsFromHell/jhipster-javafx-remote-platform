@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -77,6 +79,18 @@ class AccountEntryActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Trouble signing in?", color = cyan, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { openAccount("forgot-username") },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Find username") }
+                            OutlinedButton(
+                                onClick = { openAccount("forgot-password") },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Reset password") }
+                        }
+
                         Button(
                             onClick = { startActivity(Intent(this@AccountEntryActivity, MobileWorkbenchActivity::class.java)); finish() },
                             modifier = Modifier.fillMaxWidth().height(50.dp)
@@ -87,12 +101,6 @@ class AccountEntryActivity : ComponentActivity() {
                         }
                         OutlinedButton(onClick = { openAccount("verify") }, modifier = Modifier.fillMaxWidth()) {
                             Text("Verify email code")
-                        }
-                        OutlinedButton(onClick = { openAccount("forgot-password") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Forgot / reset password")
-                        }
-                        OutlinedButton(onClick = { openAccount("forgot-username") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Forgot username")
                         }
                     }
                 }
