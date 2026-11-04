@@ -297,7 +297,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         double profitBase=base+contingency+overhead;
         double p=parse(profitPct.getText())/100.0;
         double profit="Target gross margin".equals(profitBasis.getValue())
-            ? profitBase*(Math.min(.99,p)/(1.0-Math.min(.99,p)))
+            ? (p>=1.0 ? 0 : profitBase*p/(1.0-p))
             : profitBase*p;
         double preTax=base+contingency+overhead+profit;
         double tax=preTax*parse(taxPct.getText())/100.0;
