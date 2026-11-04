@@ -136,7 +136,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private Node summaryStrip() {
         HBox row = new HBox(10,
             stat("Material",materialTotal), stat("Adj. labour hours",labourHoursTotal), stat("Labour",labourTotal),
-            stat("Selected quotes",quoteTotal), stat("Indirects",indirectTotal), stat("Final bid",finalBidTotal));
+            stat("Selected quotes",quoteTotal), stat("Indirects",indirectTotal), stat("Total incl. tax",finalBidTotal));
         for(Node n:row.getChildren()) HBox.setHgrow(n,Priority.ALWAYS);
         return row;
     }
@@ -145,7 +145,9 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
-            new Tab("1 · Scope",scopePane()), new Tab("2 · Takeoff & Pricing",takeoffPane()), new Tab("3 · Quotes",quotesPane()),
+            new Tab("1 · Scope",scopePane()), new Tab("PDF Plan Takeoff",new EstimatingPdfTakeoffPane((sys,ph,dr,desc,qty,unit)->{
+                EstimateLine x=new EstimateLine(sys,desc,qty,unit,0,0,1);x.phase.set(ph);x.drawing.set(dr);lines.add(x);recalc();
+            })), new Tab("2 · Takeoff & Pricing",takeoffPane()), new Tab("3 · Quotes",quotesPane()),
             new Tab("4 · Indirects & Markups",indirectsPane()), new Tab("5 · Bid Review",reviewPane()),
             new Tab("6 · Assemblies",assembliesPane()), new Tab("7 · Cost Breakdown",breakdownPane()), new Tab("8 · Alternates / Changes",changesPane()));
         return tabs;
@@ -173,6 +175,8 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TableColumn<EstimateLine,String> phase=textCol("Phase / area",115,x->x.phase);
         TableColumn<EstimateLine,String> drawing=textCol("Drawing / source",120,x->x.drawing);
         TableColumn<EstimateLine,String> desc=textCol("Description",240,x->x.description);
+        TableColumn<EstimateLine,String> supplier=textCol("Price source / vendor",148,x->x.priceSource);
+        TableColumn<EstimateLine,String> priced=textCol("Price date",105,x->x.priceDate);
         TableColumn<EstimateLine,Double> qty=doubleCol("Qty",72,x->x.quantity);
         TableColumn<EstimateLine,String> unit=textCol("Unit",64,x->x.unit);
         TableColumn<EstimateLine,Double> matUnit=doubleCol("Mat. $/unit",92,x->x.materialUnit);
@@ -180,7 +184,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TableColumn<EstimateLine,Double> factor=doubleCol("Prod. factor",86,x->x.productivityFactor);
         TableColumn<EstimateLine,String> matExt=readOnlyCol("Material ext.",100,x->MONEY.format(x.materialExtended()));
         TableColumn<EstimateLine,String> hrsExt=readOnlyCol("Adj. hours",86,x->String.format("%.2f",x.adjustedHours()));
-        table.getColumns().addAll(system,phase,drawing,desc,qty,unit,matUnit,labUnit,factor,matExt,hrsExt);
+        table.getColumns().addAll(system,phase,drawing,desc,qty,unit,matUnit,labUnit,factor,supplier,priced,matExt,hrsExt);
 
         Button add=button("+ Add line",true); add.setOnAction(e->{lines.add(new EstimateLine("Branch wiring","New takeoff item",1,"ea",0,0,1));recalc();});
         Button duplicate=button("Duplicate selected",false); duplicate.setOnAction(e->{EstimateLine x=table.getSelectionModel().getSelectedItem();if(x!=null){lines.add(x.copy());recalc();}});
@@ -234,7 +238,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         Button remove=button("Remove selected",false); remove.setOnAction(e->{IndirectLine x=table.getSelectionModel().getSelectedItem();if(x!=null){indirects.remove(x);recalc();}});
 
         GridPane markups=new GridPane(); markups.setHgap(12); markups.setVgap(8);
-        markups.add(compactField("Contingency %",contingencyPct),0,0); markups.add(compactField("Overhead %",overheadPct),1,0); markups.add(compactField("Profit %",profitPct),2,0); markups.add(compactField("Tax %",taxPct),3,0);
+        markups.add(compactField("Contingency %",contingencyPct),0,0); markups.add(compactField("Overhead %",overheadPct),1,0); markups.add(compactField("Profit markup %",profitPct),2,0); markups.add(compactField("Tax %",taxPct),3,0);
         contingencyPct.textProperty().addListener((o,a,b)->recalc()); overheadPct.textProperty().addListener((o,a,b)->recalc()); profitPct.textProperty().addListener((o,a,b)->recalc()); taxPct.textProperty().addListener((o,a,b)->recalc());
         HBox totals=new HBox(10,stat("Pre-tax bid",preTaxTotal),stat("Tax",taxTotal),stat("Final bid",finalBidTotal)); for(Node n:totals.getChildren()) HBox.setHgrow(n,Priority.ALWAYS);
         page.getChildren().addAll(sectionTitle("Indirect costs, risk and commercial markups"),
@@ -251,7 +255,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             "Bonding, insurance, permits, freight and escalation addressed","Inclusions, exclusions and clarifications reviewed","Overhead, profit and taxes verified","Bid form / proposal / alternates complete and authorized"};
         for(String item:items){CheckBox cb=new CheckBox(item);cb.setWrapText(true);cb.selectedProperty().addListener((o,a,b)->{updateReviewProgress(checks);updateValidation();});checks.getChildren().add(cb);reviewChecks.add(cb);}
         reviewProgress.setStyle("-fx-font-weight:bold;-fx-text-fill:#0e7490;"); updateReviewProgress(checks);
-        VBox commercial=new VBox(7,pair("Material",materialTotal),pair("Adjusted labour hours",labourHoursTotal),pair("Labour",labourTotal),pair("Selected quotes",quoteTotal),pair("Indirects",indirectTotal),new Separator(),pair("Pre-tax bid",preTaxTotal),pair("Tax",taxTotal),pair("FINAL BID",finalBidTotal));
+        VBox commercial=new VBox(7,pair("Material",materialTotal),pair("Adjusted labour hours",labourHoursTotal),pair("Labour",labourTotal),pair("Selected quotes",quoteTotal),pair("Indirects",indirectTotal),new Separator(),pair("Pre-tax bid",preTaxTotal),pair("Tax",taxTotal),pair("TOTAL INCLUDING EST. TAX",finalBidTotal));
         commercial.setPadding(new Insets(16)); commercial.setStyle(CARD); commercial.setPrefWidth(330);
         Button copy=button("Copy bid summary",true); copy.setOnAction(e->copySummary());
         VBox left=new VBox(8,reviewProgress,checks,copy); HBox body=new HBox(12,left,commercial); HBox.setHgrow(left,Priority.ALWAYS);
@@ -266,7 +270,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private void copySummary(){
         String text="ELECTRICAL ESTIMATE SUMMARY\nProject: "+projectName.getText()+"\nClient / GC: "+clientName.getText()+"\nEstimate #: "+bidNumber.getText()+"\nEstimator: "+estimatorName.getText()+
             "\n\nMaterial: "+materialTotal.getText()+"\nAdjusted labour hours: "+labourHoursTotal.getText()+"\nLabour: "+labourTotal.getText()+"\nSelected quotes: "+quoteTotal.getText()+"\nIndirects: "+indirectTotal.getText()+
-            "\nPre-tax bid: "+preTaxTotal.getText()+"\nTax: "+taxTotal.getText()+"\nFINAL BID: "+finalBidTotal.getText()+"\n\nInclusions:\n"+inclusions.getText()+"\n\nExclusions:\n"+exclusions.getText()+"\n\nClarifications:\n"+clarifications.getText();
+            "\nPre-tax bid: "+preTaxTotal.getText()+"\nTax: "+taxTotal.getText()+"\nTOTAL INCLUDING EST. TAX: "+finalBidTotal.getText()+"\n\nInclusions:\n"+inclusions.getText()+"\n\nExclusions:\n"+exclusions.getText()+"\n\nClarifications:\n"+clarifications.getText();
         ClipboardContent content=new ClipboardContent(); content.putString(text); Clipboard.getSystemClipboard().setContent(content);
     }
 
@@ -374,6 +378,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         ObjectNode o=new ObjectMapper().createObjectNode();
         o.put("system",x.system.get());o.put("phase",x.phase.get());o.put("drawing",x.drawing.get());
         o.put("description",x.description.get());o.put("quantity",x.quantity.get());o.put("unit",x.unit.get());
+        o.put("priceSource",x.priceSource.get());o.put("priceDate",x.priceDate.get());
         o.put("materialUnit",x.materialUnit.get());o.put("labourUnitHours",x.labourUnitHours.get());o.put("productivityFactor",x.productivityFactor.get());
         return o;
     }
@@ -383,6 +388,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             Math.max(0,n.path("materialUnit").asDouble()),Math.max(0,n.path("labourUnitHours").asDouble()),
             Math.max(0,n.path("productivityFactor").asDouble(1)));
         x.phase.set(n.path("phase").asText("General"));x.drawing.set(n.path("drawing").asText(""));
+        x.priceSource.set(n.path("priceSource").asText(""));x.priceDate.set(n.path("priceDate").asText(""));
         return x;
     }
 
@@ -468,11 +474,11 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         Path output=chooseOutput("estimate-"+safeFile(bidNumber.getText())+"-"+safeFile(revision.getText())+".csv","csv");
         if(output==null)return;
         StringBuilder csv=new StringBuilder();
-        csv.append(csvRow("system","phase","drawing","description","quantity","unit","material_unit","labour_hours_unit","productivity_factor","material_extended","adjusted_hours","extended_labour"));
+        csv.append(csvRow("system","phase","drawing","description","quantity","unit","material_unit","labour_hours_unit","productivity_factor","price_source","price_date","material_extended","adjusted_hours","extended_labour"));
         double rate=parse(labourRate.getText());
         for(EstimateLine x:lines)csv.append(csvRow(x.system.get(),x.phase.get(),x.drawing.get(),x.description.get(),
             Double.toString(x.quantity.get()),x.unit.get(),Double.toString(x.materialUnit.get()),
-            Double.toString(x.labourUnitHours.get()),Double.toString(x.productivityFactor.get()),
+            Double.toString(x.labourUnitHours.get()),Double.toString(x.productivityFactor.get()),x.priceSource.get(),x.priceDate.get(),
             Double.toString(x.materialExtended()),Double.toString(x.adjustedHours()),Double.toString(x.adjustedHours()*rate)));
         csv.append("\r\n").append(csvRow("BID RECAP","Amount (CAD)"));
         csv.append(csvRow("Material",materialTotal.getText())).append(csvRow("Labour",labourTotal.getText()));
@@ -512,6 +518,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
                     getOr(row,headers,"unit","ea"),parse(get(row,headers,"material_unit")),
                     parse(get(row,headers,"labour_hours_unit")),parse(getOr(row,headers,"productivity_factor","1")));
                 x.phase.set(getOr(row,headers,"phase","General"));x.drawing.set(get(row,headers,"drawing"));
+                x.priceSource.set(get(row,headers,"price_source"));x.priceDate.set(get(row,headers,"price_date"));
                 lines.add(x);count++;
             }
             recalc();message("Takeoff imported","Added "+count+" takeoff lines. Imported prices and labour hours are user supplied; review every line before bidding.");
@@ -758,11 +765,11 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     }
 
     private static final class EstimateLine {
-        final StringProperty system=new SimpleStringProperty(); final StringProperty phase=new SimpleStringProperty("General"); final StringProperty drawing=new SimpleStringProperty(""); final StringProperty description=new SimpleStringProperty(); final DoubleProperty quantity=new SimpleDoubleProperty(); final StringProperty unit=new SimpleStringProperty(); final DoubleProperty materialUnit=new SimpleDoubleProperty(); final DoubleProperty labourUnitHours=new SimpleDoubleProperty(); final DoubleProperty productivityFactor=new SimpleDoubleProperty();
+        final StringProperty system=new SimpleStringProperty(); final StringProperty phase=new SimpleStringProperty("General"); final StringProperty drawing=new SimpleStringProperty(""); final StringProperty priceSource=new SimpleStringProperty(""); final StringProperty priceDate=new SimpleStringProperty(""); final StringProperty description=new SimpleStringProperty(); final DoubleProperty quantity=new SimpleDoubleProperty(); final StringProperty unit=new SimpleStringProperty(); final DoubleProperty materialUnit=new SimpleDoubleProperty(); final DoubleProperty labourUnitHours=new SimpleDoubleProperty(); final DoubleProperty productivityFactor=new SimpleDoubleProperty();
         EstimateLine(String s,String d,double q,String u,double m,double h,double f){system.set(s);description.set(d);quantity.set(q);unit.set(u);materialUnit.set(m);labourUnitHours.set(h);productivityFactor.set(f);}
         double materialExtended(){return Math.max(0,quantity.get())*Math.max(0,materialUnit.get());}
         double adjustedHours(){return Math.max(0,quantity.get())*Math.max(0,labourUnitHours.get())*Math.max(0,productivityFactor.get());}
-        EstimateLine copy(){EstimateLine x=new EstimateLine(system.get(),description.get(),quantity.get(),unit.get(),materialUnit.get(),labourUnitHours.get(),productivityFactor.get());x.phase.set(phase.get());x.drawing.set(drawing.get());return x;}
+        EstimateLine copy(){EstimateLine x=new EstimateLine(system.get(),description.get(),quantity.get(),unit.get(),materialUnit.get(),labourUnitHours.get(),productivityFactor.get());x.phase.set(phase.get());x.drawing.set(drawing.get());x.priceSource.set(priceSource.get());x.priceDate.set(priceDate.get());return x;}
     }
     private static final class QuoteLine {
         final BooleanProperty include=new SimpleBooleanProperty(); final StringProperty vendor=new SimpleStringProperty(); final StringProperty group=new SimpleStringProperty("General"); final StringProperty scope=new SimpleStringProperty(); final DoubleProperty amount=new SimpleDoubleProperty(); final StringProperty status=new SimpleStringProperty();
