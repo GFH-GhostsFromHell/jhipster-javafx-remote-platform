@@ -239,6 +239,188 @@ function renderSteps(){
  const bad=Array.from(document.querySelectorAll('#marks .markitem span')).some(el=>el.textContent.trim().startsWith('−'));
  warning.textContent=(bad?'Warning: one or more bend marks are before the reference end; increase lead length or revise the layout. ':'')+'Safety: use the correct-size shoe and conduit type, avoid kinking, allow for springback, and confirm all measurements against manufacturer instructions. For angles and saddles, the actual shoe radius can shift bend marks.';
 }
+
+const multiOps=[];
+let multiEditing=-1,multiReport='',multiLastUnits='in';
+function onlyScreen(name){
+ document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+ document.getElementById(name).classList.add('active');
+ window.scrollTo(0,0);
+}
+function openMulti(){
+ onlyScreen('multiScreen');
+ document.getElementById('mbUnits').value=unit;
+ if(multiOps.length===0)mbExample();else mbCompute();
+ mbKindChange();
+}
+const quickSheet=[
+ '90° STUB-UP: ARROW mark = desired finished height − shoe-stamped deduct. Hook toward free/short end.',
+ 'BACK-TO-BACK 90s: first ARROW; second STAR / back-of-90, measured from BACK of first completed bend.',
+ 'TWO-BEND OFFSET: spacing = rise × field multiplier; two equal/opposite angles. Adjust for shrink according to critical reference and shoe method.',
+ 'ROLLING OFFSET: true rise = √(vertical² + sideways roll²); bend plane = atan(roll / rise).',
+ 'THREE-POINT SADDLE: bend B centre FIRST with saddle notch, then A and C outside return bends at half centre angle.',
+ 'FOUR-POINT SADDLE: A/B offset up and level; C/D offset back to starting elevation. Check width/clearance.',
+ 'KICKED 90: complete 90 by ARROW first; choose actual kick mark from installation geometry, not just rise.',
+ 'SEGMENTED 90: several small bends at equal angular steps; tangent/centre points and radius depend on shoe.',
+ 'BENDER MARKS: ARROW = stub and many offset bends; STAR = back-of-90; CENTRE/NOTCH = saddle centre where fitted.',
+ 'FIELD CHECKS: maintain intended plane, correct shoe size, take-up, springback, suitable radius and total bend allowances; inspect for kinks and verify dimensions before install.'
+].join('\n\n');
+function openReference(){
+ onlyScreen('referenceScreen');
+ document.getElementById('quickSheetText').textContent=quickSheet;
+}
+function copyQuickSheet(){
+ navigator.clipboard.writeText(quickSheet).then(()=>alert('Bending quick sheet copied.')).catch(()=>alert('Clipboard unavailable; select the reference text and copy.'));
+}
+function mbNum(id){const val=Number(document.getElementById(id).value);if(!Number.isFinite(val)||val<0)throw Error('Invalid non-negative value: '+id);return val}
+function mbFormat(value){return (Math.round(value*100)/100).toLocaleString('en-CA')+' '+(unit==='in'?'in':'mm')}
+function mbKindChange(){
+ const k=document.getElementById('mbKind').value;
+ document.getElementById('mbRoll').disabled=k!=='Rolling offset';
+ document.getElementById('mbWidth').disabled=k!=='Four-point saddle';
+ document.getElementById('mbRise').disabled=['90° arrow mark','Single kick'].includes(k);
+ document.getElementById('mbAngle').disabled=k==='90° arrow mark';
+ if(k==='Three-point saddle')document.getElementById('mbAngle').value='45';
+}
+function mbRead(){
+ const k=document.getElementById('mbKind').value;
+ const pos=mbNum('mbStart'),h=mbNum('mbRise'),r=mbNum('mbRoll'),w=mbNum('mbWidth');
+ if(pos<=0)throw Error('First arrow or centre must be greater than zero from the left datum.');
+ if(!['90° arrow mark','Single kick'].includes(k)&&h<=0)throw Error('Rise / saddle height must be greater than zero.');
+ if(k==='Rolling offset'&&r<=0)throw Error('Rolling offset requires positive lateral roll.');
+ if(k==='Four-point saddle'&&w<=0)throw Error('Four-point saddle needs positive obstacle width.');
+ return {kind:k,pos,h,r,w,a:Number(document.getElementById('mbAngle').value),plane:document.getElementById('mbPlane').value};
+}
+function mbAdd(){
+ try{
+  const op=mbRead();
+  if(multiEditing<0&&multiOps.length>=12)throw Error('Maximum twelve operations on one conduit.');
+  if(multiEditing>=0)multiOps[multiEditing]=op;else multiOps.push(op);
+  multiEditing=-1;document.getElementById('mbAddButton').textContent='+ Add bend operation';
+  mbRender();
+ }catch(e){alert('Check bend operation: '+e.message)}
+}
+function mbEdit(i){
+ const op=multiOps[i];if(!op)return;
+ multiEditing=i;
+ document.getElementById('mbKind').value=op.kind;
+ document.getElementById('mbPlane').value=op.plane;
+ document.getElementById('mbStart').value=op.pos;
+ document.getElementById('mbRise').value=op.h;
+ document.getElementById('mbRoll').value=op.r;
+ document.getElementById('mbWidth').value=op.w;
+ document.getElementById('mbAngle').value=op.a;
+ mbKindChange();
+ document.getElementById('mbAngle').value=op.a;
+ document.getElementById('mbAddButton').textContent='Save selected operation';
+}
+function mbDelete(i){
+ if(multiEditing===i){multiEditing=-1;document.getElementById('mbAddButton').textContent='+ Add bend operation';}
+ multiOps.splice(i,1);mbRender();
+}
+function mbClear(){
+ multiOps.splice(0);multiEditing=-1;document.getElementById('mbAddButton').textContent='+ Add bend operation';mbRender();
+}
+function mbExample(){
+ multiOps.splice(0);
+ const metric=unit==='mm';
+ multiOps.push({kind:'Two-bend offset',pos:metric?380:15,h:metric?100:4,r:0,w:0,a:30,plane:'Up'});
+ multiOps.push({kind:'90° arrow mark',pos:metric?1650:65,h:0,r:0,w:0,a:30,plane:'Up'});
+ document.getElementById('mbStock').value=metric?2440:96;
+ document.getElementById('mbGap').value=metric?150:6;
+ multiEditing=-1;document.getElementById('mbAddButton').textContent='+ Add bend operation';mbRender();
+}
+function mbUnitChange(next){
+ if(next===unit)return;
+ const factor=next==='mm'?25.4:1/25.4;
+ multiOps.forEach(o=>{o.pos*=factor;o.h*=factor;o.r*=factor;o.w*=factor});
+ ['mbStart','mbRise','mbRoll','mbWidth','mbStock','mbGap'].forEach(id=>{
+  const input=document.getElementById(id),v=Number(input.value);
+  if(Number.isFinite(v))input.value=(v*factor).toFixed(next==='mm'?1:3);
+ });
+ unit=next;document.getElementById('unit').value=next;
+ mbRender();
+}
+function mbRender(){
+ document.getElementById('mbList').innerHTML=multiOps.length?multiOps.map((o,i)=>
+  '<div class="advanced-op"><div><strong>Operation '+(i+1)+': '+o.kind+'</strong><br><small>'+mbFormat(o.pos)+' from datum · '+o.a+'° · '+o.plane+'</small></div>'+
+  '<div class="advanced-actions"><button onclick="mbEdit('+i+')">Edit</button><button onclick="mbDelete('+i+')">Remove</button></div></div>').join(''):
+  '<p class="note">Add two or more operations to create your combined bending layout.</p>';
+ mbCompute();
+}
+function mbCompute(){
+ const canvas=document.getElementById('mbMarkCanvas');
+ const warnings=document.getElementById('mbWarnings');
+ const steps=document.getElementById('mbSteps');
+ let stock,gap;
+ try{stock=mbNum('mbStock');gap=mbNum('mbGap');if(stock<=0)throw Error('Enter a positive straight-pipe stock length.')}
+ catch(e){warnings.textContent=e.message;canvas.innerHTML='';steps.innerHTML='';return}
+ if(!multiOps.length){canvas.innerHTML='';steps.innerHTML='';warnings.textContent='Add bend operations to see a combined plan.';return}
+ const all=[],issues=[];
+ let totalAngles=0;
+ const ordered=multiOps.slice().sort((a,b)=>a.pos-b.pos);
+ ordered.forEach((o,j)=>{
+  const group='G'+(j+1),rad=o.a*Math.PI/180,span=o.h/Math.sin(rad);
+  const sequence=[];
+  const put=(position,name,align,hook,action)=>sequence.push({position,name,align,hook,action,group});
+  switch(o.kind){
+   case 'Two-bend offset':
+    put(o.pos,'A','ARROW','HOOK ← away from B','+'+o.a+'° '+o.plane);
+    put(o.pos+span,'B','ARROW','↻ FLIP; same plane','−'+o.a+'° return to parallel');break;
+   case 'Rolling offset':
+    {const trueRise=Math.hypot(o.h,o.r),plane=Math.atan2(o.r,o.h)*180/Math.PI;
+     put(o.pos,'A','ARROW','HOOK ← · roll plane '+plane.toFixed(1)+'° from vertical','First '+o.a+'° toward '+o.plane);
+     put(o.pos+trueRise/Math.sin(rad),'B','ARROW','↻ FLIP; preserve roll plane','Return '+o.a+'°');}break;
+   case '90° arrow mark':
+    put(o.pos,'A','ARROW','HOOK toward stub free end','90° toward '+o.plane+'; verify deduct');break;
+   case 'Single kick':
+    put(o.pos,'A','ARROW / SHOE REF','Confirm head hook and datum','Kick '+o.a+'° toward '+o.plane);break;
+   case 'Three-point saddle':
+    {const side=o.a/2,flank=o.h/Math.sin(side*Math.PI/180);
+     put(o.pos,'B','CENTRE / SADDLE NOTCH','Head notch; centre FIRST','Centre '+o.a+'° toward '+o.plane);
+     put(o.pos-flank,'A','ARROW','↻ FLIP for outer return','Outer '+side+'° opposite '+o.plane);
+     put(o.pos+flank,'C','ARROW','Maintain same plane','Outer '+side+'° opposite '+o.plane);}break;
+   case 'Four-point saddle':
+    {const A=o.pos,B=A+span,C=B+o.w,D=C+span;
+     put(A,'A','ARROW','HOOK ← toward datum','Rise '+o.a+'° '+o.plane);
+     put(B,'B','ARROW','↻ FLIP in same plane','Level '+o.a+'°');
+     put(C,'C','ARROW','Opposite offset direction','Return '+o.a+'°');
+     put(D,'D','ARROW','↻ FLIP in same plane','Level '+o.a+'°');}break;
+  }
+  sequence.forEach(m=>{m.order=all.length+1;all.push(m);
+    if(m.position<0)issues.push(m.group+' mark '+m.name+' is before datum.');
+    if(m.position>stock)issues.push(m.group+' mark '+m.name+' is beyond stock length.');
+    totalAngles+=o.kind==='90° arrow mark'?90:o.kind==='Three-point saddle'&&m.name!=='B'?o.a/2:o.a;
+  });
+ });
+ const spaced=all.slice().sort((a,b)=>a.position-b.position);
+ for(let i=1;i<spaced.length;i++){
+  const delta=spaced[i].position-spaced[i-1].position;
+  if(delta<.0001)issues.push('Two marks occupy the same location at '+mbFormat(spaced[i].position)+'.');
+  else if(delta<gap)issues.push('Shoe spacing '+mbFormat(delta)+' is below manual minimum '+mbFormat(gap)+'.');
+ }
+ if(totalAngles>360)issues.push('Sum of individual angles exceeds 360°. Verify pull-point limitations.');
+ if(multiOps.length>1)issues.push('Multi-bend layout requires field check for developed length, cumulative shrink and actual shoe access. No 3D collision analysis is provided.');
+ const scale=Math.max(stock,...all.map(m=>m.position),1)*1.06;
+ let ticks='<div class="pipe"></div>';
+ all.forEach(m=>{
+  const left=Math.max(5,Math.min(95,5+90*m.position/scale));
+  ticks+='<div class="tick" style="left:'+left+'%" data-orient="'+(m.hook.includes('←')?'HOOK ←':'↻ SET')+'">'+
+    '<i>'+m.order+'</i></div>';
+ });
+ canvas.innerHTML='<div class="markbar">'+ticks+'</div><div class="note">Left = datum end. Mark positions are schematic; exact values follow below. Numbered circles show a proposed forming order.</div>';
+ steps.innerHTML=all.map(m=>
+  '<div class="advanced-mark"><b>'+m.order+'</b><div><strong>'+m.group+' · mark '+m.name+' · '+mbFormat(m.position)+' from datum</strong>'+
+  m.align+' | '+m.hook+'<div style="margin-top:4px">'+m.action+'</div></div></div>').join('');
+ warnings.textContent=issues.length?'CHECK LAYOUT: '+issues.join(' • '):
+  'No range/spacing warnings found. Verify head radius, shoe markers and springback on a test piece.';
+ multiReport='MULTI-BEND PIPE LAYOUT\nStock: '+mbFormat(stock)+'; min shoe spacing: '+mbFormat(gap)+'\n\n'+
+  all.map(m=>'BEND '+m.order+' | '+m.group+' '+m.name+' | '+mbFormat(m.position)+' | '+m.align+' | '+m.hook+' | '+m.action).join('\n')+
+  '\n\n'+warnings.textContent;
+}
+function mbCopy(){
+ navigator.clipboard.writeText(multiReport).then(()=>alert('Combined bend schedule copied.')).catch(()=>alert('Clipboard unavailable.'));
+}
 renderMenu();
 </script>
 </body></html>
