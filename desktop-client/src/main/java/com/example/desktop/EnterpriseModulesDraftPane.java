@@ -21,7 +21,9 @@ public final class EnterpriseModulesDraftPane extends BorderPane {
     private final VBox page = new VBox(18);
     private final VBox detail = new VBox(14);
 
-    public EnterpriseModulesDraftPane() {
+    private final String username;
+    public EnterpriseModulesDraftPane(String username) {
+        this.username=username==null?"default":username;
         setStyle("-fx-background-color:#eef3f8;");
         page.setPadding(new Insets(4,4,24,4));
 
@@ -74,7 +76,7 @@ public final class EnterpriseModulesDraftPane extends BorderPane {
 
     private void showEstimating(){
         detail.getChildren().clear();
-        EstimatingWorkspaceDraftPane estimator = new EstimatingWorkspaceDraftPane();
+        EstimatingWorkspaceDraftPane estimator = new EstimatingWorkspaceDraftPane(username);
         estimator.setPrefHeight(980);
         detail.getChildren().add(estimator);
     }
