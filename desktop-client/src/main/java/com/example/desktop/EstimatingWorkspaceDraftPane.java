@@ -82,6 +82,10 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private final Label labourTotal = valueLabel();
     private final Label quoteTotal = valueLabel();
     private final Label indirectTotal = valueLabel();
+    private final Label directCostTotal = valueLabel();
+    private final Label contingencyTotal = valueLabel();
+    private final Label overheadTotal = valueLabel();
+    private final Label profitTotal = valueLabel();
     private final Label preTaxTotal = valueLabel();
     private final Label taxTotal = valueLabel();
     private final Label finalBidTotal = valueLabel();
@@ -264,7 +268,9 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             "Bonding, insurance, permits, freight and escalation addressed","Inclusions, exclusions and clarifications reviewed","Overhead, profit and taxes verified","Bid form / proposal / alternates complete and authorized"};
         for(String item:items){CheckBox cb=new CheckBox(item);cb.setWrapText(true);cb.selectedProperty().addListener((o,a,b)->{updateReviewProgress(checks);updateValidation();});checks.getChildren().add(cb);reviewChecks.add(cb);}
         reviewProgress.setStyle("-fx-font-weight:bold;-fx-text-fill:#0e7490;"); updateReviewProgress(checks);
-        VBox commercial=new VBox(7,pair("Material",materialTotal),pair("Equipment",equipmentTotal),pair("Adjusted labour hours",labourHoursTotal),pair("Labour",labourTotal),pair("Selected quotes",quoteTotal),pair("Indirects",indirectTotal),new Separator(),pair("Pre-tax bid",preTaxTotal),pair("Tax",taxTotal),pair("TOTAL INCLUDING EST. TAX",finalBidTotal));
+        VBox commercial=new VBox(7,pair("Material",materialTotal),pair("Equipment",equipmentTotal),pair("Adjusted labour hours",labourHoursTotal),pair("Labour",labourTotal),pair("Selected quotes",quoteTotal),pair("Indirects",indirectTotal),new Separator(),
+            pair("Cost base",directCostTotal),pair("Contingency",contingencyTotal),
+            pair("Overhead",overheadTotal),pair("Profit",profitTotal),pair("Pre-tax bid",preTaxTotal),pair("Tax",taxTotal),pair("TOTAL INCLUDING EST. TAX",finalBidTotal));
         commercial.setPadding(new Insets(16)); commercial.setStyle(CARD); commercial.setPrefWidth(330);
         Button copy=button("Copy bid summary",true); copy.setOnAction(e->copySummary());
         VBox left=new VBox(8,reviewProgress,checks,copy); HBox body=new HBox(12,left,commercial); HBox.setHgrow(left,Priority.ALWAYS);
@@ -279,7 +285,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private void copySummary(){
         String text="ELECTRICAL ESTIMATE SUMMARY\nProject: "+projectName.getText()+"\nClient / GC: "+clientName.getText()+"\nEstimate #: "+bidNumber.getText()+"\nEstimator: "+estimatorName.getText()+
             "\n\nMaterial: "+materialTotal.getText()+"\nEquipment: "+equipmentTotal.getText()+"\nAdjusted labour hours: "+labourHoursTotal.getText()+"\nLabour: "+labourTotal.getText()+"\nSelected quotes: "+quoteTotal.getText()+"\nIndirects: "+indirectTotal.getText()+
-            "\nPre-tax bid: "+preTaxTotal.getText()+"\nTax: "+taxTotal.getText()+"\nTOTAL INCLUDING EST. TAX: "+finalBidTotal.getText()+"\n\nInclusions:\n"+inclusions.getText()+"\n\nExclusions:\n"+exclusions.getText()+"\n\nClarifications:\n"+clarifications.getText();
+            "\nContingency: "+contingencyTotal.getText()+"\nOverhead: "+overheadTotal.getText()+"\nProfit: "+profitTotal.getText()+"\nPre-tax bid: "+preTaxTotal.getText()+"\nTax: "+taxTotal.getText()+"\nTOTAL INCLUDING EST. TAX: "+finalBidTotal.getText()+"\n\nInclusions:\n"+inclusions.getText()+"\n\nExclusions:\n"+exclusions.getText()+"\n\nClarifications:\n"+clarifications.getText();
         ClipboardContent content=new ClipboardContent(); content.putString(text); Clipboard.getSystemClipboard().setContent(content);
     }
 
@@ -301,6 +307,8 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             : profitBase*p;
         double preTax=base+contingency+overhead+profit;
         double tax=preTax*parse(taxPct.getText())/100.0;
+        directCostTotal.setText(MONEY.format(base));contingencyTotal.setText(MONEY.format(contingency));
+        overheadTotal.setText(MONEY.format(overhead));profitTotal.setText(MONEY.format(profit));
         materialTotal.setText(MONEY.format(mat)); equipmentTotal.setText(MONEY.format(equipment)); labourHoursTotal.setText(String.format("%.1f h",hours)); labourTotal.setText(MONEY.format(labour)); quoteTotal.setText(MONEY.format(q)); indirectTotal.setText(MONEY.format(ind)); preTaxTotal.setText(MONEY.format(preTax)); taxTotal.setText(MONEY.format(tax)); finalBidTotal.setText(MONEY.format(preTax+tax));
         alternateTotal.setText(MONEY.format(changes.stream().filter(c->c.kind.get().equalsIgnoreCase("Alternate")).mapToDouble(c->c.selling.get()).sum()));
         approvedChangesTotal.setText(MONEY.format(changes.stream().filter(c->c.kind.get().equalsIgnoreCase("Change Order")&&c.status.get().equalsIgnoreCase("Approved")).mapToDouble(c->c.selling.get()).sum()));
@@ -564,6 +572,8 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         csv.append("\r\n").append(csvRow("BID RECAP","Amount (CAD)"));
         csv.append(csvRow("Material",materialTotal.getText())).append(csvRow("Equipment",equipmentTotal.getText())).append(csvRow("Labour",labourTotal.getText()));
         csv.append(csvRow("Selected supplier/subcontractor quotes",quoteTotal.getText())).append(csvRow("Indirects",indirectTotal.getText()));
+        csv.append(csvRow("Cost base",directCostTotal.getText())).append(csvRow("Contingency",contingencyTotal.getText()));
+        csv.append(csvRow("Overhead",overheadTotal.getText())).append(csvRow("Profit",profitTotal.getText()+" ("+profitBasis.getValue()+")"));
         csv.append(csvRow("Bid before tax",preTaxTotal.getText())).append(csvRow("Tax (assumed)",taxTotal.getText()));
         csv.append(csvRow("Bid including tax",finalBidTotal.getText()));
         csv.append("\r\n").append(csvRow("SUPPLIER QUOTES","Vendor","Comparison group","Scope","Amount","Carry","Qualifications"));
@@ -687,7 +697,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         if(dueDate.getText().isBlank())warnings.add("Bid due date / time has not been entered");
         if(inclusions.getText().isBlank())warnings.add("Included scope is undocumented");
         if(exclusions.getText().isBlank())warnings.add("Exclusions / by-others not reviewed or documented");
-        long unpriced=lines.stream().filter(x->x.quantity.get()>0&&x.materialUnit.get()<=0&&x.labourUnitHours.get()<=0).count();
+        long unpriced=lines.stream().filter(x->x.quantity.get()>0&&x.materialUnit.get()<=0&&x.equipmentUnit.get()<=0&&x.labourUnitHours.get()<=0).count();
         if(unpriced>0)warnings.add(unpriced+" takeoff line(s) have positive quantity but no material or labour pricing");
         long invalid=lines.stream().filter(x->x.quantity.get()>0&&x.productivityFactor.get()<=0).count();
         if(invalid>0)warnings.add(invalid+" takeoff line(s) have zero productivity factor");
