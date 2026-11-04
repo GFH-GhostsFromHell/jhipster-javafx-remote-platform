@@ -284,6 +284,8 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         double preTax=base+contingency+overhead+profit;
         double tax=preTax*parse(taxPct.getText())/100.0;
         materialTotal.setText(MONEY.format(mat)); labourHoursTotal.setText(String.format("%.1f h",hours)); labourTotal.setText(MONEY.format(labour)); quoteTotal.setText(MONEY.format(q)); indirectTotal.setText(MONEY.format(ind)); preTaxTotal.setText(MONEY.format(preTax)); taxTotal.setText(MONEY.format(tax)); finalBidTotal.setText(MONEY.format(preTax+tax));
+        alternateTotal.setText(MONEY.format(changes.stream().filter(c->c.kind.get().equalsIgnoreCase("Alternate")).mapToDouble(c->c.selling.get()).sum()));
+        approvedChangesTotal.setText(MONEY.format(changes.stream().filter(c->c.kind.get().equalsIgnoreCase("Change Order")&&c.status.get().equalsIgnoreCase("Approved")).mapToDouble(c->c.selling.get()).sum()));
         refreshBreakdown();
         updateValidation();
         if(takeoffTable!=null)takeoffTable.refresh();
@@ -615,6 +617,144 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             warnings.size()+" items require manual review before submission");
         validationArea.setText(warnings.isEmpty()?"Automated audit passed. Verify tender documents, measurements, prices, taxes and authority to submit.":
             String.join("\n",warnings.stream().map(w->"• "+w).toList()));
+    }
+
+
+    // Starter kits are deliberately unpriced: labour units and vendor rates must be verified for each contractor and tender.
+    private void seedKits(){
+        kits.add(kit("Duplex receptacle device set",new EstimateLine("05 Devices","Duplex receptacle (specified grade)",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","Device box (specified type)",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","Faceplate (specified finish)",1,"ea",0,0,1)));
+        kits.add(kit("GFCI receptacle device set",new EstimateLine("05 Devices","GFCI receptacle (specified rating)",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","GFCI device box",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","GFCI faceplate",1,"ea",0,0,1)));
+        kits.add(kit("Single-pole wall switch set",new EstimateLine("05 Devices","Single-pole wall switch",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","Switch box",1,"ea",0,0,1),
+            new EstimateLine("05 Devices","Wall plate",1,"ea",0,0,1)));
+        kits.add(kit("LED luminaire point",new EstimateLine("04 Lighting / controls","Specified LED fixture",1,"ea",0,0,1),
+            new EstimateLine("04 Lighting / controls","Fixture mounting / support allowance",1,"lot",0,0,1)));
+        kits.add(kit("Manual EMT raceway length",new EstimateLine("03 Branch wiring","EMT conduit as specified",1,"m",0,0,1)));
+        kits.add(kit("Manual conductor/cable length",new EstimateLine("02 Feeders","Cable or conductors per specification",1,"m",0,0,1)));
+        kits.add(kit("Fire alarm detector point",new EstimateLine("07 Fire alarm / low voltage","Specified fire alarm detector",1,"ea",0,0,1),
+            new EstimateLine("07 Fire alarm / low voltage","Compatible base / backbox",1,"ea",0,0,1)));
+        kits.add(kit("Mechanical equipment disconnect",new EstimateLine("06 Mechanical power","Disconnect switch as specified",1,"ea",0,0,1),
+            new EstimateLine("06 Mechanical power","Disconnect mounting / enclosure allowance",1,"lot",0,0,1)));
+    }
+    private static AssemblyKit kit(String name,EstimateLine...parts){return new AssemblyKit("starter-"+name,name,java.util.Arrays.asList(parts),true);}
+
+    private void loadUserKits(){
+        try{
+            for(JsonNode node:workspace.records("estimatingCatalog")){
+                List<EstimateLine> parts=new ArrayList<>();
+                for(JsonNode part:node.path("parts"))parts.add(parseLine(part));
+                if(!parts.isEmpty())kits.add(new AssemblyKit(node.path("id").asText(UUID.randomUUID().toString()),
+                    node.path("name").asText("Custom assembly"),parts,false));
+            }
+        }catch(Exception ex){System.err.println("Could not load local estimating assembly library: "+ex.getMessage());}
+    }
+    private void saveSelectedKit(){
+        if(takeoffTable==null||takeoffTable.getSelectionModel().getSelectedItems().isEmpty()){
+            message("Select assembly components","Select one or more rows in the takeoff. Use Ctrl-click to select multiple parts.");return;
+        }
+        TextInputDialog dialog=new TextInputDialog("Custom electrical assembly");
+        dialog.setTitle("Create reusable electrical assembly");
+        dialog.setHeaderText("Save selected takeoff rows as an assembly");
+        dialog.setContentText("Assembly name:");
+        dialog.showAndWait().ifPresent(name->{
+            if(name.isBlank())return;
+            List<EstimateLine> parts=new ArrayList<>();for(EstimateLine x:takeoffTable.getSelectionModel().getSelectedItems())parts.add(x.copy());
+            AssemblyKit k=new AssemblyKit(UUID.randomUUID().toString(),name.trim(),parts,false);
+            ObjectNode o=mapper.createObjectNode();o.put("id",k.id);o.put("name",k.name);
+            ArrayNode a=o.putArray("parts");for(EstimateLine x:k.parts)a.add(lineJson(x));
+            try{workspace.append("estimatingCatalog",o);kits.add(k);message("Assembly saved",name+" was saved locally with "+parts.size()+" component rows.");}
+            catch(Exception ex){error("Save assembly failed",ex);}
+        });
+    }
+    private Node assembliesPane(){
+        VBox page=new VBox(12);page.setPadding(new Insets(14));
+        Label warning=note("Starter kits are unpriced examples, not certified assemblies. Enter supplier unit costs and verified labour hours in the takeoff. Confirm every component, quantity, fitting and code requirement against drawings/specs.");
+        ListView<AssemblyKit> list=new ListView<>(kits);list.setPrefWidth(345);list.setPrefHeight(310);
+        TextArea details=new TextArea();details.setEditable(false);details.setPrefWidth(540);
+        details.setStyle("-fx-font-family:Consolas,monospace;-fx-font-size:12px;");details.setWrapText(true);
+        list.getSelectionModel().selectedItemProperty().addListener((obs,a,k)->{
+            if(k==null){details.clear();return;}
+            StringBuilder b=new StringBuilder(k.name+"\n\nComponents per assembly:\n\n");
+            for(EstimateLine part:k.parts)b.append("• ").append(part.description.get()).append(" — ")
+                .append(part.quantity.get()).append(" ").append(part.unit.get())
+                .append(" | Material/unit $").append(String.format(Locale.CANADA,"%.2f",part.materialUnit.get()))
+                .append(" | Labour h/unit ").append(String.format(Locale.CANADA,"%.3f",part.labourUnitHours.get())).append('\n');
+            b.append("\nInsert into takeoff, then review quantities, supplier prices and labour factors.");
+            details.setText(b.toString());
+        });
+        HBox listing=new HBox(12,list,details);HBox.setHgrow(details,Priority.ALWAYS);
+        TextField multiplier=numberField("1"),phase=field("Floor / phase"),drawing=field("Drawing revision / source");
+        Button insert=button("Insert selected assembly into takeoff",true);
+        insert.setOnAction(e->{
+            AssemblyKit selected=list.getSelectionModel().getSelectedItem();if(selected==null){message("Select an assembly","Choose an assembly first.");return;}
+            double qty=parse(multiplier.getText());if(qty<=0){message("Invalid quantity","Assembly count must be greater than zero.");return;}
+            for(EstimateLine part:selected.parts){
+                EstimateLine row=part.copy();row.quantity.set(row.quantity.get()*qty);
+                if(!phase.getText().isBlank())row.phase.set(phase.getText());
+                row.drawing.set((drawing.getText().isBlank()?"Assembly "+selected.name:drawing.getText()));
+                lines.add(row);
+            }
+            recalc();message("Assembly added","Inserted "+selected.parts.size()+" component rows. Review labour, material, takeoff conditions and fittings.");
+        });
+        Button remove=button("Delete selected custom assembly",false);
+        remove.setOnAction(e->{
+            AssemblyKit k=list.getSelectionModel().getSelectedItem();
+            if(k==null||k.starter){message("Starter assembly","Only user-created assemblies can be removed.");return;}
+            if(!confirm("Delete custom assembly","Remove "+k.name+" from your local library? Existing takeoff lines will be unaffected."))return;
+            try{
+                ArrayNode records=workspace.records("estimatingCatalog"), next=mapper.createArrayNode();
+                for(JsonNode n:records)if(!k.id.equals(n.path("id").asText()))next.add(n);
+                workspace.replace("estimatingCatalog",next);kits.remove(k);
+            }catch(Exception ex){error("Delete failed",ex);}
+        });
+        HBox form=new HBox(10,labeled("Assembly count",multiplier),labeled("Phase / area",phase),labeled("Drawing / source",drawing));
+        page.getChildren().addAll(sectionTitle("Reusable electrical assemblies / item kits"),warning,listing,form,new HBox(8,insert,remove),
+            infoBox("Create your company library","In the Takeoff tab, select one or more rows and click 'Save selection as assembly'. Their components, unit prices and labour units become a reusable local kit for future bids."));
+        return page;
+    }
+
+    private Node changesPane(){
+        VBox page=new VBox(12);page.setPadding(new Insets(14));
+        TableView<ChangeLine> table=new TableView<>(changes);table.setEditable(true);table.setPrefHeight(315);
+        TableColumn<ChangeLine,String> kind=new TableColumn<>("Record type");
+        kind.setCellValueFactory(c->c.getValue().kind);
+        kind.setCellFactory(TextFieldTableCell.forTableColumn());
+        kind.setOnEditCommit(e->{e.getRowValue().kind.set(e.getNewValue());recalc();});kind.setPrefWidth(125);
+        TableColumn<ChangeLine,String> desc=new TableColumn<>("Alternate / change description");
+        desc.setCellValueFactory(c->c.getValue().description);desc.setCellFactory(TextFieldTableCell.forTableColumn());
+        desc.setOnEditCommit(e->{e.getRowValue().description.set(e.getNewValue());recalc();});desc.setPrefWidth(360);
+        TableColumn<ChangeLine,Double> value=new TableColumn<>("Selling $ before tax");
+        value.setCellValueFactory(c->c.getValue().selling.asObject());value.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
+        value.setOnEditCommit(e->{e.getRowValue().selling.set(Math.max(0,e.getNewValue()));recalc();});value.setPrefWidth(155);
+        TableColumn<ChangeLine,String> status=new TableColumn<>("Status");
+        status.setCellValueFactory(c->c.getValue().status);status.setCellFactory(TextFieldTableCell.forTableColumn());
+        status.setOnEditCommit(e->{e.getRowValue().status.set(e.getNewValue());recalc();});status.setPrefWidth(150);
+        table.getColumns().addAll(kind,desc,value,status);
+        Button addAlt=button("+ Alternate",true);addAlt.setOnAction(e->{changes.add(new ChangeLine("Alternate","Optional scope / alternate",0,"Proposed"));recalc();});
+        Button addCo=button("+ Change Order",false);addCo.setOnAction(e->{changes.add(new ChangeLine("Change Order","Additional / revised scope",0,"Proposed"));recalc();});
+        Button del=button("Remove selected",false);del.setOnAction(e->{ChangeLine x=table.getSelectionModel().getSelectedItem();if(x!=null){changes.remove(x);recalc();}});
+        HBox totals=new HBox(10,stat("Alternates (separate)",alternateTotal),stat("Approved COs (separate)",approvedChangesTotal));
+        page.getChildren().addAll(sectionTitle("Alternates and change orders — tracked separately"),
+            note("These records are NOT automatically added to the original base bid. Prices are selling amounts before tax. A change order marked Approved is reported separately, not retroactively added to the original tender."),
+            new HBox(8,addAlt,addCo,del),table,totals,
+            infoBox("Commercial control","Use status Proposed, Submitted, Approved or Rejected. Verify scope, schedule, approval authority and executed documentation before treating a change as contract value."));
+        return page;
+    }
+    private static final class ChangeLine{
+        final StringProperty kind=new SimpleStringProperty();
+        final StringProperty description=new SimpleStringProperty();
+        final DoubleProperty selling=new SimpleDoubleProperty();
+        final StringProperty status=new SimpleStringProperty();
+        ChangeLine(String k,String d,double s,String st){kind.set(k);description.set(d);selling.set(s);status.set(st);}
+    }
+    private static final class AssemblyKit{
+        final String id,name;final List<EstimateLine> parts;final boolean starter;
+        AssemblyKit(String id,String name,List<EstimateLine> parts,boolean starter){this.id=id;this.name=name;this.parts=parts;this.starter=starter;}
+        @Override public String toString(){return name+" ("+parts.size()+" parts)"+(starter?" · starter":" · saved");}
     }
 
     private static final class EstimateLine {
