@@ -19,6 +19,8 @@ public final class ConduitBendingFieldPane extends BorderPane {
     private final TextField segments = field("6");
     private final Map<String,HBox> rows = new LinkedHashMap<>();
     private final TextArea answer = new TextArea();
+    private final BendMarkStripPane visual = new BendMarkStripPane();
+    private final TextArea help = new TextArea();
 
     public ConduitBendingFieldPane() {
         type.setValue(TYPES[0]); units.setValue("Millimetres"); angle.setValue(30d); bender.setValue("1/2 EMT");
@@ -45,11 +47,23 @@ public final class ConduitBendingFieldPane extends BorderPane {
         Button copy = new Button("Copy field layout");
         copy.setOnAction(e -> { javafx.scene.input.ClipboardContent cb = new javafx.scene.input.ClipboardContent();cb.putString(answer.getText());javafx.scene.input.Clipboard.getSystemClipboard().setContent(cb); });
         calculate.setOnAction(e->calculate());
-        answer.setEditable(false);answer.setWrapText(true);answer.setPrefRowCount(23);
-        page.getChildren().addAll(title,intro,selectors,settings,inputs,new HBox(10,calculate,copy),answer,
+        answer.setEditable(false);answer.setWrapText(true);answer.setPrefRowCount(18);
+        help.setEditable(false);help.setWrapText(true);help.setPrefRowCount(9);
+        help.setStyle("-fx-font-size:12px;-fx-control-inner-background:#eff8fc;-fx-text-fill:#0f4c81;");
+        TitledPane bendHelp=new TitledPane("Help · exact marking, shoe reference, bender orientation & order",help);
+        bendHelp.setExpanded(true);
+        bendHelp.setCollapsible(true);
+        page.getChildren().addAll(title,intro,selectors,settings,inputs,new HBox(10,calculate,copy),visual,bendHelp,answer,
             note("Hand-bender arrows, star/back-of-90 marks, saddle notches, deduct, minimum stub and springback vary by manufacturer, conduit size and type. Field shrink charts are rounded; this calculator shows geometric values. Measure conduit on its centreline, keep bends in the intended plane, and check a test piece before cutting production runs."));
         ScrollPane scroll = new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
-        setCenter(scroll);
+        TabPane screens=new TabPane();
+        screens.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        screens.getTabs().addAll(
+            new Tab("Single Bend & Field Guide",scroll),
+            new Tab("Advanced · Multiple Bends on One Pipe",new AdvancedConduitBendPane()),
+            new Tab("Multiplier Chart & Quick Sheet",new ConduitBendReferencePane())
+        );
+        setCenter(screens);
         type.setOnAction(e->{showFields();calculate();});
         angle.setOnAction(e->calculate());
         bender.setOnAction(e->{
@@ -92,6 +106,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
 
     private void calculate() {
         try {
+            List<BendMarkStripPane.Mark> visualMarks=new ArrayList<>();
             double a=angle.getValue(), rad=Math.toRadians(a), mult=1/Math.sin(rad), shrinkFactor=Math.tan(rad/2);
             String t=type.getValue();StringBuilder s=new StringBuilder();
             s.append("FIELD BEND: ").append(t).append("\n\n");
@@ -99,25 +114,30 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 double vertical=positive(rise,"rise"), lateral=t.equals("Rolling offset")?nonNegative(roll,"horizontal roll"):0;
                 double h=Math.hypot(vertical,lateral), spacing=h*mult,shrink=h*shrinkFactor,ref=nonNegative(distance,"reference distance");
                 // This is a near-critical layout; mark A at the near bend and B farther along the conduit.
-                double first=ref-shrink,second=first+spacing;
+                // Klein's documented datum-to-obstruction method adds field shrink to the first mark.
+                // The value below is a geometric estimate; the reference chart provides rounded shop constants.
+                double first=ref+shrink,second=first+spacing;
                 if(first<0)throw new IllegalArgumentException("The near mark is before the reference end. Increase the reference distance or change layout.");
+                visualMarks.add(new BendMarkStripPane.Mark(first,1,"A","ARROW","HOOK ← away from B","+ "+a+"° first offset bend"));
+                visualMarks.add(new BendMarkStripPane.Mark(second,2,"B","ARROW","Flip/rotate; same plane","− "+a+"° return to parallel"));
                 s.append("True offset: ").append(measure(h)).append("\n")
                  .append("Bend angle at BOTH marks: ").append(a).append("°\n")
                  .append("Multiplier: ").append(dec(mult)).append(" (1 ÷ sin angle)\n")
                  .append("Mark spacing: ").append(measure(spacing)).append(" (true offset × multiplier)\n")
                  .append("Exact geometric shrink: ").append(measure(shrink)).append(" (offset × tan half-angle)\n")
-                 .append("A / near mark from datum: ").append(measure(first)).append("\n")
+                 .append("A / first mark from datum (obstacle distance + geometric shrink): ").append(measure(first)).append("\n")
                  .append("B / far mark from datum: ").append(measure(second)).append("\n");
                 if(lateral>0)s.append("Rotate bending plane away from vertical by: ").append(dec(Math.toDegrees(Math.atan2(lateral,vertical)))).append("°\n");
                 s.append("\nFIELD STEPS\n1. Mark the datum end and measure ").append(measure(first)).append(" to mark A.\n")
                  .append("2. Measure ").append(measure(spacing)).append(" farther to mark B; keep both marks visible.\n")
-                 .append("3. Align the bender ARROW to A and bend ").append(a).append("° with steady foot pressure.\n")
-                 .append("4. Rotate the conduit 180° around its LENGTH (do not change the bend plane). Align the arrow with B and bend the SAME ").append(a).append("° back to parallel.\n")
+                 .append("3. With the hook facing away from the second mark as in the Klein offset method, align ARROW to A and bend ").append(a).append("° with steady foot pressure.\n")
+                 .append("4. Flip/position the bender and conduit for the return bend, turning the conduit 180° in the bender cradle as your shoe instructions require; keep both bends coplanar. Align ARROW with B and bend ").append(a).append("° back to parallel.\n")
                  .append("5. For a rolling offset, turn the bend plane to the calculated orientation before bending. Check rise AND horizontal roll in place.\n")
                  .append("6. Check the final level, parallel ends, and obstacle clearance. Shrink depends on the datum/near-bend convention shown here.\n");
             } else if(t.equals("90° stub-up")||t.equals("Back-to-back 90s")||t.equals("Kicked 90°")){
                 double h=positive(stub,"stub height"), tk=positive(takeup,"bender deduct"),mark=h-tk;
                 if(mark<0)throw new IllegalArgumentException("Stub is shorter than deduct; use a suitable bender/method.");
+                visualMarks.add(new BendMarkStripPane.Mark(mark,1,"A","ARROW","HOOK ← toward short end","Make first 90° stub-up"));
                 s.append("Stub height: ").append(measure(h)).append("\n")
                  .append("Take-up/deduct (verify stamped shoe): ").append(measure(tk)).append("\n")
                  .append("First 90° ARROW mark: ").append(measure(mark)).append(" from reference end.\n");
@@ -126,6 +146,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
                  .append("3. Remove and measure actual stub height; allow for springback and adjust against the installed bender.\n");
                 if(t.equals("Back-to-back 90s")){
                     double d=positive(width,"back-to-back dimension"),c=nonNegative(correction,"star correction");
+                    visualMarks.add(new BendMarkStripPane.Mark(d+c,2,"B","STAR / BACK OF 90","Hook toward second free end","2nd 90°; reference from BACK of first bend",true));
                     s.append("\nBack-to-back desired reference distance: ").append(measure(d)).append("\n")
                      .append("Second bend STAR/back-of-90 reference: ").append(measure(d+c)).append(" from the back of the FIRST bend, subject to shoe calibration.\n")
                      .append("4. Measure from the BACK of the first 90° to the required back-to-back reference.\n")
@@ -133,6 +154,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
                      .append("6. Bend 90° in the same plane; check the final leg-to-leg dimension.\n");
                 } else if(t.equals("Kicked 90°")){
                     double k=positive(rise,"kick rise");
+                    s.append("Second kick mark is field-selected; there is no universal absolute kick mark from rise alone.\n");
                     s.append("\nKick angle: ").append(a).append("°\n")
                      .append("Kick diagonal travel: ").append(measure(k*mult)).append("\n")
                      .append("Kick projected run: ").append(measure(k/Math.tan(rad))).append("\n")
@@ -145,6 +167,9 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 double spacing=h/Math.sin(Math.toRadians(side)),shift=h*Math.tan(Math.toRadians(side/2));
                 double B=c+shift,A=B-spacing,C=B+spacing;
                 if(A<0)throw new IllegalArgumentException("Saddle near mark is before the datum. Use a longer lead or shorter/steeper saddle.");
+                visualMarks.add(new BendMarkStripPane.Mark(B,1,"B · centre","SADDLE / CENTRE","Saddle notch; shoe-specific","Bend "+a+"° centre FIRST"));
+                visualMarks.add(new BendMarkStripPane.Mark(A,2,"A · outer","ARROW","Flip/rotate for outside return","Bend "+side+"° outside return"));
+                visualMarks.add(new BendMarkStripPane.Mark(C,3,"C · outer","ARROW","Keep return in same plane","Bend "+side+"° outside return"));
                 s.append("Centre bend: ").append(a).append("° · side bends: ").append(side).append("°\n")
                  .append("Spacing each side of centre: ").append(measure(spacing)).append("\n")
                  .append("Geometric centre shift: ").append(measure(shift)).append("\n")
@@ -160,6 +185,10 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 double spacing=h*mult,sh=h*shrinkFactor;
                 double B=d+sh,A=B-spacing,C=B+w,D=C+spacing;
                 if(A<0)throw new IllegalArgumentException("First mark is before reference end; increase clearance to near face.");
+                visualMarks.add(new BendMarkStripPane.Mark(A,1,"A","ARROW","HOOK ← toward datum","Bend "+a+"° rise"));
+                visualMarks.add(new BendMarkStripPane.Mark(B,2,"B","ARROW","Flip/rotate; hold plane","Return "+a+"° to level"));
+                visualMarks.add(new BendMarkStripPane.Mark(C,3,"C","ARROW","Reverse offset direction","Bend "+a+"° back toward datum plane"));
+                visualMarks.add(new BendMarkStripPane.Mark(D,4,"D","ARROW","Flip/rotate; hold plane","Return "+a+"° to original run"));
                 s.append("Each offset bend: ").append(a).append("°\nSide spacing: ").append(measure(spacing)).append("\nShrink per offset: ")
                  .append(measure(sh)).append("\nTotal shrink: ").append(measure(2*sh)).append("\n")
                  .append("Marks A/B/C/D: ").append(measure(A)).append(" / ").append(measure(B)).append(" / ")
@@ -172,6 +201,8 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 double r=positive(rise,"centreline radius");int n=(int)nonNegative(segments,"segments");
                 if(n<3||n>12)throw new IllegalArgumentException("Use 3 to 12 segments.");
                 double each=90d/n, arc=Math.PI*r/2, spacing=arc/n;
+                for(int i=1;i<=n;i++)
+                    visualMarks.add(new BendMarkStripPane.Mark(i*spacing,i,"M"+i,"SHOE CENTRE","Same bend plane","Form "+dec(each)+"° segment "+i));
                 s.append("Total 90° arc: ").append(measure(arc)).append("\n")
                  .append("Bends: ").append(n).append(" × ").append(dec(each)).append("°\n")
                  .append("Equal arc/mark spacing (approx.): ").append(measure(spacing)).append("\n")
@@ -183,7 +214,13 @@ public final class ConduitBendingFieldPane extends BorderPane {
              .append("• Support the conduit firmly and inspect for flattening/kinks. Verify the total bend allowance and pull-point requirements.\n")
              .append("• All measurements use ").append(units.getValue().toLowerCase(Locale.ROOT)).append(" and a consistent reference end.");
             answer.setText(s.toString());
-        }catch(Exception ex){answer.setText("Check inputs: "+ex.getMessage());}
+            help.setText(ConduitBendReferencePane.guide(t));
+            visual.setPlan("Bend layout · "+t,visualMarks,0,units.getValue());
+        }catch(Exception ex){
+            answer.setText("Check inputs: "+ex.getMessage());
+            help.setText(ConduitBendReferencePane.guide(type.getValue()));
+            visual.setPlan("Check inputs",List.of(),0,units.getValue());
+        }
     }
 
     private String measure(double x){return String.format(Locale.CANADA,units.getValue().equals("Inches")?"%.3f in":"%.1f mm",x);}
