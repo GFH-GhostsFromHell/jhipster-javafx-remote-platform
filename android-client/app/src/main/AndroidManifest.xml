@@ -19,6 +19,9 @@
             android:name=".EngineeringPowerActivity"
             android:exported="false" />
         <activity
+            android:name=".FieldSizingActivity"
+            android:exported="false" />
+        <activity
             android:name=".MobileWorkbenchActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
