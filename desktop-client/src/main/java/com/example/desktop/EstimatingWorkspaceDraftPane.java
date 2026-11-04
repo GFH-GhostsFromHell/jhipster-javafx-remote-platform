@@ -188,8 +188,9 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TableColumn<EstimateLine,Double> labUnit=doubleCol("Lab h/unit",86,x->x.labourUnitHours);
         TableColumn<EstimateLine,Double> factor=doubleCol("Prod. factor",86,x->x.productivityFactor);
         TableColumn<EstimateLine,String> matExt=readOnlyCol("Material ext.",100,x->MONEY.format(x.materialExtended()));
+        TableColumn<EstimateLine,String> equipExt=readOnlyCol("Equip. ext.",100,x->MONEY.format(x.equipmentExtended()));
         TableColumn<EstimateLine,String> hrsExt=readOnlyCol("Adj. hours",86,x->String.format("%.2f",x.adjustedHours()));
-        table.getColumns().addAll(system,phase,drawing,desc,qty,unit,matUnit,equipment,labUnit,factor,supplier,priced,matExt,hrsExt);
+        table.getColumns().addAll(system,phase,drawing,desc,qty,unit,matUnit,equipment,labUnit,factor,supplier,priced,matExt,equipExt,hrsExt);
 
         Button add=button("+ Add line",true); add.setOnAction(e->{lines.add(new EstimateLine("Branch wiring","New takeoff item",1,"ea",0,0,1));recalc();});
         Button duplicate=button("Duplicate selected",false); duplicate.setOnAction(e->{EstimateLine x=table.getSelectionModel().getSelectedItem();if(x!=null){lines.add(x.copy());recalc();}});
@@ -488,14 +489,14 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         Path output=chooseOutput("estimate-"+safeFile(bidNumber.getText())+"-"+safeFile(revision.getText())+".csv","csv");
         if(output==null)return;
         StringBuilder csv=new StringBuilder();
-        csv.append(csvRow("system","phase","drawing","description","quantity","unit","material_unit","labour_hours_unit","productivity_factor","price_source","price_date","material_extended","adjusted_hours","extended_labour"));
+        csv.append(csvRow("system","phase","drawing","description","quantity","unit","material_unit","equipment_unit","labour_hours_unit","productivity_factor","price_source","price_date","material_extended","equipment_extended","adjusted_hours","extended_labour"));
         double rate=parse(labourRate.getText());
         for(EstimateLine x:lines)csv.append(csvRow(x.system.get(),x.phase.get(),x.drawing.get(),x.description.get(),
-            Double.toString(x.quantity.get()),x.unit.get(),Double.toString(x.materialUnit.get()),
+            Double.toString(x.quantity.get()),x.unit.get(),Double.toString(x.materialUnit.get()),Double.toString(x.equipmentUnit.get()),
             Double.toString(x.labourUnitHours.get()),Double.toString(x.productivityFactor.get()),x.priceSource.get(),x.priceDate.get(),
-            Double.toString(x.materialExtended()),Double.toString(x.adjustedHours()),Double.toString(x.adjustedHours()*rate)));
+            Double.toString(x.materialExtended()),Double.toString(x.equipmentExtended()),Double.toString(x.adjustedHours()),Double.toString(x.adjustedHours()*rate)));
         csv.append("\r\n").append(csvRow("BID RECAP","Amount (CAD)"));
-        csv.append(csvRow("Material",materialTotal.getText())).append(csvRow("Labour",labourTotal.getText()));
+        csv.append(csvRow("Material",materialTotal.getText())).append(csvRow("Equipment",equipmentTotal.getText())).append(csvRow("Labour",labourTotal.getText()));
         csv.append(csvRow("Selected supplier/subcontractor quotes",quoteTotal.getText())).append(csvRow("Indirects",indirectTotal.getText()));
         csv.append(csvRow("Bid before tax",preTaxTotal.getText())).append(csvRow("Tax (assumed)",taxTotal.getText()));
         csv.append(csvRow("Bid including tax",finalBidTotal.getText()));
@@ -533,6 +534,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
                     parse(get(row,headers,"labour_hours_unit")),parse(getOr(row,headers,"productivity_factor","1")));
                 x.phase.set(getOr(row,headers,"phase","General"));x.drawing.set(get(row,headers,"drawing"));
                 x.priceSource.set(get(row,headers,"price_source"));x.priceDate.set(get(row,headers,"price_date"));
+                x.equipmentUnit.set(parse(get(row,headers,"equipment_unit")));
                 lines.add(x);count++;
             }
             recalc();message("Takeoff imported","Added "+count+" takeoff lines. Imported prices and labour hours are user supplied; review every line before bidding.");
@@ -588,14 +590,15 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         Map<String,double[]> totals=new LinkedHashMap<>();double rate=parse(labourRate.getText());
         for(EstimateLine x:lines){
             String key=x.phase.get()+" | "+x.system.get();
-            double[] a=totals.computeIfAbsent(key,k->new double[4]);
-            a[0]+=x.materialExtended();a[1]+=x.adjustedHours();a[2]+=x.adjustedHours()*rate;a[3]+=x.materialExtended()+x.adjustedHours()*rate;
+            double[] a=totals.computeIfAbsent(key,k->new double[5]);
+            a[0]+=x.materialExtended();a[1]+=x.equipmentExtended();a[2]+=x.adjustedHours();a[3]+=x.adjustedHours()*rate;
+            a[4]+=x.materialExtended()+x.equipmentExtended()+x.adjustedHours()*rate;
         }
-        StringBuilder b=new StringBuilder(String.format("%-44s %14s %13s %14s %14s%n","PHASE | SYSTEM","MATERIAL $","LABOUR HRS","LABOUR $","DIRECT $"));
-        b.append("─".repeat(108)).append('\n');
+        StringBuilder b=new StringBuilder(String.format("%-39s %13s %13s %12s %13s %14s%n","PHASE | SYSTEM","MATERIAL $","EQUIPMENT $","LABOUR HRS","LABOUR $","DIRECT $"));
+        b.append("─".repeat(112)).append('\n');
         for(Map.Entry<String,double[]> e:totals.entrySet()){
-            double[] a=e.getValue();String key=e.getKey();if(key.length()>44)key=key.substring(0,41)+"...";
-            b.append(String.format(Locale.CANADA,"%-44s %14.2f %13.2f %14.2f %14.2f%n",key,a[0],a[1],a[2],a[3]));
+            double[] a=e.getValue();String key=e.getKey();if(key.length()>39)key=key.substring(0,36)+"...";
+            b.append(String.format(Locale.CANADA,"%-39s %13.2f %13.2f %12.2f %13.2f %14.2f%n",key,a[0],a[1],a[2],a[3],a[4]));
         }
         breakdownArea.setText(b.toString());
     }
@@ -622,7 +625,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         if(unpriced>0)warnings.add(unpriced+" takeoff line(s) have positive quantity but no material or labour pricing");
         long invalid=lines.stream().filter(x->x.quantity.get()>0&&x.productivityFactor.get()<=0).count();
         if(invalid>0)warnings.add(invalid+" takeoff line(s) have zero productivity factor");
-        if(lines.stream().mapToDouble(x->x.materialExtended()+x.adjustedHours()).sum()==0&&quotes.stream().noneMatch(q->q.include.get()))
+        if(lines.stream().mapToDouble(x->x.materialExtended()+x.equipmentExtended()+x.adjustedHours()).sum()==0&&quotes.stream().noneMatch(q->q.include.get()))
             warnings.add("Bid has no priced direct electrical work or selected supplier quotes");
         Map<String,Integer> carries=new LinkedHashMap<>();
         for(QuoteLine q:quotes)if(q.include.get()){
