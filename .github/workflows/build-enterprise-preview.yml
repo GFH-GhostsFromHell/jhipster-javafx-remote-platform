@@ -1,11 +1,6 @@
 name: Build Enterprise Modules Preview MSI
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'desktop-client/**'
-      - '.github/workflows/build-enterprise-preview.yml'
   push:
     branches: [ draft-enterprise-modules ]
     paths:
@@ -73,6 +68,7 @@ jobs:
           $tag = "preview-enterprise-modules-v0.1.${{ github.run_number }}"
           gh release create $tag target/preview-installer/ElectricalWorkbenchPreview-Setup.msi `
             --repo "${{ github.repository }}" `
+            --target "${{ github.sha }}" `
             --title "Enterprise Modules Preview 0.1.${{ github.run_number }}" `
             --notes "Reversible preview build from draft-enterprise-modules. Installs as ElectricalWorkbenchPreview, uses a different Windows application name from the stable client, and disables the normal stable updater. This preview does not modify stable billing or production entitlements." `
             --prerelease
