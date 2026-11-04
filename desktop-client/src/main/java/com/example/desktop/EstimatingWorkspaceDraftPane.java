@@ -197,7 +197,9 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         Button remove=button("Remove selected",false); remove.setOnAction(e->{EstimateLine x=table.getSelectionModel().getSelectedItem();if(x!=null){lines.remove(x);recalc();}});
         Button reset=button("Reset electrical structure",false); reset.setOnAction(e->{lines.clear();seedElectricalStructure();recalc();});
         Button saveKit=button("Save selection as assembly",false); saveKit.setOnAction(e->saveSelectedKit());
-        HBox actions=new HBox(8,add,duplicate,remove,saveKit,reset);
+        Button priceTemplate=button("Export vendor price request",false);priceTemplate.setOnAction(e->exportPriceRequest());
+        Button updatePrices=button("Apply vendor price CSV",false);updatePrices.setOnAction(e->applyPriceBook());
+        HBox actions=new HBox(8,add,duplicate,remove,saveKit,priceTemplate,updatePrices,reset);
 
         labourRate.textProperty().addListener((o,a,b)->recalc());
         HBox settings=new HBox(12, compactField("Loaded labour $/h",labourRate),
@@ -485,6 +487,70 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private static String csvRow(String...values){
         return java.util.Arrays.stream(values).map(EstimatingWorkspaceDraftPane::csv).collect(java.util.stream.Collectors.joining(","))+"\r\n";
     }
+
+    /**
+     * Produce an exact-match price request so suppliers can return verified job prices.
+     * No proprietary pricing catalogue or assumed labour unit is bundled in the application.
+     */
+    private void exportPriceRequest(){
+        Path file=chooseOutput("vendor-price-request-"+safeFile(bidNumber.getText())+".csv","csv");if(file==null)return;
+        StringBuilder out=new StringBuilder(csvRow("description","unit","unit_price","vendor","price_date"));
+        java.util.Set<String> seen=new LinkedHashSet<>();
+        for(EstimateLine x:lines){
+            String key=(x.description.get()+"|"+x.unit.get()).trim().toLowerCase(Locale.ROOT);
+            if(x.description.get().isBlank()||!seen.add(key))continue;
+            out.append(csvRow(x.description.get(),x.unit.get(),"","",""));
+        }
+        try{Files.writeString(file,"\uFEFF"+out,StandardCharsets.UTF_8);message("Price request saved","Send the CSV to your supplier and have them fill unit_price, vendor and price_date. Import the returned file using Apply vendor price CSV.");}
+        catch(Exception ex){error("Price template export failed",ex);}
+    }
+    private void applyPriceBook(){
+        FileChooser chooser=new FileChooser();chooser.setTitle("Apply supplier material price CSV");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files","*.csv"));
+        java.io.File file=chooser.showOpenDialog(getScene()==null?null:getScene().getWindow());if(file==null)return;
+        try{
+            List<List<String>> rows=parseCsv(Files.readString(file.toPath(),StandardCharsets.UTF_8).replace("\uFEFF",""));
+            if(rows.isEmpty())throw new IllegalArgumentException("Price book CSV is empty");
+            Map<String,Integer> headers=new LinkedHashMap<>();
+            for(int i=0;i<rows.get(0).size();i++)headers.put(rows.get(0).get(i).toLowerCase(Locale.ROOT).trim().replace(' ','_'),i);
+            if(!headers.containsKey("description")||!headers.containsKey("unit_price"))
+                throw new IllegalArgumentException("CSV needs description and unit_price columns. Use Export vendor price request to create the template.");
+            Map<String,List<PriceRecord>> byKey=new LinkedHashMap<>();
+            for(int i=1;i<rows.size();i++){
+                List<String> row=rows.get(i);
+                String desc=get(row,headers,"description").trim();
+                String unit=get(row,headers,"unit").trim();
+                String raw=get(row,headers,"unit_price").trim();
+                if(desc.isBlank()||raw.isBlank())continue;
+                double value=parse(raw);if(value<=0)continue;
+                String key=(desc+"|"+unit).toLowerCase(Locale.ROOT);
+                byKey.computeIfAbsent(key,k->new ArrayList<>()).add(new PriceRecord(value,
+                    get(row,headers,"vendor"),get(row,headers,"price_date")));
+            }
+            Map<EstimateLine,PriceRecord> pending=new LinkedHashMap<>();
+            int ambiguous=0;
+            for(EstimateLine x:lines){
+                String key=(x.description.get().trim()+"|"+x.unit.get().trim()).toLowerCase(Locale.ROOT);
+                List<PriceRecord> found=byKey.get(key);
+                if(found==null)continue;
+                if(found.size()!=1){ambiguous++;continue;} // Never silently pick a vendor when quotes conflict
+                pending.put(x,found.get(0));
+            }
+            if(pending.isEmpty()){message("No prices applied","No exact item+unit matches found. "+ambiguous+" takeoff rows had multiple conflicting vendor prices.");return;}
+            long overwritten=pending.keySet().stream().filter(x->x.materialUnit.get()>0).count();
+            if(!confirm("Apply supplier prices","Apply "+pending.size()+" exact-match unit prices to the takeoff? "+
+                overwritten+" rows already have prices and will be overwritten. "+ambiguous+" ambiguous rows are excluded."))return;
+            for(Map.Entry<EstimateLine,PriceRecord> e:pending.entrySet()){
+                EstimateLine x=e.getKey();PriceRecord p=e.getValue();x.materialUnit.set(p.value());
+                x.priceSource.set(p.vendor().isBlank()?file.getName():p.vendor());
+                x.priceDate.set(p.date());
+            }
+            recalc();message("Material pricing updated","Applied "+pending.size()+" verified-price entries. "+
+                ambiguous+" rows with competing prices were skipped. Confirm vendor qualifications, quote validity, taxes and exclusions.");
+        }catch(Exception ex){error("Price book import failed",ex);}
+    }
+    private record PriceRecord(double value,String vendor,String date){}
+
     private void exportCsv(){
         Path output=chooseOutput("estimate-"+safeFile(bidNumber.getText())+"-"+safeFile(revision.getText())+".csv","csv");
         if(output==null)return;
