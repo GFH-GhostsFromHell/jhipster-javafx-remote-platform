@@ -90,6 +90,12 @@ function calculate(){
    if(w==='Left'||w==='Right')x=Math.max(Number.isFinite(x)?x:0,minimum);else y=Math.max(Number.isFinite(y)?y:0,minimum);
    log.push(w+' wall: 6 × '+largest+' + '+sum+' (other same-wall trade sizes) = '+calcText(minimum));
   });
+  if(t==='U pull'){
+   ['Left','Right','Top','Bottom'].forEach(function(w){var pair=groups[w].slice(0,2);if(pair.length<2)return;var span=pair[0]+pair[1]+6*Math.max.apply(null,pair);
+    if(w==='Top'||w==='Bottom')x=Number.isFinite(x)?Math.max(x,span):span;else y=Number.isFinite(y)?Math.max(y,span):span;
+    log.push('U-pair same-wall opening span on '+w+': '+pair.join(' + ')+' + 6 × '+Math.max.apply(null,pair)+' = '+calcText(span)+' (plus edge/fitting clearance, if same conductor).');
+   });
+  }
   log.push('Check same-conductor entry/exit separation: ≥ 6 × the larger conduit trade size, measured between nearest edges. Identify actual conductor pairs on site.');
  }
  if(t==='Back-wall entry to cover'||groups.Back.length){
