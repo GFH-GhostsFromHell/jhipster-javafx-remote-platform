@@ -92,7 +92,7 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     public EstimatingWorkspaceDraftPane() { this("default"); }
 
     public EstimatingWorkspaceDraftPane(String username) {
-        workspace = new LocalWorkspaceStore(mapper, username);
+        workspace = new LocalWorkspaceStore(mapper, "preview-estimating-"+username);
         setStyle("-fx-background-color:#eef3f8;");
         seedKits();
         loadUserKits();
@@ -291,15 +291,15 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
 
     private void seedElectricalStructure(){
         lines.addAll(
-            new EstimateLine("01 Service / distribution","Service, switchgear, main distribution",1,"lot",0,0,1),
-            new EstimateLine("02 Feeders","Feeders, conduit / cable, supports and terminations",1,"lot",0,0,1),
-            new EstimateLine("03 Branch wiring","Branch circuits, raceway, conductors and boxes",1,"lot",0,0,1),
-            new EstimateLine("04 Lighting / controls","Fixtures, controls, emergency lighting and branch wiring",1,"lot",0,0,1),
-            new EstimateLine("05 Devices","Receptacles, switches, disconnects and specialty outlets",1,"lot",0,0,1),
-            new EstimateLine("06 Mechanical power","Motors, VFDs, HVAC and process equipment connections",1,"lot",0,0,1),
-            new EstimateLine("07 Fire alarm / low voltage","Fire alarm, communications and specialty systems",1,"lot",0,0,1),
-            new EstimateLine("08 Grounding / bonding","Grounding, bonding, electrodes and equipotential work",1,"lot",0,0,1),
-            new EstimateLine("09 Supports / misc.","Supports, sleeves, firestopping, labels and miscellaneous material",1,"lot",0,0,1));
+            new EstimateLine("01 Service / distribution","Service, switchgear, main distribution",0,"lot",0,0,1),
+            new EstimateLine("02 Feeders","Feeders, conduit / cable, supports and terminations",0,"lot",0,0,1),
+            new EstimateLine("03 Branch wiring","Branch circuits, raceway, conductors and boxes",0,"lot",0,0,1),
+            new EstimateLine("04 Lighting / controls","Fixtures, controls, emergency lighting and branch wiring",0,"lot",0,0,1),
+            new EstimateLine("05 Devices","Receptacles, switches, disconnects and specialty outlets",0,"lot",0,0,1),
+            new EstimateLine("06 Mechanical power","Motors, VFDs, HVAC and process equipment connections",0,"lot",0,0,1),
+            new EstimateLine("07 Fire alarm / low voltage","Fire alarm, communications and specialty systems",0,"lot",0,0,1),
+            new EstimateLine("08 Grounding / bonding","Grounding, bonding, electrodes and equipotential work",0,"lot",0,0,1),
+            new EstimateLine("09 Supports / misc.","Supports, sleeves, firestopping, labels and miscellaneous material",0,"lot",0,0,1));
     }
 
     private void seedIndirects(){
@@ -332,6 +332,290 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private static TextArea area(String prompt){TextArea a=new TextArea();a.setPromptText(prompt);a.setWrapText(true);a.setPrefRowCount(7);a.setStyle(INPUT);return a;}
     private static double parse(String text){try{return Math.max(0,Double.parseDouble(text==null||text.isBlank()?"0":text.replace(",","").trim()));}catch(Exception ex){return 0;}}
     private void updateReviewProgress(VBox container){long total=container.getChildren().stream().filter(n->n instanceof CheckBox).count();long done=container.getChildren().stream().filter(n->n instanceof CheckBox cb&&cb.isSelected()).count();reviewProgress.setText("Bid review: "+done+" / "+total+" checks complete");}
+
+
+    // Preview estimates are local, per account, versioned snapshots. No production data or billing is changed.
+    private void saveRevision() {
+        if(projectName.getText().isBlank() || bidNumber.getText().isBlank()){
+            if(!confirm("Incomplete bid header","Project name or estimate number is blank. Save this draft anyway?")) return;
+        }
+        ObjectNode root=snapshot();
+        root.put("savedAt",Instant.now().toString());
+        root.put("snapshotId",UUID.randomUUID().toString());
+        try {
+            workspace.append("enterpriseEstimates",root);
+            message("Estimate saved","Saved revision "+revision.getText()+" for "+projectName.getText()+".\nThis is a local, per-account preview snapshot and is not synchronized to the company server.");
+        } catch(Exception ex){ error("Save failed",ex); }
+    }
+
+    private ObjectNode snapshot(){
+        ObjectNode root=mapper.createObjectNode();
+        root.put("projectId",projectId);root.put("project",projectName.getText());root.put("client",clientName.getText());
+        root.put("estimator",estimatorName.getText());root.put("bidNumber",bidNumber.getText());root.put("location",location.getText());
+        root.put("dueDate",dueDate.getText());root.put("revision",revision.getText());
+        root.put("inclusions",inclusions.getText());root.put("exclusions",exclusions.getText());root.put("clarifications",clarifications.getText());
+        root.put("labourRate",labourRate.getText());root.put("contingency",contingencyPct.getText());
+        root.put("overhead",overheadPct.getText());root.put("profit",profitPct.getText());root.put("tax",taxPct.getText());
+        root.put("version",2);
+        ArrayNode a=root.putArray("lines");for(EstimateLine x:lines)a.add(lineJson(x));
+        ArrayNode q=root.putArray("quotes");
+        for(QuoteLine x:quotes){ObjectNode o=q.addObject();o.put("include",x.include.get());o.put("vendor",x.vendor.get());o.put("group",x.group.get());o.put("scope",x.scope.get());o.put("amount",x.amount.get());o.put("status",x.status.get());}
+        ArrayNode i=root.putArray("indirects");
+        for(IndirectLine x:indirects){ObjectNode o=i.addObject();o.put("type",x.type.get());o.put("description",x.description.get());o.put("amount",x.amount.get());}
+        ArrayNode c=root.putArray("changes");
+        for(ChangeLine x:changes){ObjectNode o=c.addObject();o.put("kind",x.kind.get());o.put("description",x.description.get());o.put("selling",x.selling.get());o.put("status",x.status.get());}
+        ArrayNode checks=root.putArray("bidChecks");for(CheckBox cb:reviewChecks) checks.add(cb.isSelected());
+        return root;
+    }
+
+    private static ObjectNode lineJson(EstimateLine x){
+        ObjectNode o=new ObjectMapper().createObjectNode();
+        o.put("system",x.system.get());o.put("phase",x.phase.get());o.put("drawing",x.drawing.get());
+        o.put("description",x.description.get());o.put("quantity",x.quantity.get());o.put("unit",x.unit.get());
+        o.put("materialUnit",x.materialUnit.get());o.put("labourUnitHours",x.labourUnitHours.get());o.put("productivityFactor",x.productivityFactor.get());
+        return o;
+    }
+    private static EstimateLine parseLine(JsonNode n){
+        EstimateLine x=new EstimateLine(n.path("system").asText("Uncategorized"),n.path("description").asText(""),
+            Math.max(0,n.path("quantity").asDouble()),n.path("unit").asText("ea"),
+            Math.max(0,n.path("materialUnit").asDouble()),Math.max(0,n.path("labourUnitHours").asDouble()),
+            Math.max(0,n.path("productivityFactor").asDouble(1)));
+        x.phase.set(n.path("phase").asText("General"));x.drawing.set(n.path("drawing").asText(""));
+        return x;
+    }
+
+    private void openRevision(){
+        ArrayNode saved=workspace.records("enterpriseEstimates");
+        if(saved.isEmpty()){message("No saved estimates","No preview revisions are saved for this account.");return;}
+        Map<String,JsonNode> options=new LinkedHashMap<>();
+        for(int i=saved.size()-1;i>=0;i--){
+            JsonNode n=saved.get(i);
+            String title=n.path("savedAt").asText("")+" | "+n.path("project").asText("Untitled")+
+                " | "+n.path("bidNumber").asText("")+" / "+n.path("revision").asText("R0");
+            options.put(String.format("%04d · %s",i+1,title),n);
+        }
+        ChoiceDialog<String> dialog=new ChoiceDialog<>(options.keySet().iterator().next(),options.keySet());
+        dialog.setTitle("Saved estimating revisions");dialog.setHeaderText("Open a local estimate snapshot");
+        dialog.setContentText("Revision:");
+        dialog.showAndWait().ifPresent(choice->{
+            if(!confirm("Load saved revision","Replace the current unsaved edits with this saved revision?"))return;
+            loadSnapshot(options.get(choice));message("Revision opened","Loaded "+choice);
+        });
+    }
+
+    private void loadSnapshot(JsonNode n){
+        projectId=n.path("projectId").asText(UUID.randomUUID().toString());
+        projectName.setText(n.path("project").asText(""));clientName.setText(n.path("client").asText(""));
+        estimatorName.setText(n.path("estimator").asText(""));bidNumber.setText(n.path("bidNumber").asText(""));
+        location.setText(n.path("location").asText(""));dueDate.setText(n.path("dueDate").asText(""));
+        revision.setText(n.path("revision").asText("R0"));
+        inclusions.setText(n.path("inclusions").asText(""));exclusions.setText(n.path("exclusions").asText(""));
+        clarifications.setText(n.path("clarifications").asText(""));
+        labourRate.setText(n.path("labourRate").asText("78"));
+        contingencyPct.setText(n.path("contingency").asText("3"));overheadPct.setText(n.path("overhead").asText("8"));
+        profitPct.setText(n.path("profit").asText("10"));taxPct.setText(n.path("tax").asText("13"));
+        lines.clear();for(JsonNode x:n.path("lines"))lines.add(parseLine(x));
+        quotes.clear();
+        for(JsonNode x:n.path("quotes")){
+            QuoteLine q=new QuoteLine(x.path("include").asBoolean(),x.path("vendor").asText(""),
+                x.path("scope").asText(""),Math.max(0,x.path("amount").asDouble()),x.path("status").asText(""));
+            q.group.set(x.path("group").asText("General"));wireQuote(q);quotes.add(q);
+        }
+        indirects.clear();for(JsonNode x:n.path("indirects"))indirects.add(new IndirectLine(
+            x.path("type").asText(""),x.path("description").asText(""),Math.max(0,x.path("amount").asDouble())));
+        changes.clear();for(JsonNode x:n.path("changes"))changes.add(new ChangeLine(
+            x.path("kind").asText("Alternate"),x.path("description").asText(""),
+            Math.max(0,x.path("selling").asDouble()),x.path("status").asText("Proposed")));
+        JsonNode checks=n.path("bidChecks");
+        for(int i=0;i<reviewChecks.size();i++)reviewChecks.get(i).setSelected(checks.isArray()&&i<checks.size()&&checks.get(i).asBoolean());
+        recalc();
+    }
+
+    private void newEstimate(){
+        if(!confirm("New estimate","Start a new estimate? Save the current revision first if you want to retain it."))return;
+        projectId=UUID.randomUUID().toString();
+        projectName.clear();clientName.clear();estimatorName.clear();bidNumber.clear();location.clear();dueDate.clear();
+        revision.setText("R0");inclusions.clear();exclusions.clear();clarifications.clear();
+        lines.clear();seedElectricalStructure();quotes.clear();indirects.clear();seedIndirects();changes.clear();
+        for(CheckBox cb:reviewChecks)cb.setSelected(false);recalc();
+    }
+
+    private static boolean confirm(String title,String text){
+        Alert dialog=new Alert(Alert.AlertType.CONFIRMATION,text,ButtonType.YES,ButtonType.NO);
+        dialog.setTitle(title);dialog.setHeaderText(null);
+        return dialog.showAndWait().orElse(ButtonType.NO)==ButtonType.YES;
+    }
+    private static void message(String title,String text){Alert a=new Alert(Alert.AlertType.INFORMATION,text,ButtonType.OK);a.setTitle(title);a.setHeaderText(null);a.showAndWait();}
+    private static void error(String title,Exception ex){Alert a=new Alert(Alert.AlertType.ERROR,ex.getMessage()==null?ex.toString():ex.getMessage(),ButtonType.OK);a.setTitle(title);a.setHeaderText(null);a.showAndWait();}
+
+    private Path chooseOutput(String suggestedName,String extension){
+        FileChooser chooser=new FileChooser();chooser.setTitle("Save "+extension.toUpperCase(Locale.ROOT)+" file");
+        chooser.setInitialFileName(suggestedName);
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(extension.toUpperCase(Locale.ROOT)+" file","*."+extension));
+        java.io.File file=chooser.showSaveDialog(getScene()==null?null:getScene().getWindow());
+        return file==null?null:file.toPath();
+    }
+    private static String csv(String input){
+        String val=input==null?"":input;
+        return "\""+val.replace("\"","\"\"")+"\"";
+    }
+    private static String csvRow(String...values){
+        return java.util.Arrays.stream(values).map(EstimatingWorkspaceDraftPane::csv).collect(java.util.stream.Collectors.joining(","))+"\r\n";
+    }
+    private void exportCsv(){
+        Path output=chooseOutput("estimate-"+safeFile(bidNumber.getText())+"-"+safeFile(revision.getText())+".csv","csv");
+        if(output==null)return;
+        StringBuilder csv=new StringBuilder();
+        csv.append(csvRow("system","phase","drawing","description","quantity","unit","material_unit","labour_hours_unit","productivity_factor","material_extended","adjusted_hours","extended_labour"));
+        double rate=parse(labourRate.getText());
+        for(EstimateLine x:lines)csv.append(csvRow(x.system.get(),x.phase.get(),x.drawing.get(),x.description.get(),
+            Double.toString(x.quantity.get()),x.unit.get(),Double.toString(x.materialUnit.get()),
+            Double.toString(x.labourUnitHours.get()),Double.toString(x.productivityFactor.get()),
+            Double.toString(x.materialExtended()),Double.toString(x.adjustedHours()),Double.toString(x.adjustedHours()*rate)));
+        csv.append("\r\n").append(csvRow("BID RECAP","Amount (CAD)"));
+        csv.append(csvRow("Material",materialTotal.getText())).append(csvRow("Labour",labourTotal.getText()));
+        csv.append(csvRow("Selected supplier/subcontractor quotes",quoteTotal.getText())).append(csvRow("Indirects",indirectTotal.getText()));
+        csv.append(csvRow("Bid before tax",preTaxTotal.getText())).append(csvRow("Tax (assumed)",taxTotal.getText()));
+        csv.append(csvRow("Bid including tax",finalBidTotal.getText()));
+        csv.append("\r\n").append(csvRow("SUPPLIER QUOTES","Vendor","Comparison group","Scope","Amount","Carry","Qualifications"));
+        for(QuoteLine q:quotes)csv.append(csvRow("",q.vendor.get(),q.group.get(),q.scope.get(),Double.toString(q.amount.get()),Boolean.toString(q.include.get()),q.status.get()));
+        csv.append("\r\n").append(csvRow("INDIRECT COSTS","Type","Description","Amount"));
+        for(IndirectLine i:indirects)csv.append(csvRow("",i.type.get(),i.description.get(),Double.toString(i.amount.get())));
+        csv.append("\r\n").append(csvRow("ALTERNATES / CHANGE ORDERS","Type","Description","Selling price before tax","Status"));
+        for(ChangeLine c:changes)csv.append(csvRow("",c.kind.get(),c.description.get(),Double.toString(c.selling.get()),c.status.get()));
+        try{Files.writeString(output,"\uFEFF"+csv,StandardCharsets.UTF_8);message("CSV exported","Saved detailed takeoff, cost recap and quotations to:\n"+output);}
+        catch(Exception ex){error("Export failed",ex);}
+    }
+    private static String safeFile(String text){String s=text==null?"":text.replaceAll("[^A-Za-z0-9._-]+","-");return s.isBlank()?"draft":s;}
+
+    private void importCsv(){
+        FileChooser chooser=new FileChooser();chooser.setTitle("Import detailed takeoff CSV");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files","*.csv"));
+        java.io.File file=chooser.showOpenDialog(getScene()==null?null:getScene().getWindow());
+        if(file==null)return;
+        try{
+            String data=Files.readString(file.toPath(),StandardCharsets.UTF_8).replace("\uFEFF","");
+            List<List<String>> records=parseCsv(data);
+            if(records.isEmpty())throw new IllegalArgumentException("CSV is empty");
+            Map<String,Integer> headers=new LinkedHashMap<>();
+            List<String> first=records.get(0);
+            for(int j=0;j<first.size();j++)headers.put(first.get(j).toLowerCase(Locale.ROOT).trim().replace(' ','_'),j);
+            if(!headers.containsKey("description")||!headers.containsKey("quantity"))
+                throw new IllegalArgumentException("CSV needs description and quantity headers. Export a template to see the format.");
+            int count=0;
+            for(int i=1;i<records.size()&&count<10000;i++){
+                List<String> row=records.get(i);if(get(row,headers,"description").isBlank())continue;
+                EstimateLine x=new EstimateLine(getOr(row,headers,"system","Uncategorized"),
+                    get(row,headers,"description"),parse(get(row,headers,"quantity")),
+                    getOr(row,headers,"unit","ea"),parse(get(row,headers,"material_unit")),
+                    parse(get(row,headers,"labour_hours_unit")),parse(getOr(row,headers,"productivity_factor","1")));
+                x.phase.set(getOr(row,headers,"phase","General"));x.drawing.set(get(row,headers,"drawing"));
+                lines.add(x);count++;
+            }
+            recalc();message("Takeoff imported","Added "+count+" takeoff lines. Imported prices and labour hours are user supplied; review every line before bidding.");
+        }catch(Exception ex){error("CSV import failed",ex);}
+    }
+    private static String get(List<String> row,Map<String,Integer> head,String name){Integer i=head.get(name);return i==null||i>=row.size()?"":row.get(i);}
+    private static String getOr(List<String> row,Map<String,Integer> head,String name,String fallback){String s=get(row,head,name);return s.isBlank()?fallback:s;}
+    private static List<List<String>> parseCsv(String s){
+        List<List<String>> out=new ArrayList<>();List<String> row=new ArrayList<>();StringBuilder field=new StringBuilder();boolean quoted=false;
+        for(int i=0;i<s.length();i++){
+            char c=s.charAt(i);
+            if(c=='"'){if(quoted&&i+1<s.length()&&s.charAt(i+1)=='"'){field.append('"');i++;}else quoted=!quoted;}
+            else if(c==','&&!quoted){row.add(field.toString());field.setLength(0);}
+            else if((c=='\n'||c=='\r')&&!quoted){if(c=='\r'&&i+1<s.length()&&s.charAt(i+1)=='\n')i++;row.add(field.toString());field.setLength(0);if(row.stream().anyMatch(v->!v.isBlank()))out.add(row);row=new ArrayList<>();}
+            else field.append(c);
+        }
+        if(quoted)throw new IllegalArgumentException("Unclosed CSV quoted field");
+        if(field.length()>0||!row.isEmpty()){row.add(field.toString());out.add(row);}
+        return out;
+    }
+
+    private void exportProposal(){
+        Path file=chooseOutput("bid-proposal-"+safeFile(bidNumber.getText())+".html","html");if(file==null)return;
+        String title=html(projectName.getText()),client=html(clientName.getText());
+        StringBuilder h=new StringBuilder("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Electrical Bid Proposal</title>");
+        h.append("<style>body{max-width:850px;margin:44px auto;font:15px/1.55 Arial,sans-serif;color:#1e293b}h1,h2{color:#0f4c81}header{border-bottom:3px solid #0e7490;padding-bottom:16px}dl{display:grid;grid-template-columns:180px 1fr;gap:5px}dt{font-weight:bold}.total{padding:18px;border:2px solid #0e7490;font-size:20px;font-weight:bold}.small{font-size:12px;color:#64748b}section{margin-top:24px}pre{white-space:pre-wrap;font:inherit}</style></head><body>");
+        h.append("<header><h1>Electrical Construction Bid Proposal</h1><p class=\"small\">Draft for client review — subject to written acceptance and tender requirements</p></header>");
+        h.append("<dl><dt>Project</dt><dd>").append(title).append("</dd><dt>Client / GC</dt><dd>").append(client)
+            .append("</dd><dt>Estimate</dt><dd>").append(html(bidNumber.getText())).append(" / ").append(html(revision.getText()))
+            .append("</dd><dt>Project location</dt><dd>").append(html(location.getText()))
+            .append("</dd><dt>Bid due</dt><dd>").append(html(dueDate.getText())).append("</dd></dl>");
+        h.append("<section><h2>Scope included</h2><pre>").append(html(inclusions.getText())).append("</pre></section>");
+        h.append("<section><h2>Exclusions</h2><pre>").append(html(exclusions.getText())).append("</pre></section>");
+        h.append("<section><h2>Clarifications / assumptions</h2><pre>").append(html(clarifications.getText())).append("</pre></section>");
+        h.append("<section><h2>Commercial offer</h2><p><strong>Proposed contract amount before sales tax: ")
+            .append(html(preTaxTotal.getText())).append("</strong></p><p>Estimated sales tax (")
+            .append(html(taxPct.getText())).append("%): ").append(html(taxTotal.getText()))
+            .append("</p><p class=\"total\">Estimated total including sales tax: ").append(html(finalBidTotal.getText())).append("</p>");
+        h.append("<p class=\"small\">Tax treatment and whether the tender requires a pre-tax price must be verified. Alternates and change orders are not part of the base bid unless expressly incorporated by agreement.</p></section>");
+        if(!changes.isEmpty()){
+            h.append("<section><h2>Separately priced alternates / changes</h2><ul>");
+            for(ChangeLine c:changes)h.append("<li>").append(html(c.kind.get())).append(": ").append(html(c.description.get())).append(" — ")
+                .append(MONEY.format(c.selling.get())).append(" before tax (").append(html(c.status.get())).append(")</li>");
+            h.append("</ul></section>");
+        }
+        h.append("<section><p>Prepared by: ").append(html(estimatorName.getText())).append("</p><p>Accepted by: _____________________ &nbsp;&nbsp; Date: ______________</p></section></body></html>");
+        try{Files.writeString(file,h,StandardCharsets.UTF_8);message("Proposal exported","Created a client-facing HTML proposal:\n"+file+"\nOpen in your browser and print to PDF if needed.");}
+        catch(Exception ex){error("Proposal export failed",ex);}
+    }
+    private static String html(String s){return (s==null?"":s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;").replace("'","&#39;");}
+
+    private void refreshBreakdown(){
+        Map<String,double[]> totals=new LinkedHashMap<>();double rate=parse(labourRate.getText());
+        for(EstimateLine x:lines){
+            String key=x.phase.get()+" | "+x.system.get();
+            double[] a=totals.computeIfAbsent(key,k->new double[4]);
+            a[0]+=x.materialExtended();a[1]+=x.adjustedHours();a[2]+=x.adjustedHours()*rate;a[3]+=x.materialExtended()+x.adjustedHours()*rate;
+        }
+        StringBuilder b=new StringBuilder(String.format("%-44s %14s %13s %14s %14s%n","PHASE | SYSTEM","MATERIAL $","LABOUR HRS","LABOUR $","DIRECT $"));
+        b.append("─".repeat(108)).append('\n');
+        for(Map.Entry<String,double[]> e:totals.entrySet()){
+            double[] a=e.getValue();String key=e.getKey();if(key.length()>44)key=key.substring(0,41)+"...";
+            b.append(String.format(Locale.CANADA,"%-44s %14.2f %13.2f %14.2f %14.2f%n",key,a[0],a[1],a[2],a[3]));
+        }
+        breakdownArea.setText(b.toString());
+    }
+    private Node breakdownPane(){
+        VBox pane=new VBox(12);pane.setPadding(new Insets(14));
+        breakdownArea.setEditable(false);breakdownArea.setStyle("-fx-font-family:Consolas,monospace;-fx-font-size:12px;");
+        breakdownArea.setPrefRowCount(25);
+        pane.getChildren().addAll(sectionTitle("Phase / area / electrical system cost breakdown"),
+            note("Live audit report for direct material and adjusted labour. Supplier quotes, indirects, risk allowance, overhead, profit and tax are shown separately in the bid recap."),breakdownArea,
+            infoBox("Tender accuracy","Use drawing references and phase/area tags on each takeoff line to reconcile drawing counts, field measurements and the cost breakdown."));
+        VBox.setVgrow(breakdownArea,Priority.ALWAYS);
+        return pane;
+    }
+
+    private void updateValidation(){
+        List<String> warnings=new ArrayList<>();
+        if(projectName.getText().isBlank())warnings.add("Project name is missing");
+        if(clientName.getText().isBlank())warnings.add("Client / GC is missing");
+        if(bidNumber.getText().isBlank())warnings.add("Estimate number is missing");
+        if(dueDate.getText().isBlank())warnings.add("Bid due date / time has not been entered");
+        if(inclusions.getText().isBlank())warnings.add("Included scope is undocumented");
+        if(exclusions.getText().isBlank())warnings.add("Exclusions / by-others not reviewed or documented");
+        long unpriced=lines.stream().filter(x->x.quantity.get()>0&&x.materialUnit.get()<=0&&x.labourUnitHours.get()<=0).count();
+        if(unpriced>0)warnings.add(unpriced+" takeoff line(s) have positive quantity but no material or labour pricing");
+        long invalid=lines.stream().filter(x->x.quantity.get()>0&&x.productivityFactor.get()<=0).count();
+        if(invalid>0)warnings.add(invalid+" takeoff line(s) have zero productivity factor");
+        if(lines.stream().mapToDouble(x->x.materialExtended()+x.adjustedHours()).sum()==0&&quotes.stream().noneMatch(q->q.include.get()))
+            warnings.add("Bid has no priced direct electrical work or selected supplier quotes");
+        Map<String,Integer> carries=new LinkedHashMap<>();
+        for(QuoteLine q:quotes)if(q.include.get()){
+            String g=q.group.get()==null?"":q.group.get().trim().toLowerCase(Locale.ROOT);
+            if(!g.isBlank()&&!g.equals("general"))carries.merge(g,1,Integer::sum);
+            if(q.vendor.get().isBlank())warnings.add("A carried quote has no supplier / subcontractor name");
+        }
+        carries.forEach((g,n)->{if(n>1)warnings.add(n+" carried quotes in group '"+g+"' — check for duplicate scope");});
+        if(parse(labourRate.getText())<=0&&lines.stream().anyMatch(x->x.adjustedHours()>0))warnings.add("Loaded labour rate is zero");
+        long checked=reviewChecks.stream().filter(CheckBox::isSelected).count();
+        if(checked<reviewChecks.size())warnings.add("Bid-close checklist incomplete: "+checked+"/"+reviewChecks.size()+" checked");
+        validationStatus.setText(warnings.isEmpty()?"No automated warnings — final professional review still required":
+            warnings.size()+" items require manual review before submission");
+        validationArea.setText(warnings.isEmpty()?"Automated audit passed. Verify tender documents, measurements, prices, taxes and authority to submit.":
+            String.join("\n",warnings.stream().map(w->"• "+w).toList()));
+    }
 
     private static final class EstimateLine {
         final StringProperty system=new SimpleStringProperty(); final StringProperty phase=new SimpleStringProperty("General"); final StringProperty drawing=new SimpleStringProperty(""); final StringProperty description=new SimpleStringProperty(); final DoubleProperty quantity=new SimpleDoubleProperty(); final StringProperty unit=new SimpleStringProperty(); final DoubleProperty materialUnit=new SimpleDoubleProperty(); final DoubleProperty labourUnitHours=new SimpleDoubleProperty(); final DoubleProperty productivityFactor=new SimpleDoubleProperty();
