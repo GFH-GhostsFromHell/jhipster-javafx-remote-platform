@@ -28,7 +28,7 @@ final class ConduitBendReferencePane extends ScrollPane {
             {60,"1.2","1/2 in (0.500)","Steep offset; greater deformation risk"}
         };
         for(int i=0;i<data.length;i++)
-            addCells(chart,i+1,number((double)data[i][0])+"°",(String)data[i][1],(String)data[i][2],(String)data[i][3]);
+            addCells(chart,i+1,number(((Number)data[i][0]).doubleValue())+"°",(String)data[i][1],(String)data[i][2],(String)data[i][3]);
         page.getChildren().add(card("Offset multiplier and field shrink chart",chart,notice(
             "Chart values are rounded manufacturer field constants, not exact trig ratios. Use: spacing = true offset × multiplier, shrink allowance = rise × listed ratio. Mark placement depends on whether the near or far obstacle reference is fixed.")));
         GridPane deduct=new GridPane();deduct.setHgap(0);deduct.setVgap(0);
