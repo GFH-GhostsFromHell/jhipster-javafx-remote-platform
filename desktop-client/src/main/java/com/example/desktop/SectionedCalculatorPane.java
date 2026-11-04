@@ -231,7 +231,7 @@ public final class SectionedCalculatorPane extends BorderPane {
 
     private Node section12() {
         return sectionTabs("Section 12 — Wiring Methods", "Conduit fill, box fill, bending, cable straps, raceway supports, voltage drop and PVC expansion.",
-            tab("Conduit Fill", conduitFill()), tab("Box Fill", boxFill()), tab("Conduit Bending", bending()),
+            tab("Conduit Fill", conduitFill()), tab("Box Fill", boxFill()), tab("Pull-Box Dimensions", new PullBoxSizingPane()), tab("Conduit Bending", bending()),
             tab("Cable Straps", cableStraps()), tab("Conduit Supports", conduitSupports()),
             tab("Voltage Drop / D3", voltageDrop()), tab("PVC Expansion", pvcExpansion()));
     }
@@ -251,14 +251,7 @@ public final class SectionedCalculatorPane extends BorderPane {
     }
 
     private Node bending() {
-        TextField rise=field("150"), angle=field("30"), vertical=field("150"), horizontal=field("100"), stub=field("500"), takeup=field("130");
-        return localForm("Conduit bending", "Offset, rolling-offset and 90° stub calculations using the same geometry as the earlier workspace.", "Calculate bends", () -> {
-            double deg=number(angle), rad=Math.toRadians(deg), mult=1/Math.sin(rad), r=number(rise), spacing=r*mult, shrink=r*Math.tan(rad/2);
-            double trueOffset=Math.hypot(number(vertical),number(horizontal));
-            double rollSpacing=trueOffset*mult, rollShrink=trueOffset*Math.tan(rad/2), stubMark=number(stub)-number(takeup);
-            return String.format("OFFSET%nMultiplier: %.3f%nMark spacing: %.1f mm%nShrink: %.1f mm%n%nROLLING OFFSET%nTrue offset: %.1f mm%nMark spacing: %.1f mm%nShrink: %.1f mm%n%n90° STUB%nMark from end: %.1f mm",
-                mult,spacing,shrink,trueOffset,rollSpacing,rollShrink,stubMark);
-        }, row("Offset/rise (mm)",rise),row("Bend angle (degrees)",angle),row("Rolling vertical (mm)",vertical),row("Rolling horizontal (mm)",horizontal),row("Desired 90° stub (mm)",stub),row("Bender take-up (mm)",takeup));
+        return new ConduitBendingFieldPane();
     }
 
     private Node cableStraps() {

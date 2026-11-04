@@ -43,6 +43,8 @@ public final class WorkbenchToolsPane extends BorderPane {
         new Tool("Raceway + Derating","Raceway + Derating","physical conduit fill plus current-carrying-conductor/ambient ampacity checks"),
         new Tool("Conduit & Box Fill","Conduit Fill","mixed conductor groups and automatic raceway fill limits"),
         new Tool("Conduit & Box Fill","Box Fill","mixed conductor sizes, devices, connectors and usable box volume"),
+        new Tool("CEC Sections / Advanced","Pull-Box Dimensions","straight, angle, U, mixed and back-wall pull-box sizing · CEC 12-3036"),
+        new Tool("CEC Sections / Advanced","Conduit Bender Field Guide","bend markings, offset, saddle, 90 stub and rolling-offset instructions"),
         new Tool("Ampacity / Derating","Ampacity Derating","Table 5A ambient and Table 5C current-carrying-conductor factors"),
         new Tool("Exam Simulator","Exam Simulator","timed 100, 50 and 25 question blueprint-balanced practice"),
         new Tool("Guided Worksheets","Guided Worksheets","worked C of Q-style calculations and specialty worksheets"),

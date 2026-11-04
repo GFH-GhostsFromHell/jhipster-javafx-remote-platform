@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pull Box Sizing · Electrical Workbench</title>
+<style>
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#eaf4ff;background:#06111f;--line:#28445d;--cyan:#22d3ee;--muted:#a6bdd1}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(135deg,#06111f,#0c2740 50%,#07111f)}
+header{padding:15px 22px;border-bottom:1px solid #31536b;background:#081827;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header a{color:#b6eeff;text-decoration:none;font-weight:750;margin-left:14px}header b{font-size:18px}
+main{max-width:1150px;margin:0 auto;padding:20px 16px 46px}h1{font-size:clamp(26px,4vw,40px);margin:6px 0}p{line-height:1.55;color:var(--muted)}
+.card{background:#10253a;border:1px solid var(--line);border-radius:15px;padding:17px;margin:12px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.field{flex:1;min-width:150px}.field label{display:block;font-size:12px;font-weight:850;color:#b4d0e6;margin:0 0 6px}
+select,input{width:100%;font:inherit;color:#f0f9ff;background:#071a2a;border:1px solid #426079;padding:11px 12px;border-radius:9px}
+button{font:inherit;border:0;border-radius:9px;padding:11px 14px;background:#0e7490;color:white;font-weight:800;cursor:pointer}
+button.secondary{background:#28435d}.entries{display:grid;gap:7px;margin:12px 0}.entry{display:flex;align-items:center;justify-content:space-between;background:#081c2d;border:1px solid #28455d;padding:10px 12px;border-radius:10px;gap:12px}.entry button{padding:5px 9px;background:#503047}
+.metric{padding:13px;border:1px solid #30536e;border-radius:11px;background:#071a2b}.metric small{display:block;color:#a5bfd1;font-weight:800}.metric strong{font-size:23px;display:block;margin:6px 0;color:#65e5f4}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+#worked{white-space:pre-wrap;font:14px/1.65 ui-monospace,Consolas,monospace;color:#e7f0f7}
+#diagram{background:#eaf4ed;border-radius:12px;padding:10px;color:#24455a;min-height:180px}
+#diagram svg{display:block;width:100%;max-height:220px}.warn{background:#252a31;border:1px solid #856d3a;color:#ffdfa0;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.55}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.foot{font-size:12px;color:#a6bdd1}
+@media(max-width:760px){.grid,.metrics{grid-template-columns:1fr}.field{min-width:120px}header a{margin-left:7px}}
+</style></head><body>
+<header><b>⚡ Pull Box Dimensions · CEC 2024</b><nav><a href="/calculators.html">CEC calculators</a><a href="/bend-calcs.html">Bending guide</a><a href="/portal.html">Portal</a></nav></header>
+<main><h1>Size a pull box in the field.</h1>
+<p>Choose the pull arrangement, add every conduit by entry wall, and read the minimum dimensions with worked formulas. The worksheet follows the applicable geometry in CEC 2024 Rule 12-3036 for insulated conductors No. 4 AWG or larger.</p>
+<div class="grid"><section class="card">
+<h2>1. Select the pull</h2><div class="row">
+<div class="field"><label for="mode">Pull arrangement</label><select id="mode" onchange="preset()">
+<option>Straight pull</option><option>Angle pull</option><option>U pull</option><option>Mixed straight + angle/U</option><option>Back-wall entry to cover</option><option>Junction / splice review</option></select></div>
+<div class="field"><label for="unit">Result units</label><select id="unit" onchange="calculate()"><option value="mm">Millimetres</option><option value="in">Inches</option></select></div></div>
+<p>Conduit sizes are Canadian trade-size designations (mm), not actual measured conduit outside diameters.</p>
+<h2>2. Add entries</h2><div class="row"><div class="field"><label for="wall">Entry wall</label><select id="wall"><option>Left</option><option>Right</option><option>Top</option><option>Bottom</option><option>Back</option></select></div>
+<div class="field"><label for="trade">Raceway trade size</label><select id="trade"><option>16</option><option>21</option><option>27</option><option>35</option><option>41</option><option selected>53</option><option>63</option><option>78</option><option>91</option><option>103</option><option>129</option><option>155</option></select></div>
+<button onclick="addEntry()">+ Add</button></div><div id="entries" class="entries"></div>
+<div class="field"><label for="od">Largest insulated conductor outside diameter, mm (needed for back-wall entry)</label><input id="od" type="number" min="0.1" step="0.1" value="20" oninput="calculate()"></div>
+<div class="actions" style="margin-top:12px"><button onclick="calculate()">Calculate dimensions</button><button class="secondary" onclick="copyResults()">Copy worksheet</button></div>
+</section>
+<section class="card"><h2>Visual arrangement</h2><div id="diagram" aria-label="Simplified layout of conduit entry walls"></div>
+<p>Front view: left, right, top and bottom entries. Back-wall entries point toward the removable front cover (side-view depth test). Drawing is a layout guide and is not dimensioned to scale.</p>
+<h3>Important field checks</h3>
+<div class="warn">Check the edge-to-edge separation for entries containing the same insulated conductor (six times the larger entry trade size). Confirm room for bushings, locknuts, conductor bend radius, supports and pulling access. A minimum from this rule is not automatically a complete box specification.</div>
+</section></div>
+<section class="card"><h2>3. Worked dimensions</h2>
+<div class="metrics"><div class="metric"><small>Left ↔ right (inside)</small><strong id="x">—</strong></div>
+<div class="metric"><small>Top ↔ bottom (inside)</small><strong id="y">—</strong></div>
+<div class="metric"><small>Back → removable cover</small><strong id="z">—</strong></div></div>
+<h3>How it was calculated</h3><div id="worked" aria-live="polite"></div>
+</section>
+<p class="foot">CEC 2024 Rule 12-3036(2)(a) (back to removable cover), (b) (straight pulls), and (c) (angle/U pulls). If all insulated conductors are smaller than No. 4 AWG, assess applicable box-fill requirements instead. Verify the installed provincial code edition and AHJ requirements.</p>
+</main><script>
+var items=[];
+function by(id){return document.getElementById(id)}
+function mode(){return by('mode').value}
+function addEntry(){items.push({wall:by('wall').value,trade:Number(by('trade').value)});renderEntries();calculate()}
+function removeEntry(i){items.splice(i,1);renderEntries();calculate()}
+function preset(){
+ var t=mode();
+ if(t==='Straight pull')items=[{wall:'Left',trade:53},{wall:'Right',trade:53}];
+ else if(t==='Angle pull')items=[{wall:'Left',trade:53},{wall:'Bottom',trade:53}];
+ else if(t==='U pull')items=[{wall:'Bottom',trade:53},{wall:'Bottom',trade:53}];
+ else if(t==='Mixed straight + angle/U')items=[{wall:'Left',trade:53},{wall:'Right',trade:53},{wall:'Bottom',trade:35}];
+ else if(t==='Back-wall entry to cover')items=[{wall:'Back',trade:53}];
+ else items=[{wall:'Left',trade:35},{wall:'Top',trade:35}];
+ renderEntries();calculate();
+}
+function renderEntries(){
+ by('entries').innerHTML=items.map(function(e,i){return '<div class="entry"><strong>'+e.wall+' wall · '+e.trade+' mm trade</strong><button aria-label="Remove entry" onclick="removeEntry('+i+')">Remove</button></div>'}).join('')||'<p>Add at least one conduit entry.</p>';
+ var labels={Left:0,Right:0,Top:0,Bottom:0,Back:0};items.forEach(function(e){labels[e.wall]++});
+ var svg='<svg viewBox="0 0 480 225" role="img" aria-label="Pull box front schematic"><rect x="110" y="28" width="260" height="168" rx="7" fill="#d1e3e8" stroke="#335e75" stroke-width="4"/><rect x="119" y="37" width="242" height="150" fill="#f5faf7" stroke="#a1b9c0"/>';
+ function dots(w,x1,y1,dx,dy){for(var i=0;i<labels[w];i++){var x=x1+i*dx,y=y1+i*dy;svg+='<circle cx="'+x+'" cy="'+y+'" r="8" fill="#22a9bf" stroke="#06465b" stroke-width="2"/>';}}
+ dots('Left',110,60,0,24);dots('Right',370,60,0,24);dots('Top',142,28,25,0);dots('Bottom',142,196,25,0);
+ svg+='<text x="14" y="111" fill="#335e75" font-size="16">LEFT</text><text x="391" y="111" fill="#335e75" font-size="16">RIGHT</text><text x="211" y="19" fill="#335e75" font-size="15">TOP</text><text x="203" y="218" fill="#335e75" font-size="15">BOTTOM</text>';
+ if(labels.Back)svg+='<text x="170" y="112" font-size="17" fill="#06465b">Back wall: '+labels.Back+' entr'+(labels.Back===1?'y':'ies')+'</text>';
+ by('diagram').innerHTML=svg+'</svg>';
+}
+function calcText(mm){if(!Number.isFinite(mm))return 'Not set';return by('unit').value==='in'?(mm/25.4).toFixed(2)+' in ('+mm.toFixed(0)+' mm)':mm.toFixed(0)+' mm ('+(mm/25.4).toFixed(2)+' in)'}
+function calculate(){
+ var t=mode(),groups={Left:[],Right:[],Top:[],Bottom:[],Back:[]};
+ items.forEach(function(e){groups[e.wall].push(e.trade)});
+ var x=NaN,y=NaN,z=NaN,log=[];
+ var straight=t==='Straight pull'||t==='Mixed straight + angle/U';
+ var turning=t==='Angle pull'||t==='U pull'||t==='Mixed straight + angle/U'||t==='Junction / splice review';
+ if(straight){
+  if(groups.Left.length&&groups.Right.length){var s=8*Math.max.apply(null,groups.Left.concat(groups.Right));x=Math.max(Number.isFinite(x)?x:0,s);log.push('Straight left ↔ right: 8 × largest trade = '+calcText(s));}
+  if(groups.Top.length&&groups.Bottom.length){var s2=8*Math.max.apply(null,groups.Top.concat(groups.Bottom));y=Math.max(Number.isFinite(y)?y:0,s2);log.push('Straight top ↔ bottom: 8 × largest trade = '+calcText(s2));}
+  if(!Number.isFinite(x)&&!Number.isFinite(y))log.push('Add matching opposite-wall entries for a straight-pull dimension.');
+ }
+ if(turning){
+  ['Left','Right','Top','Bottom'].forEach(function(w){var arr=groups[w];if(!arr.length)return;var largest=Math.max.apply(null,arr),sum=arr.reduce(function(a,b){return a+b},0)-largest,minimum=6*largest+sum;
+   if(w==='Left'||w==='Right')x=Math.max(Number.isFinite(x)?x:0,minimum);else y=Math.max(Number.isFinite(y)?y:0,minimum);
+   log.push(w+' wall: 6 × '+largest+' + '+sum+' (other same-wall trade sizes) = '+calcText(minimum));
+  });
+  if(t==='U pull'){
+   ['Left','Right','Top','Bottom'].forEach(function(w){var pair=groups[w].slice(0,2);if(pair.length<2)return;var span=pair[0]+pair[1]+6*Math.max.apply(null,pair);
+    if(w==='Top'||w==='Bottom')x=Number.isFinite(x)?Math.max(x,span):span;else y=Number.isFinite(y)?Math.max(y,span):span;
+    log.push('U-pair same-wall opening span on '+w+': '+pair.join(' + ')+' + 6 × '+Math.max.apply(null,pair)+' = '+calcText(span)+' (plus edge/fitting clearance, if same conductor).');
+   });
+  }
+  log.push('Check same-conductor entry/exit separation: ≥ 6 × the larger conduit trade size, measured between nearest edges. Identify actual conductor pairs on site.');
+ }
+ if(t==='Back-wall entry to cover'||groups.Back.length){
+  var od=Number(by('od').value);
+  if(!Number.isFinite(od)||od<=0||!groups.Back.length){log.push('Back-wall depth requires a Back entry and the actual insulated conductor OD > 0 mm.');}
+  else{var largestBack=Math.max.apply(null,groups.Back);z=largestBack+6*od;log.push('Back wall to removable cover: '+largestBack+' + 6 × '+od+' mm insulated conductor OD = '+calcText(z));}
+ }
+ if(t==='Junction / splice review')log.push('Splices/junctions: the geometry above is a screening worksheet, NOT a complete splice-box size. Check usable volume, connectors and wiring space under Rule 12-3034 and equipment instructions.');
+ if(!items.length)log=['Add a conduit entry to start.'];
+ log.push('Dimensions shown as Not set are not zero; other constraints and sufficient physical fit still apply.');
+ by('x').textContent=calcText(x);by('y').textContent=calcText(y);by('z').textContent=calcText(z);
+ by('worked').textContent=log.join('\n\n');
+}
+function copyResults(){
+ var text='Pull box · CEC 2024 Rule 12-3036\n'+items.map(function(e){return e.wall+' '+e.trade+' mm trade'}).join('\n')+'\nLeft-right: '+by('x').textContent+'\nTop-bottom: '+by('y').textContent+'\nBack-cover: '+by('z').textContent+'\n\n'+by('worked').textContent;
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).catch(function(){fallbackCopy(text)});else fallbackCopy(text);
+}
+function fallbackCopy(s){var el=document.createElement('textarea');el.value=s;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove()}
+preset();
+</script></body></html>
