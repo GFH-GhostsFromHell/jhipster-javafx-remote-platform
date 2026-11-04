@@ -415,7 +415,8 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Multiple refrigeration motors", "Multiple hermetic/semi-hermetic compressors with RLA/LRA, failed-start 50/65% protection, overload type, equipment MCA/MOCP and group conductor sizing") { onOpenWeb("/calculators.html?section=s28&tab=6") }
         MWHubCard("CEC calculator workspace", "Selection-driven services, conductors, transformers, motors, refrigeration, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
-        MWHubCard("Visual conduit bender", "Offset, saddle and bend planning tools") { onOpenWeb("/bend-calcs.html") }
+        MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
+        MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
     }
 }
 
