@@ -20,6 +20,22 @@ public final class TransformerLoadSizingPane extends BorderPane {
     private static final double[] SINGLE_PHASE_SIZES = {0.5,0.75,1,1.5,2,3,5,7.5,10,15,25,37.5,50,75,100,167,250,333,500};
     private static final double[] THREE_PHASE_SIZES = {3,6,9,15,30,45,75,112.5,150,225,300,500,750,1000,1500,2000,2500,3000};
 
+    // These choices identify the source of an independently calculated service load.
+    // The transformer selector does not replace CEC Section 8 service calculations.
+    private static final String[] SERVICE_TYPES = {
+        "Service — calculated demand",
+        "Service — residential",
+        "Service — apartments / multi-unit",
+        "Service — commercial / ICI",
+        "Service — school",
+        "Service — hospital",
+        "Service — hotel / motel",
+        "Service — industrial"
+    };
+    private static boolean isCalculatedService(String type) {
+        return type != null && type.startsWith("Service — ");
+    }
+
     private final ObjectMapper json;
     private final LocalWorkspaceStore store;
     private final VBox loadRows = new VBox(7);
@@ -41,7 +57,7 @@ public final class TransformerLoadSizingPane extends BorderPane {
         page.setPadding(new Insets(2));
         Label title = new Label("Transformer Size Selector — Based on Connected Loads");
         title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label sub = new Label("Enter the loads the transformer will actually supply. The worksheet converts each row to kVA, applies demand and continuous-load factors, adds optional design spare capacity, then selects the next common standard transformer size.");
+        Label sub = new Label("Enter the loads the transformer will actually supply, including optional pre-calculated service demand loads. Equipment rows use their entered demand/continuous factors; calculated service rows are treated as final demand (100% with no additional continuous multiplier). Design spare capacity is then applied before selecting a common transformer size.");
         sub.setWrapText(true); sub.setStyle("-fx-text-fill:#64748b;");
         page.getChildren().addAll(title,sub);
 
@@ -55,17 +71,19 @@ public final class TransformerLoadSizingPane extends BorderPane {
         page.getChildren().add(setup);
 
         Button add = secondary("+ Add load");
+        Button addService = secondary("+ Add service demand");
         Button example = secondary("Load example");
         Button clear = secondary("Clear loads");
         add.setOnAction(e -> addRow("New load","General","1","10","kVA","0.90","100",false));
+        addService.setOnAction(e -> addRow("Calculated service load","Service — calculated demand","1","100","kVA","1.00","100",false));
         example.setOnAction(e -> loadExample());
         clear.setOnAction(e -> { rows.clear(); loadRows.getChildren().clear(); addRow("Lighting","Lighting","1","12","kW","0.95","100",true); });
 
-        VBox loads = card("2. Loads","Each row can be entered as amperes, VA, kVA, W or kW. Demand % is applied to the converted kVA. Checking Continuous applies a 125% design factor to that row after demand.");
+        VBox loads = card("2. Loads","Select any regular load or a calculated service category in Type. A service row expects the completed service demand, entered as kVA, VA, kW/W (with PF), or calculated demand amperes at the transformer secondary voltage. Service rows are not demand-reduced or multiplied by 125% again. Do not duplicate loads already covered by a service total.");
         HBox header = new HBox(6,
-            header("Description",180),header("Type",105),header("Qty",55),header("Value",70),header("Unit",70),header("PF",60),header("Demand %",80),header("Continuous",85),header("",38));
+            header("Description",180),header("Type",200),header("Qty",55),header("Value",70),header("Unit",70),header("PF",60),header("Demand %",80),header("Continuous",85),header("",38));
         header.setAlignment(Pos.CENTER_LEFT);
-        loads.getChildren().addAll(header,loadRows,new HBox(8,add,example,clear));
+        loads.getChildren().addAll(header,loadRows,new HBox(8,add,addService,example,clear));
         page.getChildren().add(loads);
 
         output.setEditable(false); output.setWrapText(true); output.setPrefRowCount(24);
@@ -132,7 +150,8 @@ public final class TransformerLoadSizingPane extends BorderPane {
         boolean three=phase.getValue().equals("3φ");
         if(rows.isEmpty()) throw new IllegalArgumentException("Add at least one load.");
 
-        double connected=0, demanded=0, adjusted=0;
+        double connected=0, demanded=0, adjusted=0, serviceDemand=0;
+        int serviceRows=0, equipmentRows=0;
         StringBuilder detail=new StringBuilder();
         int used=0;
         for(LoadRow row:rows){
@@ -144,12 +163,15 @@ public final class TransformerLoadSizingPane extends BorderPane {
             double demand=nonNegative(row.demand,"Demand percent");
             if(demand>100) throw new IllegalArgumentException("Demand percent must be 100% or less for "+name(row)+".");
             double baseKva=toKva(value,row.unit.getValue(),qty,pf,sv,three);
-            double demandKva=baseKva*demand/100.0;
-            double designKva=demandKva*(row.continuous.isSelected()?1.25:1.0);
+            boolean calculatedService=isCalculatedService(row.type.getValue());
+            double demandKva=calculatedService?baseKva:baseKva*demand/100.0;
+            double designKva=calculatedService?demandKva:demandKva*(row.continuous.isSelected()?1.25:1.0);
+            if(calculatedService){serviceDemand+=demandKva;serviceRows++;}else equipmentRows++;
             connected+=baseKva; demanded+=demandKva; adjusted+=designKva; used++;
             detail.append(String.format(Locale.CANADA,
                 "  %-24s %-13s Qty %-5s %8.2f %-4s PF %.2f | base %8.2f kVA | demand %6.1f%% = %8.2f kVA | design %8.2f kVA%s%n",
-                trim(row.description.getText(),24),trim(row.type.getValue(),13),fmt(qty),value,row.unit.getValue(),pf,baseKva,demand,demandKva,designKva,row.continuous.isSelected()?" (125% continuous)":""));
+                trim(row.description.getText(),24),trim(row.type.getValue(),13),fmt(qty),value,row.unit.getValue(),pf,baseKva,calculatedService?100.0:demand,demandKva,designKva,
+                calculatedService?" (calculated service demand; no additional demand or continuous factor)":row.continuous.isSelected()?" (125% continuous)":""));
         }
         if(used==0) throw new IllegalArgumentException("Enter at least one usable load row.");
 
@@ -176,9 +198,14 @@ public final class TransformerLoadSizingPane extends BorderPane {
                 "REQUIRED DESIGN SIZE: %.2f kVA%nThis exceeds the largest built-in common %s transformer size of %s kVA.%nUse a manufacturer-specific/custom size, parallel/alternate arrangement, or divide the loads as appropriate.",
                 withSpare,three?"three-phase":"single-phase",fmtKva(sizes[sizes.length-1]));
 
+        String serviceChecks=serviceRows==0?"":String.format(Locale.CANADA,
+            "SERVICE DEMAND INPUTS%n• %d calculated service row(s) total %.2f kVA before spare capacity.%n• These rows must already reflect the applicable CEC service demand calculation; the selector does not calculate service demand factors.%n%s%n",
+            serviceRows,serviceDemand,equipmentRows>0
+                ?"• You have both service and equipment rows. Ensure equipment included in a service calculation is not counted twice."
+                :"• Verify the calculated service demand includes all loads served by this transformer.");
         String text=String.format(Locale.CANADA,
-            "LOAD-BASED TRANSFORMER SIZE SELECTOR%n%nSYSTEM%nPhase: %s%nPrimary: %.0f V%nSecondary: %.0f V%nRequested spare/future capacity: %.1f%%%n%nLOAD BREAKDOWN%n%s%nTOTALS%nConnected load before demand: %.2f kVA%nAfter row demand factors: %.2f kVA%nAfter continuous-load design factors: %.2f kVA%nRequired design kVA including spare: %.2f kVA%n%n%s%n%nSTANDARD SIZE BASIS%n%s%n%nIMPORTANT CHECKS%n• kW/W inputs are converted to kVA using the entered power factor.%n• Ampere inputs are converted at the selected transformer secondary voltage and phase.%n• Demand percentages are user-entered; use the applicable CEC Section 8 or equipment-specific demand rules for the actual installation.%n• The Continuous checkbox applies a 125%% design factor to that load row; use only where that treatment is appropriate.%n• Verify transformer primary/secondary overcurrent protection, conductor ampacity, grounding/bonding, ventilation, location, impedance/SCCR requirements and manufacturer data separately.%n• Standard-size lists are common selector values for planning; final available ratings depend on manufacturer/product family.%n",
-            phase.getValue(),pv,sv,spare,detail,connected,demanded,adjusted,withSpare,selection,standardList(sizes));
+            "LOAD-BASED TRANSFORMER SIZE SELECTOR%n%nSYSTEM%nPhase: %s%nPrimary: %.0f V%nSecondary: %.0f V%nRequested spare/future capacity: %.1f%%%n%nLOAD BREAKDOWN%n%s%nTOTALS%nConnected load before demand: %.2f kVA%nAfter row demand factors: %.2f kVA%nAfter continuous-load design factors: %.2f kVA%nRequired design kVA including spare: %.2f kVA%n%n%s%n%nSTANDARD SIZE BASIS%n%s%n%n%sIMPORTANT CHECKS%n• kW/W inputs are converted to kVA using the entered power factor.%n• Ampere inputs must represent calculated demand current at the selected transformer secondary voltage and phase (not the service breaker rating).%n• For regular equipment rows, demand and continuous factors are user-entered; apply only the relevant CEC requirements.%n• Calculated service rows bypass additional demand and continuous factors; complete the applicable CEC Section 8 service calculation separately.%n• Verify transformer primary/secondary overcurrent protection, conductor ampacity, grounding/bonding, ventilation, location, impedance/SCCR requirements and manufacturer data separately.%n• Standard-size lists are common selector values for planning; final available ratings depend on manufacturer/product family.%n",
+            phase.getValue(),pv,sv,spare,detail,connected,demanded,adjusted,withSpare,selection,standardList(sizes),serviceChecks);
 
         return new Result(connected,demanded,adjusted,withSpare,selected,next,text);
     }
@@ -211,14 +238,37 @@ public final class TransformerLoadSizingPane extends BorderPane {
     private final class LoadRow {
         final HBox node=new HBox(6);
         final TextField description=field(""),quantity=field("1"),value=field("0"),powerFactor=field("0.90"),demand=field("100");
-        final ChoiceBox<String> type=choiceStatic("General","General","Lighting","Receptacles","Motor / HVAC","Heating","EV charging","Controls","Other");
+        final ChoiceBox<String> type=choiceStatic("General",
+            "General","Lighting","Receptacles","Motor / HVAC","Heating","EV charging","Controls","Other",
+            SERVICE_TYPES[0],SERVICE_TYPES[1],SERVICE_TYPES[2],SERVICE_TYPES[3],
+            SERVICE_TYPES[4],SERVICE_TYPES[5],SERVICE_TYPES[6],SERVICE_TYPES[7]);
         final ChoiceBox<String> unit=choiceStatic("kVA","A","VA","kVA","W","kW");
         final CheckBox continuous=new CheckBox();
         LoadRow(String d,String t,String q,String v,String u,String pf,String dem,boolean cont){
             description.setText(d); type.setValue(t); quantity.setText(q); value.setText(v); unit.setValue(u); powerFactor.setText(pf); demand.setText(dem); continuous.setSelected(cont);
-            description.setPrefWidth(180);type.setPrefWidth(110);quantity.setPrefWidth(55);value.setPrefWidth(70);unit.setPrefWidth(70);powerFactor.setPrefWidth(60);demand.setPrefWidth(80);continuous.setPrefWidth(85);
+            description.setPrefWidth(180);type.setPrefWidth(200);quantity.setPrefWidth(55);value.setPrefWidth(70);unit.setPrefWidth(70);powerFactor.setPrefWidth(60);demand.setPrefWidth(80);continuous.setPrefWidth(85);
             Button remove=secondary("×"); remove.setMinWidth(38); remove.setOnAction(e->{rows.remove(this);loadRows.getChildren().remove(node);});
+            type.setTooltip(new Tooltip("Calculated service types assume a completed service demand calculation; demand factor and 125% continuous factor are not reapplied."));
+            type.getSelectionModel().selectedItemProperty().addListener((obs,oldValue,newValue)->updateServiceMode());
+            updateServiceMode();
             node.setAlignment(Pos.CENTER_LEFT); node.getChildren().addAll(description,type,quantity,value,unit,powerFactor,demand,continuous,remove);
+        }
+        private void updateServiceMode() {
+            boolean service=isCalculatedService(type.getValue());
+            if(service) {
+                demand.setText("100");
+                continuous.setSelected(false);
+                if(unit.getValue().equals("kVA")||unit.getValue().equals("VA")||unit.getValue().equals("A")) {
+                    powerFactor.setText("1.00");
+                }
+            }
+            demand.setDisable(service);
+            continuous.setDisable(service);
+            String guidance=service
+                ?"Enter CEC-calculated service demand. Demand stays 100% and Continuous is disabled to prevent double adjustment."
+                :"Use demand/continuous factors only when appropriate for this equipment load.";
+            demand.setTooltip(new Tooltip(guidance));
+            continuous.setTooltip(new Tooltip(guidance));
         }
     }
 

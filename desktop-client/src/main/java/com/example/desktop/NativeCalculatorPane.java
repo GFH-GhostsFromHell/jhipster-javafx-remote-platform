@@ -65,7 +65,9 @@ public final class NativeCalculatorPane extends BorderPane {
         Tab tools = new Tab("Tools & Presets", new WorkbenchToolsPane(json, username, name -> {
             for (Tab t : tabs.getTabs()) if (t.getText().equals(name)) { tabs.getSelectionModel().select(t); break; }
         }));
-        tabs.getTabs().addAll(tools, exam, guided, design, transformerSizer, raceway, fill, derating, reports, sections);
+        Tab modulesDraft = new Tab("Business Modules (Draft)", new EnterpriseModulesDraftPane(username));
+
+        tabs.getTabs().addAll(tools, exam, guided, design, transformerSizer, raceway, fill, derating, reports, sections, modulesDraft);
         tabs.getSelectionModel().select(transformerSizer);
         setCenter(tabs);
     }

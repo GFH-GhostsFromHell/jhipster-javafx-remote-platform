@@ -18,7 +18,7 @@ public final class LocalWorkspaceStore {
         "projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials",
         "safetyAssessments","unsafeConditions","rubberGloves","safetyMaintenance","stormStandDowns",
         "guidedSolutions","practiceDrafts","designReports","panelSchedules","motorDesigns","transformerDesigns",
-        "estimates","calculatorFavorites","recentCalculations","customPresets"
+        "estimates","enterpriseEstimates","estimatingCatalog","calculatorFavorites","recentCalculations","customPresets"
     };
 
     public LocalWorkspaceStore(ObjectMapper json, String username) {
