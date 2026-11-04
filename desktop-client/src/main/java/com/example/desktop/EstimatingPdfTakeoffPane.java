@@ -59,6 +59,7 @@ public final class EstimatingPdfTakeoffPane extends BorderPane {
     private final RadioButton calibrate=new RadioButton("Calibrate"),count=new RadioButton("Count"),length=new RadioButton("Measure length"),area=new RadioButton("Measure area");
     private final TableView<Measure> table=new TableView<>(measurements);
     private final TextField knownLength=new TextField("10");
+    private final ComboBox<String> knownUnit=new ComboBox<>(FXCollections.observableArrayList("metres","feet"));
     private final Slider zoomSlider=new Slider(.5,2.5,1);
 
     public EstimatingPdfTakeoffPane(TakeoffSink sink){
@@ -93,8 +94,9 @@ public final class EstimatingPdfTakeoffPane extends BorderPane {
         Button next=action("Page ▶",false);next.setOnAction(e->{if(pdf!=null&&pageIndex+1<pdf.getNumberOfPages()){pageIndex++;renderPage();}});
         HBox pages=new HBox(9,open,previous,pageLabel,next,scaleLabel);pages.setAlignment(Pos.CENTER_LEFT);
         ToggleGroup tools=new ToggleGroup();for(RadioButton rb:List.of(calibrate,count,length,area)){rb.setToggleGroup(tools);rb.setStyle("-fx-font-size:11px;");}
-        knownLength.setPrefWidth(65);knownLength.setStyle(FIELD);
-        HBox controls=new HBox(12,calibrate,knownLength,new Label("known metres"),count,length,area,new Label("Zoom"),zoomSlider);
+        knownLength.setPrefWidth(65);knownLength.setStyle(FIELD);knownUnit.setValue("metres");knownUnit.setPrefWidth(95);
+        tools.selectedToggleProperty().addListener((o,a,b)->{pending.clear();redraw();});
+        HBox controls=new HBox(12,calibrate,knownLength,knownUnit,count,length,area,new Label("Zoom"),zoomSlider);
         controls.setAlignment(Pos.CENTER_LEFT);HBox.setHgrow(zoomSlider,Priority.ALWAYS);
         h.getChildren().addAll(title,help,pages,controls);
         return h;
@@ -206,7 +208,8 @@ public final class EstimatingPdfTakeoffPane extends BorderPane {
         if(calibrate.isSelected()){
             pending.add(point);
             if(pending.size()==2){
-                double pixels=pending.get(0).distance(pending.get(1));double metres=numeric(knownLength.getText());
+                double pixels=pending.get(0).distance(pending.get(1));
+                double metres=numeric(knownLength.getText())*("feet".equals(knownUnit.getValue())?.3048:1.0);
                 if(pixels<2||metres<=0){message("Scale calibration","Enter a known drawing dimension in metres greater than zero.");}
                 else{
                     metresPerPixel.put(pageIndex,metres/pixels);
