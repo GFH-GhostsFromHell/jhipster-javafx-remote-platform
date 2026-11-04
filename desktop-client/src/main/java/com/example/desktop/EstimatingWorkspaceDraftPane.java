@@ -17,6 +17,21 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.*;
 import javafx.util.converter.DoubleStringConverter;
+import javafx.stage.FileChooser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -33,6 +48,19 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private final ObservableList<EstimateLine> lines = FXCollections.observableArrayList();
     private final ObservableList<QuoteLine> quotes = FXCollections.observableArrayList();
     private final ObservableList<IndirectLine> indirects = FXCollections.observableArrayList();
+    private final ObservableList<ChangeLine> changes = FXCollections.observableArrayList();
+    private final ObservableList<AssemblyKit> kits = FXCollections.observableArrayList();
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final LocalWorkspaceStore workspace;
+    private String projectId = UUID.randomUUID().toString();
+    private final TextField revision = numberField("R0");
+    private final TextArea breakdownArea = new TextArea();
+    private final TextArea validationArea = new TextArea();
+    private final Label validationStatus = new Label();
+    private final Label alternateTotal = valueLabel();
+    private final Label approvedChangesTotal = valueLabel();
+    private final List<CheckBox> reviewChecks = new ArrayList<>();
+    private TableView<EstimateLine> takeoffTable;
 
     private final TextField projectName = field("Project name");
     private final TextField clientName = field("Client / GC");
@@ -61,8 +89,13 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private final TextArea exclusions = area("List exclusions, by-others items, owner-supplied equipment and scope gaps.");
     private final TextArea clarifications = area("Record RFIs, addenda, tender clarifications and unresolved assumptions.");
 
-    public EstimatingWorkspaceDraftPane() {
+    public EstimatingWorkspaceDraftPane() { this("default"); }
+
+    public EstimatingWorkspaceDraftPane(String username) {
+        workspace = new LocalWorkspaceStore(mapper, username);
         setStyle("-fx-background-color:#eef3f8;");
+        seedKits();
+        loadUserKits();
         seedElectricalStructure();
         seedIndirects();
 
@@ -88,7 +121,15 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         for (int i=0;i<3;i++) { ColumnConstraints c=new ColumnConstraints(); c.setPercentWidth(33.33); grid.getColumnConstraints().add(c); }
         grid.add(labeled("Project",projectName),0,0); grid.add(labeled("Client / GC",clientName),1,0); grid.add(labeled("Estimator",estimatorName),2,0);
         grid.add(labeled("Bid / estimate #",bidNumber),0,1); grid.add(labeled("Location",location),1,1); grid.add(labeled("Bid due",dueDate),2,1);
-        box.getChildren().addAll(badge,title,note,grid);
+        grid.add(labeled("Revision (R0, R1...)",revision),0,2);
+        Button save=button("Save revision",true); save.setOnAction(e->saveRevision());
+        Button open=button("Open saved",false); open.setOnAction(e->openRevision());
+        Button fresh=button("New estimate",false); fresh.setOnAction(e->newEstimate());
+        Button csv=button("Export cost CSV",false); csv.setOnAction(e->exportCsv());
+        Button importCsv=button("Import takeoff CSV",false); importCsv.setOnAction(e->importCsv());
+        Button proposal=button("Export bid proposal",false); proposal.setOnAction(e->exportProposal());
+        HBox actions=new HBox(8,save,open,fresh,csv,importCsv,proposal); actions.setStyle("-fx-padding:6 0 0 0;");
+        box.getChildren().addAll(badge,title,note,grid,actions);
         return box;
     }
 
@@ -105,7 +146,8 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
             new Tab("1 · Scope",scopePane()), new Tab("2 · Takeoff & Pricing",takeoffPane()), new Tab("3 · Quotes",quotesPane()),
-            new Tab("4 · Indirects & Markups",indirectsPane()), new Tab("5 · Bid Review",reviewPane()));
+            new Tab("4 · Indirects & Markups",indirectsPane()), new Tab("5 · Bid Review",reviewPane()),
+            new Tab("6 · Assemblies",assembliesPane()), new Tab("7 · Cost Breakdown",breakdownPane()), new Tab("8 · Alternates / Changes",changesPane()));
         return tabs;
     }
 
@@ -126,8 +168,10 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
 
     private Node takeoffPane() {
         VBox page=new VBox(10); page.setPadding(new Insets(14));
-        TableView<EstimateLine> table=new TableView<>(lines); table.setEditable(true); table.setPrefHeight(390);
+        TableView<EstimateLine> table=new TableView<>(lines); table.setEditable(true); table.setPrefHeight(390); table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE); takeoffTable=table;
         TableColumn<EstimateLine,String> system=textCol("System / division",150,x->x.system);
+        TableColumn<EstimateLine,String> phase=textCol("Phase / area",115,x->x.phase);
+        TableColumn<EstimateLine,String> drawing=textCol("Drawing / source",120,x->x.drawing);
         TableColumn<EstimateLine,String> desc=textCol("Description",240,x->x.description);
         TableColumn<EstimateLine,Double> qty=doubleCol("Qty",72,x->x.quantity);
         TableColumn<EstimateLine,String> unit=textCol("Unit",64,x->x.unit);
@@ -136,13 +180,14 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TableColumn<EstimateLine,Double> factor=doubleCol("Prod. factor",86,x->x.productivityFactor);
         TableColumn<EstimateLine,String> matExt=readOnlyCol("Material ext.",100,x->MONEY.format(x.materialExtended()));
         TableColumn<EstimateLine,String> hrsExt=readOnlyCol("Adj. hours",86,x->String.format("%.2f",x.adjustedHours()));
-        table.getColumns().addAll(system,desc,qty,unit,matUnit,labUnit,factor,matExt,hrsExt);
+        table.getColumns().addAll(system,phase,drawing,desc,qty,unit,matUnit,labUnit,factor,matExt,hrsExt);
 
         Button add=button("+ Add line",true); add.setOnAction(e->{lines.add(new EstimateLine("Branch wiring","New takeoff item",1,"ea",0,0,1));recalc();});
         Button duplicate=button("Duplicate selected",false); duplicate.setOnAction(e->{EstimateLine x=table.getSelectionModel().getSelectedItem();if(x!=null){lines.add(x.copy());recalc();}});
         Button remove=button("Remove selected",false); remove.setOnAction(e->{EstimateLine x=table.getSelectionModel().getSelectedItem();if(x!=null){lines.remove(x);recalc();}});
         Button reset=button("Reset electrical structure",false); reset.setOnAction(e->{lines.clear();seedElectricalStructure();recalc();});
-        HBox actions=new HBox(8,add,duplicate,remove,reset);
+        Button saveKit=button("Save selection as assembly",false); saveKit.setOnAction(e->saveSelectedKit());
+        HBox actions=new HBox(8,add,duplicate,remove,saveKit,reset);
 
         labourRate.textProperty().addListener((o,a,b)->recalc());
         HBox settings=new HBox(12, compactField("Loaded labour $/h",labourRate),
@@ -159,10 +204,11 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         TableView<QuoteLine> table=new TableView<>(quotes); table.setEditable(true); table.setPrefHeight(350);
         TableColumn<QuoteLine,Boolean> include=new TableColumn<>("Carry"); include.setCellValueFactory(c->c.getValue().include); include.setCellFactory(CheckBoxTableCell.forTableColumn(include)); include.setEditable(true); include.setPrefWidth(62);
         TableColumn<QuoteLine,String> vendor=quoteTextCol("Vendor / subcontractor",180,x->x.vendor);
+        TableColumn<QuoteLine,String> group=quoteTextCol("Comparison group",130,x->x.group);
         TableColumn<QuoteLine,String> scope=quoteTextCol("Quoted scope",250,x->x.scope);
         TableColumn<QuoteLine,Double> amount=quoteDoubleCol("Amount",110,x->x.amount);
         TableColumn<QuoteLine,String> status=quoteTextCol("Status / qualifications",220,x->x.status);
-        table.getColumns().addAll(include,vendor,scope,amount,status);
+        table.getColumns().addAll(include,vendor,group,scope,amount,status);
 
         Button add=button("+ Add quote",true); add.setOnAction(e->{QuoteLine q=new QuoteLine(false,"New vendor","Quoted scope",0,"Review qualifications");wireQuote(q);quotes.add(q);recalc();});
         Button remove=button("Remove selected",false); remove.setOnAction(e->{QuoteLine q=table.getSelectionModel().getSelectedItem();if(q!=null){quotes.remove(q);recalc();}});
@@ -203,13 +249,15 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
             "Drawing/spec revision and all addenda confirmed","Quantity takeoff double-checked","Material pricing and supplier quotes reviewed",
             "Labour rate, productivity and staffing assumptions reviewed","Subcontractor scope leveled and selected quotes confirmed","General conditions / indirect costs complete",
             "Bonding, insurance, permits, freight and escalation addressed","Inclusions, exclusions and clarifications reviewed","Overhead, profit and taxes verified","Bid form / proposal / alternates complete and authorized"};
-        for(String item:items){CheckBox cb=new CheckBox(item);cb.setWrapText(true);cb.selectedProperty().addListener((o,a,b)->updateReviewProgress(checks));checks.getChildren().add(cb);}
+        for(String item:items){CheckBox cb=new CheckBox(item);cb.setWrapText(true);cb.selectedProperty().addListener((o,a,b)->{updateReviewProgress(checks);updateValidation();});checks.getChildren().add(cb);reviewChecks.add(cb);}
         reviewProgress.setStyle("-fx-font-weight:bold;-fx-text-fill:#0e7490;"); updateReviewProgress(checks);
         VBox commercial=new VBox(7,pair("Material",materialTotal),pair("Adjusted labour hours",labourHoursTotal),pair("Labour",labourTotal),pair("Selected quotes",quoteTotal),pair("Indirects",indirectTotal),new Separator(),pair("Pre-tax bid",preTaxTotal),pair("Tax",taxTotal),pair("FINAL BID",finalBidTotal));
         commercial.setPadding(new Insets(16)); commercial.setStyle(CARD); commercial.setPrefWidth(330);
         Button copy=button("Copy bid summary",true); copy.setOnAction(e->copySummary());
         VBox left=new VBox(8,reviewProgress,checks,copy); HBox body=new HBox(12,left,commercial); HBox.setHgrow(left,Priority.ALWAYS);
-        page.getChildren().addAll(sectionTitle("Bid closing / review"),note("Confirm quantities, quote coverage, labour assumptions, commercial requirements, exclusions and submission documents before the bid leaves the company."),body);
+        validationArea.setEditable(false);validationArea.setPrefRowCount(8);validationArea.setWrapText(true);validationArea.setStyle(INPUT);
+        validationStatus.setStyle("-fx-font-weight:bold;-fx-text-fill:#92400e;");
+        page.getChildren().addAll(sectionTitle("Bid closing / review"),note("Confirm quantities, quote coverage, labour assumptions, commercial requirements, exclusions and submission documents before the bid leaves the company."),body,sectionTitle("Automated estimate audit"),validationStatus,validationArea);
         return page;
     }
 
@@ -236,6 +284,9 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
         double preTax=base+contingency+overhead+profit;
         double tax=preTax*parse(taxPct.getText())/100.0;
         materialTotal.setText(MONEY.format(mat)); labourHoursTotal.setText(String.format("%.1f h",hours)); labourTotal.setText(MONEY.format(labour)); quoteTotal.setText(MONEY.format(q)); indirectTotal.setText(MONEY.format(ind)); preTaxTotal.setText(MONEY.format(preTax)); taxTotal.setText(MONEY.format(tax)); finalBidTotal.setText(MONEY.format(preTax+tax));
+        refreshBreakdown();
+        updateValidation();
+        if(takeoffTable!=null)takeoffTable.refresh();
     }
 
     private void seedElectricalStructure(){
@@ -258,11 +309,11 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private TableColumn<EstimateLine,Double> doubleCol(String title,double width,Function<EstimateLine,DoubleProperty> prop){
         TableColumn<EstimateLine,Double> c=new TableColumn<>(title); c.setCellValueFactory(x->prop.apply(x.getValue()).asObject()); c.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter())); c.setPrefWidth(width); c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();}); return c;
     }
-    private static TableColumn<EstimateLine,String> textCol(String title,double width,Function<EstimateLine,StringProperty> prop){TableColumn<EstimateLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setPrefWidth(width);return c;}
+    private TableColumn<EstimateLine,String> textCol(String title,double width,Function<EstimateLine,StringProperty> prop){TableColumn<EstimateLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();});c.setPrefWidth(width);return c;}
     private static TableColumn<EstimateLine,String> readOnlyCol(String title,double width,Function<EstimateLine,String> prop){TableColumn<EstimateLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->new SimpleStringProperty(prop.apply(x.getValue())));c.setPrefWidth(width);return c;}
-    private static TableColumn<QuoteLine,String> quoteTextCol(String title,double width,Function<QuoteLine,StringProperty> prop){TableColumn<QuoteLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setPrefWidth(width);return c;}
+    private TableColumn<QuoteLine,String> quoteTextCol(String title,double width,Function<QuoteLine,StringProperty> prop){TableColumn<QuoteLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();});c.setPrefWidth(width);return c;}
     private TableColumn<QuoteLine,Double> quoteDoubleCol(String title,double width,Function<QuoteLine,DoubleProperty> prop){TableColumn<QuoteLine,Double> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()).asObject());c.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));c.setPrefWidth(width);c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();});return c;}
-    private static TableColumn<IndirectLine,String> indirectTextCol(String title,double width,Function<IndirectLine,StringProperty> prop){TableColumn<IndirectLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setPrefWidth(width);return c;}
+    private TableColumn<IndirectLine,String> indirectTextCol(String title,double width,Function<IndirectLine,StringProperty> prop){TableColumn<IndirectLine,String> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()));c.setCellFactory(TextFieldTableCell.forTableColumn());c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();});c.setPrefWidth(width);return c;}
     private TableColumn<IndirectLine,Double> indirectDoubleCol(String title,double width,Function<IndirectLine,DoubleProperty> prop){TableColumn<IndirectLine,Double> c=new TableColumn<>(title);c.setCellValueFactory(x->prop.apply(x.getValue()).asObject());c.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));c.setPrefWidth(width);c.setOnEditCommit(e->{prop.apply(e.getRowValue()).set(e.getNewValue());recalc();});return c;}
 
     private static VBox checklistCard(String title,String...items){VBox box=new VBox(7);box.setPadding(new Insets(14));box.setStyle(CARD);Label h=new Label(title);h.setStyle("-fx-font-size:15px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");box.getChildren().add(h);for(String item:items){CheckBox cb=new CheckBox(item);cb.setWrapText(true);box.getChildren().add(cb);}return box;}
@@ -283,14 +334,14 @@ public final class EstimatingWorkspaceDraftPane extends BorderPane {
     private void updateReviewProgress(VBox container){long total=container.getChildren().stream().filter(n->n instanceof CheckBox).count();long done=container.getChildren().stream().filter(n->n instanceof CheckBox cb&&cb.isSelected()).count();reviewProgress.setText("Bid review: "+done+" / "+total+" checks complete");}
 
     private static final class EstimateLine {
-        final StringProperty system=new SimpleStringProperty(); final StringProperty description=new SimpleStringProperty(); final DoubleProperty quantity=new SimpleDoubleProperty(); final StringProperty unit=new SimpleStringProperty(); final DoubleProperty materialUnit=new SimpleDoubleProperty(); final DoubleProperty labourUnitHours=new SimpleDoubleProperty(); final DoubleProperty productivityFactor=new SimpleDoubleProperty();
+        final StringProperty system=new SimpleStringProperty(); final StringProperty phase=new SimpleStringProperty("General"); final StringProperty drawing=new SimpleStringProperty(""); final StringProperty description=new SimpleStringProperty(); final DoubleProperty quantity=new SimpleDoubleProperty(); final StringProperty unit=new SimpleStringProperty(); final DoubleProperty materialUnit=new SimpleDoubleProperty(); final DoubleProperty labourUnitHours=new SimpleDoubleProperty(); final DoubleProperty productivityFactor=new SimpleDoubleProperty();
         EstimateLine(String s,String d,double q,String u,double m,double h,double f){system.set(s);description.set(d);quantity.set(q);unit.set(u);materialUnit.set(m);labourUnitHours.set(h);productivityFactor.set(f);}
         double materialExtended(){return Math.max(0,quantity.get())*Math.max(0,materialUnit.get());}
         double adjustedHours(){return Math.max(0,quantity.get())*Math.max(0,labourUnitHours.get())*Math.max(0,productivityFactor.get());}
-        EstimateLine copy(){return new EstimateLine(system.get(),description.get(),quantity.get(),unit.get(),materialUnit.get(),labourUnitHours.get(),productivityFactor.get());}
+        EstimateLine copy(){EstimateLine x=new EstimateLine(system.get(),description.get(),quantity.get(),unit.get(),materialUnit.get(),labourUnitHours.get(),productivityFactor.get());x.phase.set(phase.get());x.drawing.set(drawing.get());return x;}
     }
     private static final class QuoteLine {
-        final BooleanProperty include=new SimpleBooleanProperty(); final StringProperty vendor=new SimpleStringProperty(); final StringProperty scope=new SimpleStringProperty(); final DoubleProperty amount=new SimpleDoubleProperty(); final StringProperty status=new SimpleStringProperty();
+        final BooleanProperty include=new SimpleBooleanProperty(); final StringProperty vendor=new SimpleStringProperty(); final StringProperty group=new SimpleStringProperty("General"); final StringProperty scope=new SimpleStringProperty(); final DoubleProperty amount=new SimpleDoubleProperty(); final StringProperty status=new SimpleStringProperty();
         QuoteLine(boolean i,String v,String s,double a,String st){include.set(i);vendor.set(v);scope.set(s);amount.set(a);status.set(st);}
     }
     private static final class IndirectLine {
