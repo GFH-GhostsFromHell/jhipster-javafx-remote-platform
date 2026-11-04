@@ -109,6 +109,22 @@ public final class PullBoxSizingPane extends BorderPane {
                     detail.append(w).append(" wall: 6 × ").append(largest).append(" + ").append(others)
                           .append(" (other entries on this wall) = ").append(format(minimum)).append("\n");
                 }
+                if (mode.getValue().equals("U pull")) {
+                    // Conservative physical opening-span screen for two same-wall U-pull entries.
+                    // This is NOT a substitute for placement, nearest-edge measurements or edge clearance.
+                    for (String w : List.of("Left","Right","Top","Bottom")) {
+                        List<Integer> sizes = grouped.get(w);
+                        if (sizes.size() < 2) continue;
+                        int a = sizes.get(0), b = sizes.get(1);
+                        double span = a + b + 6d * Math.max(a,b);
+                        if (w.equals("Top") || w.equals("Bottom")) width = Math.max(nz(width),span);
+                        else height = Math.max(nz(height),span);
+                        detail.append("U-pair opening span on ").append(w).append(" wall (first two entries): ")
+                              .append(a).append(" + ").append(b).append(" + 6 × ").append(Math.max(a,b))
+                              .append(" = ").append(format(span))
+                              .append(" (plus edge/fitting clearance; only when this pair contains the same conductor)\n");
+                    }
+                }
                 int greatest = 0;
                 for (String w : List.of("Left","Right","Top","Bottom")) {
                     List<Integer> sizes = grouped.get(w);
