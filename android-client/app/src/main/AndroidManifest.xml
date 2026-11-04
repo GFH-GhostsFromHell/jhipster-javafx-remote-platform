@@ -22,6 +22,9 @@
             android:name=".FieldSizingActivity"
             android:exported="false" />
         <activity
+            android:name=".TransformerSizingActivity"
+            android:exported="false" />
+        <activity
             android:name=".MobileWorkbenchActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
