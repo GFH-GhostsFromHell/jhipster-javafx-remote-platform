@@ -56,6 +56,7 @@ public final class NativeCalculatorPane extends BorderPane {
         Tab transformerSizer = new Tab("Transformer Sizer", new TransformerLoadSizingPane(json, username));
         Tab raceway = new Tab("Raceway + Derating", new RacewayAmpacityPane());
         Tab fill = new Tab("Conduit & Box Fill", new FillCalculatorPane());
+         Tab bender = new Tab("Conduit Bender / Calibration", new ConduitBendingFieldPane());
         Tab derating = new Tab("Ampacity / Derating", new AmpacityDeratingPane());
         Tab reports = new Tab("Report Center", new PdfReportCenterPane(json, username));
         Tab sections = new Tab("CEC Sections / Advanced", new SectionedCalculatorPane(portal, json, username, password));
@@ -65,7 +66,7 @@ public final class NativeCalculatorPane extends BorderPane {
         Tab tools = new Tab("Tools & Presets", new WorkbenchToolsPane(json, username, name -> {
             for (Tab t : tabs.getTabs()) if (t.getText().equals(name)) { tabs.getSelectionModel().select(t); break; }
         }));
-        tabs.getTabs().addAll(tools, exam, guided, design, transformerSizer, raceway, fill, derating, reports, sections);
+        tabs.getTabs().addAll(tools, exam, guided, design, transformerSizer, raceway, fill, bender, derating, reports, sections);
         tabs.getSelectionModel().select(transformerSizer);
         setCenter(tabs);
     }
