@@ -16,6 +16,22 @@ for(const name of files){
  if(missing.length){console.error(name+': missing DOM controls '+missing.join(', '));failed=true}
  console.log(name+': '+scripts.length+' JavaScript scripts parse; '+ids.size+' element IDs; '+missing.length+' missing control IDs');
 }
+
+const labHtml=fs.readFileSync(path.join(root,'bend-instruction-lab.html'),'utf8');
+const labJs=fs.readFileSync(path.join(root,'bend-instruction-lab.js'),'utf8');
+new vm.Script(labJs,{filename:'bend-instruction-lab.js'});
+const labIds=new Set([...labHtml.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
+const labRefs=[...labJs.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]);
+const labMissing=[...new Set(labRefs.filter(id=>!labIds.has(id)))];
+if(labMissing.length){console.error('Bend lab is missing DOM IDs: '+labMissing.join(','));failed=true}
+if(!labHtml.includes('src="/bend-instruction-lab.js"')){console.error('Bend lab JS is not linked');failed=true}
+for(const key of ['kickExtra','kick90','back','roll','saddle3','saddle4','offset','segment','custom']){
+ if(!labHtml.includes('value="'+key+'"')){console.error('Missing bend preset '+key);failed=true}
+}
+for(const method of ['pointerdown','pointermove','wheel','calculatePath','getLayout','renderMarks','renderStep']){
+ if(!labJs.includes(method)){console.error('Missing 3D/instruction feature '+method);failed=true}
+}
+console.log('Experimental Bend Lab: JS syntax valid, '+labIds.size+' controls, '+labMissing.length+' missing IDs');
 const kb=fs.readFileSync(path.join(root,'troubleshooting-kb.html'),'utf8');
 const procedures=[...kb.matchAll(/\btopic\('[a-z0-9-]+'/g)].length;
 if(procedures<20){console.error('Expected >=20 troubleshooting procedures, found '+procedures);failed=true}
