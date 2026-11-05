@@ -124,9 +124,8 @@ public final class ConduitBendingFieldPane extends BorderPane {
             if(t.equals("Two-bend offset")||t.equals("Rolling offset")){
                 double vertical=positive(rise,"rise"), lateral=t.equals("Rolling offset")?nonNegative(roll,"horizontal roll"):0;
                 double h=Math.hypot(vertical,lateral), spacing=h*mult,shrink=h*shrinkFactor,ref=nonNegative(distance,"reference distance");
-                // This is a near-critical layout; mark A at the near bend and B farther along the conduit.
-                // Klein's documented datum-to-obstruction method adds field shrink to the first mark.
-                // The value below is a geometric estimate; the reference chart provides rounded shop constants.
+                // The critical-bend selection controls which mark is anchored to the obstacle reference.
+                // These are geometric estimates; compare with the shoe maker's field shrink convention.
                 boolean farCritical = "Far bend critical".equals(obstacleReference.getValue());
                 double first=(farCritical ? ref+shrink-spacing : ref+shrink),second=first+spacing;
                 if(first<0)throw new IllegalArgumentException("The near mark is before the reference end. Increase the reference distance or change layout.");
@@ -230,11 +229,11 @@ public final class ConduitBendingFieldPane extends BorderPane {
              .append("• All measurements use ").append(units.getValue().toLowerCase(Locale.ROOT)).append(" and a consistent reference end.");
             answer.setText(s.toString());
             help.setText(ConduitBendReferencePane.guide(t));
-            visual.setPlan("Bend layout · "+t,visualMarks,0,units.getValue());
+            visual.setPlan("Bend layout · "+t,visualMarks,0,units.getValue(),tapeMarks.getValue());
         }catch(Exception ex){
             answer.setText("Check inputs: "+ex.getMessage());
             help.setText(ConduitBendReferencePane.guide(type.getValue()));
-            visual.setPlan("Check inputs",List.of(),0,units.getValue());
+            visual.setPlan("Check inputs",List.of(),0,units.getValue(),tapeMarks.getValue());
         }
     }
 
