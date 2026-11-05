@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Industrial Troubleshooting Knowledge Base · Electrical Workbench</title>
+<style>
+:root{font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:#e9f3fc;background:#071827;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0}header{background:#102c43;border-bottom:1px solid #35536d;padding:13px max(16px,calc((100vw - 1140px)/2));display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+a{color:#82e3f2}header b{font-size:18px;color:#a5f3fc}.wrap{max-width:1140px;margin:auto;padding:17px 16px 70px}
+h1{font-size:clamp(25px,4vw,34px);margin:8px 0}p{color:#bad0e0}h2{font-size:21px;margin:5px 0 12px}h3{margin:4px 0 9px;font-size:16px}
+label{display:block;font-size:13px;font-weight:750;color:#d4e8f4;margin-bottom:5px}
+input,textarea,select,button{font:inherit}input,textarea,select{background:#071b2d;color:#f1fbff;border:1px solid #52718b;border-radius:9px;padding:10px;width:100%}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid #8beaff;outline-offset:2px}textarea{resize:vertical;min-height:90px}
+button{border:1px solid #5c8098;border-radius:9px;padding:9px 13px;background:#154660;color:white;font-weight:700;cursor:pointer}
+button.primary{background:#047d91;border-color:#2bc5d3}button:hover{filter:brightness(1.12)}
+.card{border:1px solid #34516c;border-radius:14px;background:#102b41;padding:16px;min-width:0}
+.banner{border-left:4px solid #ffc164;background:#3a2b29;padding:13px 16px;color:#ffe7c1;margin:16px 0;border-radius:8px}
+.layout{display:grid;grid-template-columns:minmax(240px,315px) minmax(0,1fr);gap:15px}
+.controls{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:12px}.resultcount{color:#c0d6e7;font-size:13px;margin:8px 0}
+.topiclist{max-height:65vh;overflow:auto}.topic{display:block;text-align:left;width:100%;margin:0 0 7px;background:#0c263a}.topic.active{border-color:#63e4f1;background:#144a60}
+.topic small{display:block;color:#aacad9}.tag{display:inline-block;border-radius:8px;padding:3px 8px;font-size:12px;background:#234d64;color:#bcebf3}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.step{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #365166}.step input{width:20px;height:20px;flex:none;margin-top:3px}.step div{flex:1}.step small{display:block;color:#a7c9dc;margin-top:3px}.steps{margin:0;padding:0;list-style:none}
+.list{margin:5px 0 10px;padding-left:21px}.list li{padding:3px 0}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.subtle{color:#aac4d5;font-size:13px}
+#bodyDetail{display:none}#emptyDetail{display:block}#caseStatus{min-height:20px}
+.muted{color:#96b5c9}.pill{border:1px solid #466c85;border-radius:15px;padding:5px 9px;color:#bdd7e8;font-size:12px}
+@media(max-width:720px){.layout{grid-template-columns:1fr}.topiclist{max-height:250px}.controls,.grid{grid-template-columns:1fr}button{min-height:44px}}
+@media print{header,.sidebar,.controls,.actions,.no-print{display:none!important}.layout{display:block}.card{background:white;color:#000;border:0}body{background:white;color:#000}p,.muted,.subtle{color:#333}#bodyDetail{display:block!important}.banner{color:#000;background:#fff;border-color:#000}.step{border-color:#bbb}}
+</style></head><body>
+<header><b>ϟ Electrical Workbench · Troubleshooting KB</b><nav><a href="/field-suite.html">Field Suite</a> · <a href="/portal.html">Dashboard</a></nav></header>
+<main class="wrap"><h1>Industrial troubleshooting knowledge base</h1><p>Structured methods and fault-isolation checklists for industrial electrical, controls, mining equipment, protection and commissioning. Includes Epiroc-style interview troubleshooting examples, but these are <b>general training procedures</b>, not Epiroc OEM service instructions.</p>
+<div class="banner"><b>Safety gate:</b> Assess hazards and authorization first. Follow site procedures, lockout/tagout, isolation of all energy sources, and verification of absence of voltage with an appropriately rated tester. High-voltage, battery-electric, stored-energy, hazardous-area and underground equipment require OEM/site-approved procedures and suitably qualified people. Do not bypass safety circuits or protective interlocks. Troubleshooting steps are not authorization for energized work.</div>
+<div class="controls"><div><label for="search">Find a fault or procedure</label><input id="search" placeholder="e.g. VFD overvoltage, contactor chatter, BEV, 4–20 mA"></div><div><label for="category">Category</label><select id="category"><option value="">All categories</option></select></div></div>
+<div class="layout"><aside class="sidebar card"><h3>Diagnostic procedures</h3><div class="resultcount" id="count"></div><div class="topiclist" id="topics"></div></aside>
+<article class="card"><div id="emptyDetail"><h2>Select a troubleshooting procedure</h2><p>Choose a symptom on the left. Each procedure shows safe preliminary checks, fault-tree decision points, commissioning verification, and documentation steps.</p>
+<h3>Universal 7-stage diagnosis</h3><ol class="list"><li>Establish a safe work condition and identify all energy sources.</li><li>Confirm the complaint and collect operator history and alarm logs.</li><li>Read the OEM diagram, system sequence, and permissives.</li><li>Split the problem into supply, control, output, and mechanical sections.</li><li>Test systematically using approved equipment and compare with expected values.</li><li>Correct the cause and function-test through the approved return-to-service procedure.</li><li>Document readings, repairs, settings, and follow-up work.</li></ol></div>
+<div id="bodyDetail">
+<div class="actions no-print"><span class="tag" id="topicCategory"></span><span class="pill" id="topicCount"></span></div>
+<h2 id="topicTitle"></h2><p id="topicSymptom"></p>
+<h3>Safety / authorization</h3><div class="banner" id="topicSafety"></div>
+<div class="grid"><div><h3>Likely fault groups</h3><ul class="list" id="causes"></ul></div><div><h3>Typical instruments / references</h3><ul class="list" id="instruments"></ul></div></div>
+<h3>Step-by-step diagnostic checklist</h3><ol class="steps" id="steps"></ol>
+<h3>Decision points — what to test next</h3><ul class="list" id="branches"></ul>
+<h3>Repair verification / documentation</h3><p id="verification"></p>
+<div class="grid"><div><label for="caseAsset">Machine / location / work order</label><input id="caseAsset" placeholder="e.g. pump P-102"></div><div><label for="caseOutcome">Outcome</label><select id="caseOutcome"><option>In progress</option><option>Cause isolated</option><option>Repaired and verified</option><option>Escalated / OEM service needed</option></select></div></div>
+<label for="caseNotes" style="margin-top:12px">Readings, symptoms, suspected cause, and repair notes</label><textarea id="caseNotes" placeholder="Record measured values and safe test conditions. Never store passwords or access codes."></textarea>
+<div class="actions"><button class="primary" id="saveCase">Save case locally</button><button id="copySteps">Copy procedure</button><button id="printCase">Print job worksheet</button><button id="resetChecks">Reset checklist</button></div><p class="subtle" id="caseStatus"></p>
+</div></article></div>
+<section class="card" style="margin-top:15px"><h3>Saved troubleshooting cases</h3><p class="subtle">Stored only in this browser/device; no account synchronization yet. Export before clearing browser data.</p><div class="actions"><button id="exportCases">Export cases (JSON)</button><button id="clearCases">Clear saved cases</button></div><div id="caseList"></div></section>
+</main>
+<script>
+(function(){
+'use strict';
+var KEY='ew.troubleshooting.cases.v1', DRAFT='ew.troubleshooting.draft.v1';
+var stages=[
+['Safety / isolation','Confirm authorization, work scope, hazards, and all energy sources; follow site LOTO and prove absence of voltage using the approved method.'],
+['Understand symptom','Interview operator, document intermittent/continuous behavior, timestamp alarms, equipment state and recent changes.'],
+['Review design','Locate OEM schematic, control sequence, fault history, setpoints, interlocks, permissives and expected readings.'],
+['Divide and isolate','Separate source, protective device, control power, command, field output, sensors and mechanical load to narrow the fault.'],
+['Test logically','Use a rated meter and approved test procedure; compare known-good/reference values; change one variable at a time.'],
+['Repair and verify','Correct root cause under approved work controls; inspect torque, terminations, insulation, configuration and protection before return to service.'],
+['Document','Record readings, fault codes, parts/settings, failed component, verification and future preventive action.']
+];
+function topic(id,cat,title,symptom,safety,causes,instruments,checks,branches,verify){
+ return {id:id,cat:cat,title:title,symptom:symptom,safety:safety,causes:causes,instruments:instruments,steps:stages.concat(checks.map(function(c){return ['Equipment-specific test',c]})),branches:branches,verify:verify};
+}
+var kb=[
+topic('motor-no-start','Motors & starters','Three-phase motor fails to start','Start command is present but the motor does not run, or trips immediately.','Identify remote/autostart capability, rotating parts, arc-flash and stored energy. Isolate before opening motor/starter connections.',
+['Absent phase / upstream fuse','Open control circuit, stop/E-stop or overload auxiliary','Contactor/coil failure','Mechanical jam / excessive load','Winding or insulation fault'],['OEM motor starter schematic','Rated DMM and clamp meter','Insulation tester per motor/OEM limitations','Mechanical inspection tools'],
+['Confirm main supply and protection status, then control source and healthy-phase indications.','Trace the command path: stop/E-stop, overload contact, interlocks, permissives, PLC output and contactor coil.','With the motor safely isolated, inspect shaft/coupling, winding continuity and insulation as approved.','Check contactor poles, motor leads, overload setting and mechanical load before re-energization.'],
+['No control command? Follow stop/interlock/PLC chain before suspecting the motor.','Contactor pulls in but motor will not turn? Check the power path and mechanical load.','Supply unbalanced? Investigate upstream fuse, contact, connection and lost phase.'],
+'Verify correct rotation, running current balance, protective settings, temperature, noise and load under approved operating conditions.'),
+topic('contactor-chatter','Motors & starters','Contactor chatters or drops out','Rapid pull-in/drop-out, buzzing contactor or intermittent motor operation.','De-energize before manipulating contactor or tightening terminals. Do not defeat coil interlocks.',
+['Control voltage sag','Loose/high-resistance control connection','Worn coil, armature or shading ring','Unstable PLC output or permissive','Faulty seal-in auxiliary contact'],['Coil nameplate','Control schematic','Rated DMM','Data logger where authorized'],
+['Determine whether the control source is stable at the supply and coil terminals under normal operating conditions.','Inspect stop circuit and seal-in contact for intermittent contact, loose wires and mechanical wear.','Check logic and any PLC output cycling; examine commanded versus actual state.'],
+['Coil voltage falls when pulled in? Check supply capacity, transformer taps and series resistance.','Coil voltage stays correct? Inspect coil, armature and mechanical contactor condition.','PLC output cycles? Find the permissive or input changing state.'],
+'Confirm repeatable clean pull-in and drop-out, normal coil voltage and no unwanted restarts.'),
+topic('single-phasing','Motors & starters','Motor single-phasing / current imbalance','Running motor overheats, loses torque, or trips overload; one phase appears absent.','Treat all phases as energized until isolated and tested. Never run a motor intentionally single-phased.',
+['Blown fuse / open breaker pole','Loose/burned connection','Failed contactor pole','Damaged motor lead','Supply voltage imbalance'],['Motor nameplate','Rated voltage tester / clamp meter','Infrared inspection where approved','One-line and starter schematics'],
+['Check phase-loss and overload trip indications and event time.','With approved safe methods, compare phase-to-phase supply and load measurements.','After isolation, inspect fuse continuity, contact poles, terminations and cable integrity.','Check motor condition and overload relay selection before restart.'],
+['One supply phase missing? Investigate upstream protection and feeder.','Supply balanced but load-side phase missing? Investigate contactor pole or motor cable.','All voltages present yet current unbalanced? Investigate winding or load condition.'],
+'Record all three operating currents, line voltage balance and trip/reset outcome.'),
+topic('start-stop-seal','Controls & PLC','START/STOP seal-in circuit will not latch','Motor runs only while START is held, or cannot be started from one station.','Use schematic and isolate before continuity checks. Remote stations may start machinery unexpectedly.',
+['Failed NO seal-in auxiliary','Open STOP/overload NC contact','Incorrect wiring after maintenance','Contactor dropout / low coil voltage','Wrong PLC latch logic'],['Ladder diagram','Rated DMM','Contactor auxiliary contact specification'],
+['Trace series STOP, overload, emergency stops, permissives and START contact.','Verify the NO auxiliary seal-in path parallels START as the drawing intends.','Check coil pickup/holding voltage and interposing relay status.','For PLC control, inspect latch/unlatch conditions and scan-dependent logic without forcing outputs.'],
+['Starts only while START held? Suspect the seal-in contact or latch rung.','Never starts? Check permissives, stop chain, control supply and coil.','Starts unexpectedly after reset? Check automatic restart/2-wire control design.'],
+'Verify stop priority, E-stop response, power-loss recovery and start from all authorized stations.'),
+topic('reversing-interlock','Controls & PLC','Forward/reverse starter interlock issue','Reversing starter will not switch direction, or the selected direction trips.','Mechanical and electrical interlocks are safety controls; never bypass them to make the circuit work.',
+['Opposite contactor NC interlock open','Mechanical interlock binding','Selector/control logic error','Contactor contact damage','Incorrect phase interchange'],['OEM FWD/REV schematic','Contactor coil/auxiliary diagram','Rated meter'],
+['Identify intended start-stop and direction-change sequence.','Check electrical NC interlock of the opposite contactor and mechanical interlock condition under isolation.','Inspect selector inputs, contactor coils, overload and feedback contacts.','Verify motor has fully stopped before reversing where process requires it.'],
+['FWD works, REV does not? Follow REV permissives, interlocks and coil circuit.','Both contactors command simultaneously? Remove from service and correct control design before re-enabling.'],
+'Confirm mutual exclusion, direction labels, safe stopping and overload performance.'),
+topic('timer-mode','Controls & PLC','ON-delay versus OFF-delay timer fault','A pump, fan or starter starts/stops at the wrong time after timer replacement.','Disable automatic sequences before working; ventilation/process interlocks can be life-safety critical.',
+['Wrong timer function selected','Incorrect timer contacts','Incorrect delay / timebase','Reset input miswired','PLC timer rung not equivalent'],['Timing diagram','Timer data sheet','Ladder schematic','Stopwatch and meter'],
+['Write the expected sequence with time zero and each contact state.','Check whether the required function is TON (delayed on) or TOF (delayed off).','Identify NO/NC contacts in both energized and de-energized states; confirm timebase and setting.','Test the timing sequence only under approved operational controls.'],
+['Should output wait after input turns ON? Use an ON-delay function.','Should output remain after input turns OFF? Use an OFF-delay function.','Unexpected run-on after STOP? Investigate timing mode and safety stop wiring immediately.'],
+'Document a timeline of input, timer output, relay and motor states before and after repair.'),
+topic('plc-input-output','Controls & PLC','PLC input ON, output OFF','Sensor/input bit shows active but expected solenoid or contactor output never energizes.','Do not force PLC outputs or bypass safety logic without a documented, approved commissioning procedure.',
+['False intermediate permissive','Safety stop/interlock open','Wrong mode/recipe','Timer/counter not satisfied','PLC output inhibited/faulted'],['PLC I/O map and ladder logic','Live logic monitor (authorized)','Wiring diagram','Rated DMM'],
+['Identify intended rung and every series condition between input and output coil.','Watch each prerequisite and interlock in the logic monitor; note the first false instruction.','Confirm commanded output, physical output module indicators and field wiring.','Check safety controller separation from standard PLC controls.'],
+['Logical coil false? Trace rung to first false permissive.','Logical coil true, terminal inactive? Investigate module supply/output fault.','Output terminal active, device inactive? Inspect field power, wiring and load.'],
+'Verify automatic/manual modes, interlocks, alarm handling and proper reset behavior.'),
+topic('analog-loop','Controls & PLC','4–20 mA sensor reads incorrectly','PLC/HMI displays 0%, overrange, underrange, or erratic process value.','Verify instrument loop power and intrinsic safety/hazardous-location requirements before any disconnection or test.',
+['Open current loop','Failed loop supply','Incorrect scaling/AI type','Reversed polarity / loose shield','Damaged transmitter or calibration drift'],['Loop diagram','Loop calibrator (approved)','DMM current/voltage function','PLC analog card configuration'],
+['Verify transmitter range, engineering units, input type, loop supply and termination drawing.','Compare known process value with transmitter display, measured loop current and PLC raw counts.','For a 4–20 mA span, calculate scaled value = (mA − 4)/16 × engineering span + low endpoint.','Check wire integrity, grounding/shielding and noise; inspect alarms and underrange diagnostics.'],
+['Near 0 mA? Check open loop or missing supply.','About 4 mA but HMI shows full scale? Inspect PLC scaling or reversed interpretation.','Loop current correct but display wrong? Check analog module and engineering conversion.'],
+'Record as-found/as-left process values, loop current, span, alarms and calibration reference.'),
+topic('vfd-overcurrent','VFD & drives','VFD overcurrent or acceleration trip','Drive trips on acceleration or while carrying load.','VFD DC bus capacitors retain hazardous charge. Follow OEM discharge period and approved voltage verification; never megger a drive-connected motor circuit.',
+['Shorted cable/motor winding','Excessive acceleration','Mechanical binding','Incorrect current/motor data','Drive output device fault'],['Drive fault history and trend','Motor/drive nameplate','Insulation tester only after drive is disconnected and OEM procedure followed','Mechanical load data'],
+['Record trip point: power-up, start, acceleration, steady speed or deceleration.','Check parameter set: motor FLA, acceleration, torque limit, carrier/control mode.','Inspect mechanical load and coupling after isolation.','Follow OEM-approved checks for motor cable and winding integrity; avoid testing through electronics.'],
+['Trips immediately on output enable? Investigate cable/motor/output fault via OEM steps.','Trips only with load? Check load torque, ramp and acceleration demand.','Trips at low speed with load? Review torque control, boost and motor identification.'],
+'Verify stable acceleration, running current and no recurring faults under representative load.'),
+topic('vfd-overvoltage','VFD & drives','VFD DC-bus overvoltage on deceleration','Drive faults while stopping or regenerating a load.','Isolate and wait for DC-bus discharge per OEM; do not access DC bus or braking resistor while energized.',
+['Deceleration too fast','Overhauling/regenerative load','Braking resistor/chopper fault','High input voltage','Incorrect line/load configuration'],['Drive diagnostics','OEM drive manual','Motor load/inertia data','Rated voltage instruments under approved procedures'],
+['Capture fault timestamp and whether it occurs on deceleration or at idle.','Review input voltage, deceleration ramp, stop mode and braking parameters.','Identify overhauling loads such as downhill conveyors or heavy fans.','Inspect braking hardware and thermal protective circuit only under OEM isolation procedures.'],
+['Only during deceleration? Evaluate ramp time and approved dynamic braking design.','At idle? Review incoming supply/drive configuration.','Braking resistor fault indication? Escalate to approved specialist inspection.'],
+'Verify controlled stopping, brake thermal rating, current and no repeated bus alarms.'),
+topic('vfd-reverse','VFD & drives','VFD motor turns the wrong way','Commissioned motor rotates opposite to machine requirement.','Do not interchange energized motor leads. Disconnect, isolate and verify zero energy first.',
+['Motor phase sequence','Drive direction command/parameter','Incorrect local/remote control mapping','Encoder feedback phase on closed-loop system'],['Motor and drive manuals','Direction command status','Approved rotation test method'],
+['Confirm required physical rotation and whether machine can safely jog.','Check drive FWD/REV command mapping, digital input state and direction limits.','If necessary, correct output phase sequence only with drive isolated and OEM-approved instructions.','For encoder systems, verify feedback configuration before any direction change.'],
+['Direction command is incorrect? Correct control logic/parameter, not power wiring.','Command correct but motor wrong? Review approved motor output phasing method.'],
+'Perform approved jog and direction verification with guards/process clear.'),
+topic('bev-hv-system','Mining & BEV','Battery-electric mine vehicle will not enable','No traction-enable, HV ready indication missing, or battery/drive fault.','HV traction and battery systems can retain lethal voltage and thermal-runaway risk. Only OEM/site HV-qualified personnel may isolate, verify discharge or service HV components. Never bridge contactors or HV interlocks.',
+['Interlock loop or E-stop open','HV isolation monitoring fault','Battery-management derate','Contactor/precharge fault','Thermal management or charger fault'],['OEM machine fault codes and service documentation','Authorized HV diagnostic interface','BMS/thermal alarm history','Site isolation and rescue procedures'],
+['Confirm equipment secured against movement and gather dashboard BMS/drive alarms.','Review low-voltage supply and supervisory permissives using authorized diagnostics.','Identify whether fault is in charger, battery, thermal management, isolation monitoring, or drive enable.','Escalate HV isolation/precharge/contactor tests to OEM-authorized personnel.'],
+['HV isolation fault? Stop and escalate; never bypass it.','Precharge timeout? Review diagnostics and OEM controlled procedure.','Temperature or SOC derate? Check approved cooling/charging operating conditions.'],
+'Record fault history, machine state, isolation permit, corrective action and successful OEM-approved ready/drive test.'),
+topic('underground-pump','Mining & BEV','Underground dewatering pump trips','Mine sump pump trips on start, on high water, or intermittently.','Wet underground conditions, confined-access and flooding hazards require site controls. Account for auto-start and backup supply.',
+['Jammed impeller / dry run','Water-level sensor fault','Single-phasing / overload','VFD parameter or motor issue','Leaking cable or poor grounding'],['Pump curve and OEM limits','Level switch/PLC I/O diagram','Motor protection alarms','Rated test instruments'],
+['Confirm water level, pump duty, discharge blockage and operating mode.','Check alarms, level switch input, permissives, overload/VFD trips and start sequence.','Inspect motor/cable integrity after isolation with appropriate wet-location precautions.','Inspect impeller and piping with mechanical isolation/lockout.'],
+['Motor draws excess current? Check pump hydraulic restriction and motor health.','No start command despite high level? Trace level sensing and PLC logic.','Leak/earth-fault indication? Isolate and follow authorized cable/motor tests.'],
+'Verify auto/hand operation, low/high level alarms, pump capacity and backup response.'),
+topic('ventilation-interlock','Mining & BEV','Underground ventilation fan fails to start','Fan commanded but blocked by permissive or starter/VFD fault.','Ventilation can be a life-safety system. Do not defeat air-flow, gas, fire, door or E-stop interlocks. Coordinate with mine control.',
+['Airflow/gas interlock','PLC or safety circuit inhibit','Starter/VFD trip','Damper position switch','Failed fan motor/bearing'],['Ventilation control narrative','SCADA event history','Safety I/O map','Fan motor/drive data'],
+['Confirm required ventilation state, mine authorization and alarms before intervention.','Check permissive chain, gas/airflow/safety status and damper feedback.','Separate command logic fault from starter/VFD power fault.','Inspect motor/mechanical faults under site isolation.'],
+['Missing airflow or gas permissive? Escalate per mine ventilation procedure.','Valid start command but drive faulted? Apply VFD diagnosis.'],
+'Return to service only after approved ventilation checks and control-room confirmation.'),
+topic('conveyor-e-stop','Mining & BEV','Conveyor or crusher stops unexpectedly','Trip or refusal to restart despite operator command.','Belt movement, stored mechanical energy and remote starts require isolation of motion and controls. Never jumper pull-cord or E-stop circuits.',
+['Pull-cord/E-stop chain open','Belt alignment / zero-speed input','Overload / motor trip','Start sequencing timer','Plugged chute or jam'],['Sequence-of-operation drawing','Safety circuit diagram','Conveyor event/alarm log','PLC I/O status'],
+['Collect exact trip and upstream/downstream sequence alarm.','Identify safety-chain devices, pull-cords, belt drift, speed and chute sensors.','Check starter/VFD status and mechanical jam under isolation.','Verify time delays, permissive sequence and alarm reset logic.'],
+['Safety chain is open? Locate and correct cause; never bypass.','Motor healthy but no permissive? Inspect sequence and upstream equipment ready signals.'],
+'Document root cause and verify stops, alarms and safe restart sequence.'),
+topic('power-loss','Distribution & protection','Distribution breaker trips / feeder loses power','Unexpected feeder outage or repeated breaker operations.','Follow arc-flash, switching, permits and site distribution procedures. Do not repeatedly reclose an unknown fault.',
+['Overload/short circuit','Ground fault','Incorrect relay setting','Insulation failure','Faulty downstream equipment'],['One-line diagram','Relay event and oscillography','Load and breaker records','Approved insulation/fault testing equipment'],
+['Capture protective device ID, trip target, time and affected loads.','Review relay elements and sequence of events; distinguish overload, phase, ground or differential target.','Inspect downstream equipment and fault history under switching/LOTO controls.','Coordinate setting/fault investigation with P&C/qualified switching personnel.'],
+['Instantaneous trip? Investigate short-circuit/fault evidence before any reset.','Time-overcurrent trip? Assess load profile and coordination.','Ground target? Review ground-fault detection and insulation findings.'],
+'Verify protection settings/coordination, inspection records and authorized restoration.'),
+topic('transformer-hot','Distribution & protection','Transformer overheating or noisy','Elevated temperature, humming or protective operation.','Isolate per appropriate HV/LV switching and access controls. Oil-filled equipment may have pressure and fire hazards.',
+['Overload / harmonics','Poor ventilation','Unbalanced or high supply voltage','Loose connection','Winding or cooling failure'],['Transformer nameplate','Temperature/fan/relay logs','Load trend','Thermal inspection and power-quality data'],
+['Compare measured load and kVA to nameplate continuous/duty limits.','Inspect ventilation, ambient temperature, enclosure and cooling system.','Review phase currents, neutral/harmonic loading and voltage taps.','Escalate abnormal dielectric/gas/oil indications to transformer specialists.'],
+['High load only? Review thermal duty/overload and ventilation.','One phase hotter? Inspect unbalance and connections under isolation.','Protection operated? Do not re-energize until root cause is found.'],
+'Verify normal load/temperature trend, cooling control and alarms.'),
+topic('relay-comm','Distribution & protection','SEL/GE relay or RTU SCADA communication lost','Protection device appears healthy locally but control centre reports lost telemetry.','Protection relay and SCADA settings are critical infrastructure controls; authorized change control and site cybersecurity rules apply.',
+['Network link/cable','Power supply or switch','Incorrect protocol/IP/serial settings','DNP/IEC mapping mismatch','Clock/synchronization or firmware issue'],['Relay and RTU event logs','Network topology and approved port tester','SEL/GE manuals','SCADA point map'],
+['Differentiate local protective function from remote communications.','Review switch port link, device power, network reachability and approved security logs.','Check serial/ethernet settings, protocol channels and event counters.','Validate point mapping, time stamps, quality bits and command permissions with operator approval.'],
+['Device healthy locally but no network path? Check link/switch/network.','Link healthy but bad points? Inspect protocol/configuration and data map.','Commands fail but telemetry works? Check authority/security and control permissives.'],
+'Confirm accurate status, analog values, time sync, alarms and supervised command path without unintended operation.'),
+topic('fire-alarm-trouble','Life safety & HVAC','Fire alarm circuit trouble / ground fault','Fire alarm panel reports an open, ground fault or missing device.','Use listed equipment instructions and local impairment/fire-watch procedures. Never silence or disable protection without authorization.',
+['Open/short field wiring','Incorrect EOL location/value','Moisture/ground leakage','Device/module failure','Wrong configuration'],['Panel event log','Device circuit diagram','Approved listed diagnostic procedure','Appropriate meter with compatible circuit limits'],
+['Identify zone/circuit/device and exact trouble code.','Follow approved isolation and life-safety impairment workflow before testing.','Inspect end-of-line placement, device supervision and field cabling.','Correct defect and restore normal monitoring.'],
+['Open trouble? Trace supervision path and EOL location.','Ground fault? Investigate cable insulation/moisture under approved isolation.','Device missing? Check address/protocol and wiring.'],
+'Clear trouble, perform required functional test, restore impairments, document acceptance.'),
+topic('furnace-proof','Life safety & HVAC','Furnace/MAU fails to ignite or prove airflow','Burner/air-handler begins cycle, then locks out or fails to enable heat.','Gas, combustion and flame safeguards must be serviced by appropriately licensed/qualified personnel. Never jumper pressure switches or flame proving.',
+['Airflow pressure switch','Limit/rollout switch','Ignition/flame sensor','Gas supply/valve','BAS/makeup-air permissive'],['OEM sequence','Controller lockout log','Pressure/airflow data','Combustion specialist'],
+['Write expected sequence: call → fan/airflow proof → purge → ignition → flame proof → steady run.','Identify the stage where actual sequence stops and inspect recorded lockout.','Check BAS enable, damper/airflow interlocks and safety limit status non-invasively.','Refer combustion/gas train testing to authorized personnel.'],
+['Fails before purge? Check enable, fan and airflow proof.','Ignites then shuts down? Inspect flame proving/combustion via qualified service.','BAS demand absent? Trace remote permissives.'],
+'Record fault code and approved complete heating/ventilation cycle verification.'),
+topic('ups-battery','Distribution & protection','UPS battery or charger alarm','UPS on battery, low runtime or failed self-test.','Battery terminals can deliver high short-circuit current; use PPE, isolation and OEM battery handling procedures.',
+['End-of-life cells','Charger failure','High temperature','DC connection fault','Excessive load'],['UPS diagnostics','Battery maintenance logs','Manufacturer runtime test requirements','Temperature log'],
+['Confirm load, alarm history, bypass/online state and recent outage.','Review per-string/cell monitoring and charger status without hazardous invasive testing.','Inspect room ventilation, temperature, battery age and connection history.','Arrange qualified battery diagnostics and approved load/run test.'],
+['Battery autonomy reduced but charger normal? Assess battery health/capacity.','UPS stays on battery despite normal utility? Inspect transfer/rectifier diagnostic path.'],
+'Verify normal mode, alarm reset, charger performance and approved runtime procedure.'),
+topic('instrument-noise','Controls & PLC','Sensor signal fluctuates or drifts','Temperature, pressure, proximity or speed sensor reports noisy/unreliable values.','Sensor may be safety-related; follow site change controls. Use intrinsically safe equipment where required.',
+['EMI/ground loop','Loose shield/termination','Intermittent power','Poor sensor mounting','Temperature drift or wrong range'],['Loop/wiring diagram','Trend logger','DMM/loop calibrator','Manufacturer sensor specification'],
+['Compare process reality to device and PLC/HMI trend.','Check sensor supply, return, shield routing and proximity to VFD cables.','Review filtering, update rate, cable damage and vibration/temperature conditions.','Recalibrate/replace only after identifying root cause.'],
+['Signal noise follows VFD start? Investigate shielding and routing.','Fixed offset? Verify range and calibration.','Intermittent dropouts? Inspect connector/movement/moisture.'],
+'Trend stable sensor at representative operating conditions and record as-left calibration.'),
+topic('voltage-drop','Distribution & protection','Excessive loaded voltage drop','Motor struggles to start or remote equipment browns out although open-circuit voltage looks normal.','Energized voltage-drop tests require a documented energized-work justification and approved PPE/procedure; otherwise use safe offline methods.',
+['Loose/high-resistance joint','Undersized or long feeder','Overloaded transformer','Phase imbalance','Defective contact or fuse holder'],['Circuit one-line','Cable length/size records','Qualified test instrumentation','Load current and terminal ratings'],
+['Record supply and load-end voltage under the same known load condition through authorized testing.','Compare voltage change with conductor route, material, length and load current.','Check each connection or component for excessive resistive drop under approved procedure.','Use appropriate CEC/OESC table, temperature and equipment constraints to verify redesign if needed.'],
+['Good open-circuit voltage, poor under load? Suspect high-resistance path or insufficient feeder ampacity/size.','One phase drops more? Narrow to phase-specific connection or device.'],
+'Confirm loaded voltage within equipment and applicable code design limits; log conditions and measurements.')
+];
+var $=function(id){return document.getElementById(id)}, current=null, state={};
+function escaped(x){return String(x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function readCases(){try{var x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+function renderList(){
+ var query=$('search').value.trim().toLowerCase(),cat=$('category').value, results=kb.filter(function(t){return (!cat||t.cat===cat)&&[t.title,t.cat,t.symptom,t.causes.join(' '),t.branches.join(' ')].join(' ').toLowerCase().includes(query)});
+ $('count').textContent=results.length+' procedures';
+ $('topics').innerHTML='';
+ results.forEach(function(t){var b=document.createElement('button');b.className='topic'+(current&&current.id===t.id?' active':'');b.innerHTML='<b>'+escaped(t.title)+'</b><small>'+escaped(t.cat)+'</small>';b.onclick=function(){select(t.id)};$('topics').appendChild(b)});
+}
+function fillList(id,arr){var root=$(id);root.innerHTML='';arr.forEach(function(x){var li=document.createElement('li');li.textContent=x;root.appendChild(li)})}
+function select(id){
+ current=kb.find(function(t){return t.id===id});if(!current)return;state={};
+ $('emptyDetail').style.display='none';$('bodyDetail').style.display='block';
+ $('topicCategory').textContent=current.cat;$('topicTitle').textContent=current.title;
+ $('topicSymptom').textContent=current.symptom;$('topicSafety').textContent=current.safety;
+ $('topicCount').textContent=current.steps.length+' diagnostic steps';
+ fillList('causes',current.causes);fillList('instruments',current.instruments);fillList('branches',current.branches);
+ $('verification').textContent=current.verify;
+ $('steps').innerHTML='';
+ current.steps.forEach(function(step,i){var li=document.createElement('li');li.className='step';var c=document.createElement('input');c.type='checkbox';c.id='step'+i;c.onchange=function(){state[i]=c.checked;updateCount()};
+ var d=document.createElement('div');d.innerHTML='<label for="step'+i+'">'+(i+1)+'. '+escaped(step[0])+'</label><small>'+escaped(step[1])+'</small>';li.appendChild(c);li.appendChild(d);$('steps').appendChild(li)});
+ $('caseAsset').value='';$('caseNotes').value='';$('caseOutcome').value='In progress';$('caseStatus').textContent='';renderList();
+ try{history.replaceState(null,'','#'+encodeURIComponent(id))}catch(e){}
+}
+function updateCount(){var complete=Object.values(state).filter(Boolean).length;$('topicCount').textContent=complete+' / '+current.steps.length+' completed'}
+function saveCase(){
+ if(!current)return;var entry={id:'case-'+Date.now(),date:new Date().toISOString(),topic:current.id,title:current.title,asset:$('caseAsset').value.trim(),notes:$('caseNotes').value.trim(),outcome:$('caseOutcome').value,completed:Object.keys(state).filter(function(i){return state[i]}).map(Number)};
+ var cases=readCases();cases.unshift(entry);
+ try{localStorage.setItem(KEY,JSON.stringify(cases.slice(0,100)));$('caseStatus').textContent='Saved locally. Export to keep an external copy.';renderCases()}catch(e){$('caseStatus').textContent='Save failed: local storage may be full or unavailable.'}
+}
+function renderCases(){var cases=readCases();$('caseList').innerHTML=cases.length?'':'<p>No saved cases.</p>';cases.forEach(function(c){var row=document.createElement('div');row.className='step';var main=document.createElement('div');main.innerHTML='<b>'+escaped(c.title||'Procedure')+'</b><small>'+escaped((c.asset||'No asset')+' · '+(c.outcome||'')+' · '+(c.date||'').slice(0,16).replace('T',' '))+'</small>';var b=document.createElement('button');b.textContent='Open';b.onclick=function(){select(c.topic);$('caseAsset').value=c.asset||'';$('caseNotes').value=c.notes||'';$('caseOutcome').value=c.outcome||'In progress';(c.completed||[]).forEach(function(i){var checkbox=$('step'+i);if(checkbox){checkbox.checked=true;state[i]=true}});updateCount();window.scrollTo(0,0)};row.appendChild(main);row.appendChild(b);$('caseList').appendChild(row)})}
+function exportJson(data,filename){var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function copyCurrent(){if(!current)return;var content=current.title+'\nSymptom: '+current.symptom+'\nSafety: '+current.safety+'\n\n'+current.steps.map(function(s,i){return (i+1)+'. '+s[0]+': '+s[1]}).join('\n')+'\n\nNext decisions:\n'+current.branches.join('\n')+'\nVerification: '+current.verify;navigator.clipboard.writeText(content).then(function(){$('caseStatus').textContent='Procedure copied.'},function(){$('caseStatus').textContent='Copy unavailable; use Print.'})}
+Array.from(new Set(kb.map(function(t){return t.cat}))).sort().forEach(function(t){$('category').appendChild(new Option(t,t))});
+$('search').oninput=renderList;$('category').onchange=renderList;
+$('saveCase').onclick=saveCase;$('printCase').onclick=function(){window.print()};$('copySteps').onclick=copyCurrent;
+$('resetChecks').onclick=function(){state={};$('steps').querySelectorAll('input').forEach(function(c){c.checked=false});updateCount()};
+$('exportCases').onclick=function(){exportJson(readCases(),'electrical-workbench-troubleshooting-cases.json')};
+$('clearCases').onclick=function(){if(confirm('Delete locally saved troubleshooting cases on this device?')){localStorage.removeItem(KEY);renderCases()}};
+renderList();renderCases();select(decodeURIComponent(location.hash.slice(1))||'motor-no-start');
+})();
+</script></body></html>
