@@ -39,6 +39,9 @@ final class ConduitBendReferencePane extends ScrollPane {
         addCells(deduct,4,"1 1/4 in EMT","11 in / 279.4 mm","Check shoe stamp");
         page.getChildren().add(card("Common 90° stub-up deduct / take-up",deduct,
             notice("90° ARROW mark = finished stub-up height − actual deduct. These are examples from a Klein guide, not universal presets for every head.")));
+        page.getChildren().add(card("Three-bend saddle · field marks versus geometry",
+            notice("For a 45° centre bend (22.5° side bends), traditional centre-notch / outside-arrow field layouts commonly use a 2.5 × rise spacing factor. The mathematical bend-centre spacing factor is approximately 2.613 × rise. These use DIFFERENT reference marks."),
+            notice("For a 30° centre bend (15° outside), a traditional field factor is approximately 3.8, while geometric centre-to-centre spacing is approximately 3.864. Other angles require shoe calibration; do not use centre distances directly as arrow positions.")));
         TextArea sheet=new TextArea(
             "FIELD BENDING QUICK SHEET\n\n"+
             "REFERENCE END: mark a fixed datum at the conduit end; measure and label every mark before bending.\n\n"+
@@ -46,10 +49,12 @@ final class ConduitBendReferencePane extends ScrollPane {
             "BACK-TO-BACK 90s: first 90 uses ARROW; second uses STAR/back-of-90 from the back of the first finished bend. Keep both bends coplanar.\n\n"+
             "TWO-BEND OFFSET: two equal angles, equal and opposite. Mark spacing = true offset × multiplier. For a far obstruction reference, add the chart's shrink allowance when the method calls for it.\n\n"+
             "ROLLING OFFSET: true offset = √(vertical rise² + sideways roll²). Use true offset for spacing. Plane rotation from vertical = atan(roll/rise).\n\n"+
-            "THREE-POINT SADDLE: bend the CENTRE first using the head's centre/notch reference, then the two outside return bends with the designated arrow/outer marks.\n\n"+
+            "THREE-POINT SADDLE: choose a MARKING METHOD before measuring side bends. Traditional field multipliers (45° centre = 2.5; 30° centre = 3.8) use a centre notch and outside arrow. Pure geometric centre-to-centre spacing differs and requires shoe calibration.\n\n"+
             "FOUR-POINT SADDLE: two consecutive two-bend offsets in opposite directions. Mark and check all four bend locations and shoe clearance.\n\n"+
             "KICKED 90: establish 90 stub using arrow and deduct; kick is measured from its own selected bend reference. Do not assume a universal second mark from kick rise alone.\n\n"+
             "SEGMENTED 90: divide 90° into small bends. Confirm spacing and tangent marks with shoe radius; test the resulting centreline radius.\n\n"+
+            "GAIN / PRECUT: measure gain from one trial 90°: first finished leg + second finished leg − original straight stock. Cut stock = finished dimensions added − (number of 90° bends × measured gain). Gain is NOT the arrow deduct.\n\n"+
+            "PARALLEL OFFSETS: each next conduit shift = centre-to-centre spacing × tan(half the bend angle). Shift both bend marks equally on each adjacent pipe.\n\n"+
             "COMMON MARKS:\n"+
             "ARROW → stub-ups and many offset/outer saddle bends.\n"+
             "STAR ★ back-of-90 for back-to-back and some reverse methods.\n"+
