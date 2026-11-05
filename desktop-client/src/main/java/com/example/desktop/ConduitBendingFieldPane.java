@@ -55,6 +55,18 @@ public final class ConduitBendingFieldPane extends BorderPane {
         put(inputs,"segments","Number of segments",segments);
         Button calculate = new Button("Calculate & show bending steps");
         calculate.setStyle("-fx-background-color:#0e7490;-fx-text-fill:white;-fx-font-weight:bold;-fx-padding:11 14;");
+        Button useCalibration = new Button("Use saved bender calibration");
+        useCalibration.setOnAction(e -> {
+            Double value=BenderCalibrationPane.value("deduct",units.getValue());
+            if(value==null){answer.setText("No saved deduct for this Windows profile. Open the Bender Calibration tab and measure a scrap 90° stub first.");return;}
+            String required=BenderCalibrationPane.sizeMaterial().replace("-"," ");
+            if(!"Custom".equals(bender.getValue())&&!bender.getValue().equals(required)){
+                answer.setText("Saved calibration is for "+BenderCalibrationPane.profileDescription()+", but selected bender is "+bender.getValue()+". Select matching conduit or Custom after verifying the actual shoe.");return;
+            }
+            takeup.setText(String.format(Locale.ROOT,"%.4f",value));
+            calculate();
+            answer.setText("Loaded "+BenderCalibrationPane.profileDescription()+". Confirm exact shoe, conduit and measurement datums.\n\n"+answer.getText());
+        });
         Button copy = new Button("Copy field layout");
         copy.setOnAction(e -> { javafx.scene.input.ClipboardContent cb = new javafx.scene.input.ClipboardContent();cb.putString(answer.getText());javafx.scene.input.Clipboard.getSystemClipboard().setContent(cb); });
         calculate.setOnAction(e->calculate());
@@ -64,7 +76,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         TitledPane bendHelp=new TitledPane("Help · exact marking, shoe reference, bender orientation & order",help);
         bendHelp.setExpanded(true);
         bendHelp.setCollapsible(true);
-        page.getChildren().addAll(title,intro,selectors,settings,fieldSettings,saddleSettings,inputs,new HBox(10,calculate,copy),visual,bendHelp,answer,
+        page.getChildren().addAll(title,intro,selectors,settings,fieldSettings,saddleSettings,inputs,new HBox(10,useCalibration,calculate,copy),visual,bendHelp,answer,
             note("Hand-bender arrows, star/back-of-90 marks, saddle notches, deduct, minimum stub and springback vary by manufacturer, conduit size and type. Field shrink charts are rounded; this calculator shows geometric values. Measure conduit on its centreline, keep bends in the intended plane, and check a test piece before cutting production runs."));
         ScrollPane scroll = new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
         TabPane screens=new TabPane();
@@ -73,6 +85,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
             new Tab("Single Bend & Field Guide",scroll),
             new Tab("Advanced · Multiple Bends on One Pipe",new AdvancedConduitBendPane()),
             new Tab("Gain, Cut Length & Rack Offsets",new ConduitFabricationToolsPane()),
+             new Tab("Bender Calibration",new BenderCalibrationPane()),
             new Tab("Multiplier Chart & Quick Sheet",new ConduitBendReferencePane())
         );
         setCenter(screens);
