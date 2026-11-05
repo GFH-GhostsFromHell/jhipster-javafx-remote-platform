@@ -122,6 +122,14 @@ internal fun ConduitFabricationMobile() {
         FabInput("Second finished leg (" + units + ")", second) { second = it }
         if (arrangement == "Back-to-back 90s") FabInput("Between backs of bends (" + units + ")", span) { span = it }
         FabInput("Measured gain PER 90° (" + units + ") — required", gain) { gain = it }
+        OutlinedButton(onClick = {
+            val saved = LocalBenderCalibration.measured(context, "gain", units)
+            if (saved == null) result = "No saved measured gain. Open the Bender Calibration tab and save a scrap test."
+            else {
+                gain = String.format(Locale.ROOT, "%.4f", saved)
+                result = "Loaded " + LocalBenderCalibration.description(context) + ". Confirm matching shoe, conduit and bend radius."
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Use saved bender gain") }
         Button(onClick = {
             result = runCatching {
                 val bends = if (arrangement == "Single 90°") 1 else 2
