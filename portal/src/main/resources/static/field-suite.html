@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Suite · Electrical Workbench</title>
+<style>
+:root{font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;background:#071827;color:#ecf6ff;color-scheme:dark;--card:#102a40;--line:#345873;--link:#7ee8f5}
+*{box-sizing:border-box}body{margin:0}header{padding:14px max(16px,calc((100vw - 1160px)/2));background:#102d43;border-bottom:1px solid #426078;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+a{color:var(--link)}header b{font-size:19px;color:#a4f1f8}.wrap{max-width:1160px;margin:auto;padding:17px 16px 75px}
+h1{font-size:clamp(26px,4vw,36px);margin:8px 0}h2{font-size:23px;margin:8px 0}h3{font-size:17px;margin:8px 0}p{color:#b8cfe0}
+.topbar,.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.topbar{justify-content:space-between;margin:14px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px;margin:0 0 15px;min-width:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:750;color:#cee4f3;margin-bottom:5px}
+input,textarea,select,button{font:inherit}input,textarea,select{background:#071b2c;color:#fff;border:1px solid #55748b;border-radius:9px;padding:10px;width:100%;min-height:41px}
+textarea{resize:vertical;min-height:82px}button{background:#1b4b66;border:1px solid #597d93;border-radius:9px;color:#fff;font-weight:700;padding:10px 14px;cursor:pointer}
+button.primary{background:#047b91;border-color:#36bdcb}button.danger{background:#5d2b3d;border-color:#c46a79}button:focus-visible,input:focus,textarea:focus,select:focus{outline:2px solid #87eefa;outline-offset:2px}
+.field{min-width:0}.field+.field{margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid.threecol{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tabs{display:flex;gap:8px;overflow:auto;padding:3px 0 12px;scrollbar-width:thin}.tabs button{white-space:nowrap}.tabs button.active{background:#007f91;border-color:#7ceef2}
+.view{display:none}.view.active{display:block}.notice{padding:12px 14px;background:#233b45;border-left:3px solid #ffca75;border-radius:7px;color:#f8e4bd;margin:13px 0}
+.note{color:#acc9d9;font-size:13px}.result{padding:13px;background:#082238;border:1px solid #3c6882;border-radius:9px;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}
+.tile{display:block;width:100%;text-align:left;min-height:110px;background:#123e58}.tile b{font-size:16px;display:block}.tile small{display:block;color:#b8d2e1;margin-top:5px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #3a5b76;font-size:13px}td input{min-width:60px}.scroll{overflow:auto}
+.canvas{width:100%;border-radius:9px;background:#edf6fb;border:1px solid #426378;cursor:crosshair;touch-action:manipulation}
+svg.diagram{width:100%;max-width:950px;background:#f1f7f9;border-radius:9px;overflow:visible}
+.meter{display:inline-block;color:#83f5ca;font-weight:800}.muted{color:#9ebace}
+.check{display:flex;align-items:start;gap:8px;padding:7px;border-bottom:1px solid #335169}.check input{width:19px;height:19px;min-height:auto;margin-top:3px}
+.bigcontrols button{min-height:52px;padding:14px 18px;font-size:17px}.highcontrast{--card:#030c15;--line:#b4e9f7;--link:#a4faff}
+@media(max-width:760px){.cols,.three,.grid,.grid.threecol{grid-template-columns:1fr}.wrap{padding:12px}.tabs{position:sticky;top:0;background:#071827;z-index:2}button{min-height:43px}}
+@media print{header,.tabs,.topbar,.actions,.noprint{display:none!important}body{background:white;color:black}.view{display:none!important}.view.active{display:block!important}.card{background:white;color:black;border:1px solid #888}p,.note,.muted{color:#333}.result{background:white;color:black}input,select,textarea{background:white;color:black;border:1px solid #aaa}svg.diagram{background:#fff}}
+</style></head><body>
+<header><b>ϟ Electrical Workbench · Field Suite</b><nav><a href="/troubleshooting-kb.html">Troubleshooting KB</a> · <a href="/bend-calcs.html">Bending</a> · <a href="/portal.html">Dashboard</a></nav></header>
+<main class="wrap"><h1>Field Suite</h1><p>Practical installation, design, quoting, test and recordkeeping worksheets in one place. Tools are advisory and require engineering, OEM and code verification before construction.</p>
+<div class="topbar"><div class="field"><label for="projectChoice">Active local project</label><select id="projectChoice"><option value="">No project selected</option></select></div><div class="actions"><button id="newProject">+ Project</button><button id="largeMode">Jobsite mode: off</button><button id="contrast">High contrast</button><span id="connection" class="note"></span></div></div>
+<div class="tabs noprint" id="tabbar">
+<button data-view="home" class="active">Jobsite</button><button data-view="trouble">Troubleshooting</button><button data-view="bend">3D bend preview</button><button data-view="blueprint">Blueprint takeoff</button><button data-view="controls">Motor controls</button><button data-view="sld">One-line diagram</button><button data-view="code">CEC navigator</button><button data-view="quote">Quoting</button><button data-view="projects">Projects</button><button data-view="commission">Commissioning</button><button data-view="capture">Camera capture</button>
+</div>
+<section class="view active" id="view-home"><div class="card"><h2>Jobsite quick start</h2><p>Large field shortcuts, project-based records, offline-friendly worksheets and recently saved work. Enable Jobsite mode to increase touch targets.</p><div class="three">
+<button class="tile" data-jump="trouble"><b>🛠 Troubleshoot fault</b><small>Diagnostic cases and Epiroc-style methods</small></button>
+<button class="tile" data-jump="bend"><b>↪ Conduit bending</b><small>3D offset preview and calibrated bender</small></button>
+<button class="tile" data-jump="blueprint"><b>📐 Drawing takeoff</b><small>Scale lengths and estimate materials</small></button>
+<button class="tile" data-jump="controls"><b>⚙ Motor controls</b><small>Starter logic and interlock simulator</small></button>
+<button class="tile" data-jump="sld"><b>⚡ One-line diagram</b><small>Editable distribution-chain sketch</small></button>
+<button class="tile" data-jump="quote"><b>💼 Contractor quote</b><small>Materials, labour, markup and tax</small></button>
+<button class="tile" data-jump="commission"><b>✔ Commissioning</b><small>Test results and sign-off records</small></button>
+<button class="tile" data-jump="capture"><b>📷 Nameplate capture</b><small>Photograph and verify equipment data</small></button>
+<button class="tile" data-jump="projects"><b>📁 Project history</b><small>Saved worksheets and export</small></button>
+</div></div><div class="card"><h3>Already available in Electrical Workbench</h3><div class="actions"><a href="/guided-calculators.html">Guided CEC worksheets</a><a href="/calculators.html">CEC calculator pack</a><a href="/advanced-calculations.html">Advanced electrical calculations</a><a href="/pull-box-calcs.html">Pull-box sizing</a><a href="/bender-calibration.html">Bender profiles</a><a href="/bend-calcs.html">Step-by-step bend marks</a></div></div>
+<div class="card"><h3>Saved project activity</h3><div id="recentActivity" class="note">Select or create a project.</div></div></section>
+<section class="view" id="view-trouble"><div class="card"><h2>Industrial troubleshooting</h2><p>The Knowledge Base contains fault-isolation procedures for motors, VFDs, PLCs, analog loops, battery-electric mining vehicles, underground pumps, ventilation, protection relays and more.</p><div class="actions"><a href="/troubleshooting-kb.html"><button class="primary">Open 23 troubleshooting procedures</button></a><a href="/troubleshooting-kb.html#plc-input-output">PLC input ON / output OFF</a><a href="/troubleshooting-kb.html#vfd-overvoltage">VFD overvoltage</a><a href="/troubleshooting-kb.html#bev-hv-system">Mine BEV HV enable</a></div><div class="notice">Always establish a safe work condition, follow the site/OEM procedures and verify zero energy. No instruction in the knowledge base authorizes energized work or bypassing protective devices.</div></div></section>
+<section class="view" id="view-bend"><div class="card"><h2>3D conduit offset preview</h2><p>A projected geometric layout of a two-bend offset with optional roll. Shows centreline rise, travel, spacing and shrink. This is <b>not</b> a validated bend-shoe radius/clearance or CNC fabrication model.</p><div class="grid threecol">
+<div class="field"><label for="bendHeight">Vertical rise (mm)</label><input id="bendHeight" type="number" min="0" value="150"></div>
+<div class="field"><label for="bendRoll">Horizontal roll (mm)</label><input id="bendRoll" type="number" min="0" value="100"></div>
+<div class="field"><label for="bendAngle">Bend angle, each (°)</label><select id="bendAngle"><option>10</option><option>15</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></div>
+<div class="field"><label for="bendLead">Straight lead (mm)</label><input id="bendLead" type="number" min="0" value="250"></div>
+<div class="field"><label for="bendTail">Straight tail (mm)</label><input id="bendTail" type="number" min="0" value="250"></div></div>
+<div class="actions"><button class="primary" id="previewBend">Update 3D preview</button><button id="saveBend">Save preview to project</button><a href="/bender-calibration.html">Bender Calibration</a><a href="/bend-calcs.html">Exact field mark guide</a></div>
+<div id="bendDrawing"></div><div id="bendOutput" class="result"></div>
+<div class="note">Diagram shows a schematic 3D centreline with idealized sharp intersections; real conduit forms finite-radius arcs. Actual physical bend marking requires measured bender deduct, shoe geometry, radius, hook direction and manufacturer instructions.</div></div></section>
+<section class="view" id="view-blueprint"><div class="card"><h2>Blueprint measurements and materials takeoff</h2>
+<p>Upload a drawing image, click two points for a known reference length, then click two points per conduit run. For PDFs, use a drawing viewer to measure and enter lengths manually; PDF image measurement is not supported in this first version.</p>
+<div class="grid"><div class="field"><label for="drawingFile">Drawing image (PNG/JPG/WebP)</label><input id="drawingFile" type="file" accept="image/png,image/jpeg,image/webp"></div><div class="field"><label for="knownMeters">Actual reference distance (metres)</label><input id="knownMeters" type="number" min="0.001" step="any" value="5"></div></div>
+<div class="actions"><button id="referenceMode" class="primary">1 · Set reference on image</button><button id="runMode">2 · Measure a conduit run</button><button id="clearDraw">Clear image marks</button></div>
+<canvas class="canvas" id="drawingCanvas" width="860" height="300" aria-label="Click pairs of points on uploaded drawing to set scale or measure runs"></canvas>
+<div class="result" id="drawingStatus">Upload a drawing image, choose Set reference, and select two endpoints of a known distance.</div>
+<div class="grid threecol"><div class="field"><label for="manualRun">Run length (metres; measured or manual)</label><input id="manualRun" type="number" min="0" value="10" step="any"></div><div class="field"><label for="conduitType">Conduit / cable description</label><input id="conduitType" value="21 mm EMT"></div><div class="field"><label for="runQuantity">Number of identical runs</label><input id="runQuantity" type="number" min="1" value="1"></div></div>
+<div class="actions"><button class="primary" id="addRun">Add run to takeoff</button><button id="exportTakeoff">Export takeoff CSV</button><button id="saveTakeoff">Save takeoff to project</button></div>
+<div class="scroll"><table><thead><tr><th>Description</th><th>Run length</th><th>Quantity</th><th>Total metres</th><th>Action</th></tr></thead><tbody id="takeoffRows"></tbody></table></div>
+<div class="field" style="max-width:250px"><label for="wastePct">Material waste allowance (%)</label><input id="wastePct" type="number" min="0" value="10"></div><div id="takeoffSummary" class="result"></div></div></section>
+<section class="view" id="view-controls"><div class="card"><h2>Motor starter and control logic simulator</h2><p>Practice seal-in, START/STOP priority, E-stop/overload permissives, FWD/REV interlocks and TON/TOF timer logic. This is an educational truth-table simulator, not a controller connected to equipment.</p>
+<div class="grid"><div class="field"><label for="controlMode">Control arrangement</label><select id="controlMode"><option value="three">3-wire START/STOP seal-in</option><option value="two">2-wire maintained control</option><option value="rev">Forward/reverse interlocked</option></select></div><div class="field"><label for="timerType">Timer contact behavior</label><select id="timerType"><option value="ton">ON-delay</option><option value="tof">OFF-delay</option></select></div>
+<div class="field"><label for="delaySeconds">Timer preset seconds</label><input id="delaySeconds" type="number" min="0" value="5"></div><div class="field"><label for="elapsed">Elapsed seconds since last input transition</label><input id="elapsed" type="number" min="0" value="0"></div></div>
+<div class="actions"><button id="startControl" class="primary">START / FWD</button><button id="reverseControl">REVERSE</button><button id="stopControl">STOP</button><button id="resetControl">Reset latch</button></div>
+<div class="grid"><label><input id="stopHealthy" type="checkbox" checked style="width:20px;min-height:auto"> STOP contact healthy / closed</label><label><input id="estopHealthy" type="checkbox" checked style="width:20px;min-height:auto"> E-stop permissive healthy</label><label><input id="overloadHealthy" type="checkbox" checked style="width:20px;min-height:auto"> Overload auxiliary healthy</label><label><input id="otherPermissive" type="checkbox" checked style="width:20px;min-height:auto"> Process permissive healthy</label></div>
+<div id="controlDiagram"></div><div id="controlStatus" class="result"></div>
+<div class="actions"><button id="saveControl">Save logic case to project</button><a href="/troubleshooting-kb.html#start-stop-seal">Seal-in troubleshooting steps</a><a href="/troubleshooting-kb.html#timer-mode">TON/TOF troubleshooting steps</a></div></div></section>
+<section class="view" id="view-sld"><div class="card"><h2>Editable single-line diagram sketch</h2><p>Build a simple connected source-to-load chain. This creates an SVG drawing for planning and discussion; it does not perform short-circuit, coordination, grounding or protection studies.</p>
+<div class="grid threecol"><div class="field"><label for="sldType">Component</label><select id="sldType"><option>Utility / Source</option><option>Transformer</option><option>Switchgear</option><option>Breaker</option><option>Panelboard</option><option>Feeder</option><option>Motor</option><option>VFD</option><option>Generator</option><option>UPS</option><option>Load</option></select></div><div class="field"><label for="sldName">Equipment tag</label><input id="sldName" placeholder="e.g. TX-1"></div><div class="field"><label for="sldRating">Rating / voltage</label><input id="sldRating" placeholder="e.g. 75 kVA 600:208 V"></div></div>
+<div class="actions"><button class="primary" id="addSld">+ Add to diagram</button><button id="undoSld">Remove last</button><button id="exportSld">Export SVG</button><button id="saveSld">Save diagram to project</button></div>
+<div id="sldPreview"></div><div id="sldStatus" class="note"></div></div></section>
+<section class="view" id="view-code"><div class="card"><h2>CEC 2024 / Ontario code task navigator</h2><p>Plain-language topic prompts and rule/section starting points. These are <b>not reproduced CSA tables</b> and are not a legal code interpretation. Verify actual CEC 2024 text, Ontario amendments, ESA bulletins, equipment ratings and the AHJ before installation.</p><div class="field"><label for="codeSearch">Search task</label><input id="codeSearch" placeholder="e.g. motor, service, bonding, box fill"></div><div id="codeResults" class="three" style="margin-top:14px"></div><div class="actions"><a href="/calculators.html">Open CEC calculators</a><a href="/guided-calculators.html">Guided worked examples</a><a href="/news.html">Ontario code news</a></div></div></section>
+<section class="view" id="view-quote"><div class="card"><h2>Electrical quotation worksheet</h2><div class="grid"><div class="field"><label for="quoteCustomer">Customer / project title</label><input id="quoteCustomer" placeholder="Customer / job"></div><div class="field"><label for="quoteRate">Labour rate (CAD/hour)</label><input id="quoteRate" type="number" min="0" value="85"></div></div>
+<div class="grid threecol"><div class="field"><label for="quoteMarkup">Material markup (%)</label><input id="quoteMarkup" type="number" min="0" value="20"></div><div class="field"><label for="quoteTax">Applicable sales tax (%)</label><input id="quoteTax" type="number" min="0" value="13"></div><div class="field"><label for="quoteContingency">Contingency (%)</label><input id="quoteContingency" type="number" min="0" value="5"></div></div>
+<div class="scroll"><table><thead><tr><th>Material / service</th><th>Qty</th><th>Unit cost</th><th>Labour hours</th><th></th></tr></thead><tbody id="quoteRows"></tbody></table></div><div class="actions"><button class="primary" id="addQuoteRow">+ Add line item</button><button id="saveQuote">Save quote to project</button><button id="exportQuote">Export quote CSV</button><button id="printQuote">Print / save PDF</button></div><div class="result" id="quoteTotals"></div><p class="note">Default rate, markup and 13% tax are editable planning inputs, not quotes for a given supplier or tax advice. Verify permit, travel, equipment rental, insurance, terms and taxable treatment.</p></div></section>
+<section class="view" id="view-projects"><div class="card"><h2>Projects and calculation history</h2><p>Locally store reference notes, takeoffs, test results, diagrams, and quotation snapshots. The current version does <b>not</b> sync data across browsers, Android, or Windows accounts.</p>
+<div class="grid"><div class="field"><label for="projectName">Project name</label><input id="projectName" placeholder="e.g. Site B - Pump Upgrade"></div><div class="field"><label for="projectNotes">Project site / notes</label><input id="projectNotes" placeholder="Site / electrical system"></div></div>
+<div class="actions"><button class="primary" id="createProject">Create / update project</button><button id="exportProjects">Export all projects JSON</button><button id="importProjectsButton">Import projects JSON</button><input id="importProjectsFile" type="file" accept="application/json" style="display:none"><button class="danger" id="deleteProject">Delete selected project</button></div>
+<div id="projectList"></div><div id="historyList"></div></div></section>
+<section class="view" id="view-commission"><div class="card"><h2>Commissioning and inspection report</h2><p>Capture job details and test evidence. Not every test is appropriate for every installation; use OEM procedures, commissioning plans and required qualifications.</p>
+<div class="grid"><div class="field"><label for="commissionAsset">Equipment / circuit</label><input id="commissionAsset" placeholder="e.g. MCC-01 / 25 hp motor"></div><div class="field"><label for="commissionInspector">Technician</label><input id="commissionInspector" placeholder="Name / role"></div><div class="field"><label for="commissionDate">Test date</label><input id="commissionDate" type="date"></div><div class="field"><label for="commissionPermit">Permit / reference</label><input id="commissionPermit" placeholder="Work order / permit"></div></div>
+<div id="commissionChecks"></div><label for="commissionNotes">Readings, deficiencies and corrective action</label><textarea id="commissionNotes" placeholder="Meter identity, measured voltage/current/insulation where appropriate, as-left settings, deficiencies"></textarea>
+<div class="actions"><button class="primary" id="saveCommission">Save commissioning record</button><button id="printCommission">Print report</button></div><div id="commissionStatus" class="result"></div></div></section>
+<section class="view" id="view-capture"><div class="card"><h2>Equipment nameplate / camera capture</h2><p>Take or select a photo, then transcribe and verify the equipment data. Automatic OCR, AI classification and smart-glasses streaming are <b>not yet connected</b>; this is the safe manual-verification foundation.</p>
+<div class="grid"><div><label for="photoFile">Capture or upload image</label><input id="photoFile" type="file" accept="image/*" capture="environment"></div><div><label for="photoType">Equipment type</label><select id="photoType"><option>Motor</option><option>Transformer</option><option>VFD / drive</option><option>Breaker / switch</option><option>Control panel</option><option>Relay / RTU</option><option>Other</option></select></div></div>
+<div id="photoPreview" style="margin:12px 0"></div>
+<div class="grid threecol"><div class="field"><label for="photoTag">Asset / model</label><input id="photoTag" placeholder="Model, asset ID"></div><div class="field"><label for="photoVoltage">Rated voltage</label><input id="photoVoltage" placeholder="e.g. 575 V"></div><div class="field"><label for="photoCurrent">Rated current</label><input id="photoCurrent" placeholder="e.g. 28 A"></div><div class="field"><label for="photoPower">Power / capacity</label><input id="photoPower" placeholder="e.g. 20 hp"></div><div class="field"><label for="photoSerial">Serial (optional)</label><input id="photoSerial" placeholder="Optional serial"></div></div>
+<label for="photoNotes">Verified nameplate notes</label><textarea id="photoNotes" placeholder="Frequency, phase, service factor, duty, temperature rating, drawing ref, checks"></textarea>
+<div class="actions"><button class="primary" id="saveNameplate">Save verified data to project</button><a href="/calculators.html">Open electrical calculators</a></div><p class="note">Photo preview is temporary and is not uploaded or saved to local project history. Only verified text fields are saved. Never use AI extraction alone for protection or conductor sizing.</p><div id="photoStatus" class="result"></div></div></section>
+</main>
+<script>
+(function(){
+'use strict';
+var STORAGE='ew.fieldSuite.projects.v1', PROJECT='ew.fieldSuite.selected.v1', MODE='ew.fieldSuite.large.v1';
+var $=function(id){return document.getElementById(id)}, activeView='home', runs=[], quoteLines=[], sld=[], ctrl={latched:false,forward:false,reverse:false,input:false,lastSignal:false}, drawImage=null, marks=[], drawMode='reference', refRatio=0, drawingSegments=[], userPhotoUrl=null;
+function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function num(id){var el=$(id);var v=el&&el.value!==''?Number(el.value):NaN;return Number.isFinite(v)?v:NaN}
+function positive(x){return Number.isFinite(x)&&x>0}
+function fmt(x,n){return Number.isFinite(x)?x.toFixed(n===undefined?2:n):'—'}
+function money(x){return Number.isFinite(x)?x.toLocaleString('en-CA',{style:'currency',currency:'CAD'}):'—'}
+function getProjects(){try{var a=JSON.parse(localStorage.getItem(STORAGE)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function putProjects(a){try{localStorage.setItem(STORAGE,JSON.stringify(a));return true}catch(e){alert('Could not save locally; browser storage may be full or disabled. Export your records.');return false}}
+function selected(){return $('projectChoice').value}
+function projectById(id){return getProjects().find(function(p){return p.id===id})}
+function updateProjectUI(){
+ var all=getProjects(),curr=localStorage.getItem(PROJECT)||'';
+ $('projectChoice').innerHTML='<option value="">No project selected</option>';
+ all.forEach(function(p){var opt=new Option(p.name,p.id);$('projectChoice').appendChild(opt)});
+ $('projectChoice').value=all.some(function(p){return p.id===curr})?curr:'';
+ var p=projectById($('projectChoice').value);
+ $('projectList').innerHTML=all.map(function(x){return '<div class="check"><div><b>'+esc(x.name)+'</b><small class="muted"> · '+esc(x.notes||'')+' · '+(x.records||[]).length+' records</small></div><button data-pid="'+esc(x.id)+'">Select</button></div>'}).join('')||'<p>No projects created.</p>';
+ $('projectList').querySelectorAll('button[data-pid]').forEach(function(b){b.onclick=function(){chooseProject(b.dataset.pid)}});
+ $('projectName').value=p?p.name:'';
+ $('projectNotes').value=p?p.notes||'':'';
+ var records=p?(p.records||[]):[];
+ $('historyList').innerHTML='<h3>Selected project history</h3>'+(records.map(function(r){return '<div class="check"><div><b>'+esc(r.kind)+'</b> · '+esc(r.title)+'<small class="muted"> '+esc((r.created||'').slice(0,16).replace('T',' '))+'</small><div class="note">'+esc(r.summary||'')+'</div></div></div>'}).join('')||'<p>No records in this project.</p>');
+ $('recentActivity').innerHTML=records.length?records.slice(0,6).map(function(r){return '<p><b>'+esc(r.kind)+'</b>: '+esc(r.title)+' <small>'+esc((r.created||'').slice(0,10))+'</small></p>'}).join(''):'No saved activity for the current project.';
+}
+function chooseProject(id){try{localStorage.setItem(PROJECT,id)}catch(e){} updateProjectUI()}
+function createProject(){
+ var name=$('projectName').value.trim()||prompt('Project name');if(!name)return;
+ var all=getProjects(),id=selected(),p=all.find(function(x){return x.id===id});
+ if(p){p.name=name;p.notes=$('projectNotes').value.trim()}else{id='p'+Date.now().toString(36);all.push({id:id,name:name,notes:$('projectNotes').value.trim(),records:[]})}
+ if(putProjects(all))chooseProject(id);
+}
+function saveRecord(kind,title,summary,payload){
+ var id=selected();if(!id){alert('Create or select a local project first.');show('projects');return false}
+ var all=getProjects(),p=all.find(function(v){return v.id===id});
+ if(!p)return false;p.records=p.records||[];p.records.unshift({id:'r'+Date.now(),kind:kind,title:title,summary:summary,created:new Date().toISOString(),payload:payload});
+ var ok=putProjects(all);if(ok)updateProjectUI();return ok;
+}
+function download(text,filename,mime){var blob=new Blob([text],{type:mime||'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function csv(rows){return rows.map(function(r){return r.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(',')}).join('\r\n')}
+function show(name){if(!$('view-'+name))return;activeView=name;document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+name)});document.querySelectorAll('.tabs button').forEach(function(b){b.classList.toggle('active',b.dataset.view===name)});try{history.replaceState(null,'','#'+name)}catch(e){}window.scrollTo(0,0)}
+document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){show(b.dataset.view)}});
+document.querySelectorAll('[data-jump]').forEach(function(b){b.onclick=function(){show(b.dataset.jump)}});
+$('projectChoice').onchange=function(){chooseProject(this.value)};
+$('newProject').onclick=function(){$('projectName').value='';$('projectNotes').value='';try{localStorage.setItem(PROJECT,'')}catch(e){}updateProjectUI();show('projects');$('projectName').focus()};
+$('createProject').onclick=createProject;
+$('deleteProject').onclick=function(){if(!selected())return;if(!confirm('Delete selected project and its local records?'))return;putProjects(getProjects().filter(function(x){return x.id!==selected()}));chooseProject('')};
+$('exportProjects').onclick=function(){download(JSON.stringify(getProjects(),null,2),'electrical-workbench-projects.json','application/json')};
+$('importProjectsButton').onclick=function(){$('importProjectsFile').click()};
+$('importProjectsFile').onchange=function(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var incoming=JSON.parse(rd.result);if(!Array.isArray(incoming)||incoming.some(function(v){return !v||!v.id||typeof v.name!=='string'||!Array.isArray(v.records)}))throw Error('Unexpected project format');if(!confirm('Replace local project library with imported file?'))return;putProjects(incoming);chooseProject('')}catch(e){alert('Import failed: '+e.message)}};rd.readAsText(f)};
+function applyMode(on){document.body.classList.toggle('bigcontrols',on);$('largeMode').textContent='Jobsite mode: '+(on?'ON':'off');try{localStorage.setItem(MODE,on?'1':'0')}catch(e){}}
+$('largeMode').onclick=function(){applyMode(!document.body.classList.contains('bigcontrols'))};
+applyMode(localStorage.getItem(MODE)==='1');
+$('contrast').onclick=function(){document.body.classList.toggle('highcontrast')};
+function net(){var online=navigator.onLine;$('connection').textContent=online?'Connected · local worksheets':'Offline · local worksheets';}
+window.addEventListener('online',net);window.addEventListener('offline',net);net();
+
+function renderBend(){
+ var h=num('bendHeight'),z=num('bendRoll'),deg=num('bendAngle'),lead=num('bendLead'),tail=num('bendTail');
+ if([h,z,deg,lead,tail].some(function(x){return !Number.isFinite(x)||x<0})||deg<=0||deg>=90||(h===0&&z===0)){$('bendOutput').textContent='Enter a positive rise or roll, nonnegative leads, and an angle between 0° and 90°.';$('bendDrawing').innerHTML='';return}
+ var trueRise=Math.hypot(h,z),a=deg*Math.PI/180,run=trueRise/Math.tan(a),travel=trueRise/Math.sin(a),shrink=trueRise*Math.tan(a/2);
+ var total=lead+run+tail,scale=Math.min(1.1,760/Math.max(1,total+Math.abs(z)*0.5));
+ var pts=[[0,0,0],[lead,0,0],[lead+run,h,z],[total,h,z]];
+ function proj(pt){return [65+(pt[0]+pt[2]*0.5)*scale,300-(pt[1]+pt[2]*0.38)*scale]}
+ var coords=pts.map(proj),poly=coords.map(function(p){return fmt(p[0],1)+','+fmt(p[1],1)}).join(' ');
+ var labels=coords.map(function(p,i){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="5" fill="#087c91"/><text x="'+(p[0]+8)+'" y="'+(p[1]-12)+'" font-size="14" fill="#123349">'+['START','BEND A','BEND B','END'][i]+'</text>'}).join('');
+ var maxX=Math.max.apply(null,coords.map(function(x){return x[0]})),minY=Math.min.apply(null,coords.map(function(x){return x[1]})),width=Math.max(840,maxX+50),height=Math.max(390,340-minY+30);
+ $('bendDrawing').innerHTML='<svg class="diagram" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Projected 3D geometric conduit offset"><path d="M40 325 L'+(width-30)+' 325" stroke="#b1c1cc" stroke-dasharray="5 6"/><polyline points="'+poly+'" fill="none" stroke="#526879" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><polyline points="'+poly+'" fill="none" stroke="#20b6be" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>'+labels+'<text x="26" y="34" font-size="18" fill="#18425a">Schematic 3D centreline · not to scale of physical shoe radius</text></svg>';
+ $('bendOutput').textContent='True offset = √(vertical² + roll²) = '+fmt(trueRise,1)+' mm\nBend-to-bend conduit distance = true offset / sin('+deg+'°) = '+fmt(travel,1)+' mm\nProjected horizontal run = '+fmt(run,1)+' mm\nIdeal geometric shrink = '+fmt(shrink,1)+' mm\nIdealized stock centreline length ≈ '+fmt(lead+travel+tail,1)+' mm\nThese are tangent-free planning dimensions, NOT shoe ARROW/STUB mark locations.';
+}
+$('previewBend').onclick=renderBend;$('saveBend').onclick=function(){saveRecord('Bending','3D offset preview',$('bendOutput').textContent,{height:num('bendHeight'),roll:num('bendRoll'),angle:num('bendAngle'),lead:num('bendLead'),tail:num('bendTail')})};renderBend();
+
+function drawCanvas(){
+ var c=$('drawingCanvas'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#f0f8fc';ctx.fillRect(0,0,c.width,c.height);
+ if(drawImage){var sc=Math.min(c.width/drawImage.width,c.height/drawImage.height),w=drawImage.width*sc,h=drawImage.height*sc;ctx.drawImage(drawImage,0,0,w,h)}
+ ctx.lineWidth=3;drawingSegments.forEach(function(s){ctx.strokeStyle=s.mode==='reference'?'#bc7618':'#1884a0';ctx.beginPath();ctx.moveTo(s.a[0],s.a[1]);ctx.lineTo(s.b[0],s.b[1]);ctx.stroke();ctx.fillStyle='#193b53';ctx.font='14px system-ui';ctx.fillText(s.label,s.b[0]+5,s.b[1]-6)});
+ if(marks.length){ctx.fillStyle='#cf4141';ctx.beginPath();ctx.arc(marks[0][0],marks[0][1],5,0,Math.PI*2);ctx.fill()}
+}
+$('drawingFile').onchange=function(e){var file=e.target.files[0];if(!file)return;var image=new Image(),blob=URL.createObjectURL(file);image.onload=function(){var c=$('drawingCanvas'),s=Math.min(860/image.width,560/image.height,1.5);c.width=Math.max(320,Math.round(image.width*s));c.height=Math.max(210,Math.round(image.height*s));drawImage=image;marks=[];drawingSegments=[];refRatio=0;drawCanvas();$('drawingStatus').textContent='Image loaded. Select two points for a known reference distance.';URL.revokeObjectURL(blob)};image.onerror=function(){$('drawingStatus').textContent='Could not open image.';URL.revokeObjectURL(blob)};image.src=blob};
+$('referenceMode').onclick=function(){drawMode='reference';marks=[];$('drawingStatus').textContent='Reference mode: click the two ends of a known distance.'};
+$('runMode').onclick=function(){drawMode='run';marks=[];$('drawingStatus').textContent='Run mode: click the two ends of a conduit run after setting a reference.'};
+$('clearDraw').onclick=function(){marks=[];drawingSegments=[];refRatio=0;drawCanvas();$('drawingStatus').textContent='Drawing measurements cleared.'};
+$('drawingCanvas').onclick=function(e){
+ if(!drawImage)return;var rect=this.getBoundingClientRect(),x=(e.clientX-rect.left)*this.width/rect.width,y=(e.clientY-rect.top)*this.height/rect.height;marks.push([x,y]);
+ if(marks.length===2){var a=marks[0],b=marks[1],px=Math.hypot(b[0]-a[0],b[1]-a[1]);
+ if(px<2){$('drawingStatus').textContent='Points too close; choose two distinct points.';marks=[];drawCanvas();return}
+ if(drawMode==='reference'){var known=num('knownMeters');if(!positive(known)){$('drawingStatus').textContent='Enter known reference distance in metres first.';marks=[];return}refRatio=known/px;drawingSegments.push({a:a,b:b,mode:'reference',label:fmt(known,2)+' m REF'});$('drawingStatus').textContent='Scale set: '+fmt(px/known,2)+' pixels/metre. Switch to Run mode to measure conduit.'}
+ else {if(!positive(refRatio)){$('drawingStatus').textContent='Set the reference scale first.';marks=[];return}var meters=px*refRatio;$('manualRun').value=fmt(meters,3);drawingSegments.push({a:a,b:b,mode:'run',label:fmt(meters,2)+' m'});$('drawingStatus').textContent='Measured run '+fmt(meters,2)+' m. Select Add run to takeoff, then measure another.'}marks=[]}drawCanvas()};
+function renderTakeoff(){
+ $('takeoffRows').innerHTML=runs.map(function(r,i){return '<tr><td>'+esc(r.desc)+'</td><td>'+fmt(r.length,2)+' m</td><td>'+r.qty+'</td><td>'+fmt(r.qty*r.length,2)+' m</td><td><button data-del="'+i+'">Remove</button></td></tr>'}).join('');
+ $('takeoffRows').querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){runs.splice(Number(b.dataset.del),1);renderTakeoff()}});
+ var subtotal=runs.reduce(function(sum,r){return sum+r.length*r.qty},0),waste=num('wastePct');if(!Number.isFinite(waste)||waste<0)waste=0;
+ var group={};runs.forEach(function(r){group[r.desc]=(group[r.desc]||0)+r.length*r.qty});
+ $('takeoffSummary').textContent='Base run length: '+fmt(subtotal,2)+' m\nIncluding '+waste+'% waste: '+fmt(subtotal*(1+waste/100),2)+' m\nBy material:\n'+Object.keys(group).map(function(k){return k+': '+fmt(group[k]*(1+waste/100),2)+' m incl. waste'}).join('\n')+'\nVerify fittings, bends, supports, pulls, conduit fill, labour and field routing separately.';
+}
+$('addRun').onclick=function(){var len=num('manualRun'),qty=num('runQuantity'),d=$('conduitType').value.trim();if(!positive(len)||!Number.isInteger(qty)||qty<1||!d){alert('Enter valid description, positive length, and whole-number quantity.');return}runs.push({desc:d,length:len,qty:qty});renderTakeoff()};
+$('wastePct').oninput=renderTakeoff;
+$('exportTakeoff').onclick=function(){download(csv([['Description','Run metres','Qty','Total metres']].concat(runs.map(function(r){return[r.desc,r.length,r.qty,r.length*r.qty]}))),'electrical-takeoff.csv','text/csv')};
+$('saveTakeoff').onclick=function(){saveRecord('Takeoff','Conduit/material takeoff',runs.length+' rows',runs.slice())};drawCanvas();renderTakeoff();
+
+function renderControl(){
+ var mode=$('controlMode').value,healthy=['stopHealthy','estopHealthy','overloadHealthy','otherPermissive'].every(function(id){return $(id).checked});
+ if(!healthy){ctrl.latched=false;ctrl.forward=false;ctrl.reverse=false}
+ var on=healthy&&(mode==='rev'?(ctrl.forward||ctrl.reverse):ctrl.latched),dir=mode==='rev'?(ctrl.forward?'FORWARD':ctrl.reverse?'REVERSE':'STOPPED'):(on?'RUN':'STOP');
+ var d=Math.max(0,num('delaySeconds')||0),e=Math.max(0,num('elapsed')||0),timed=$('timerType').value==='ton'?(on&&e>=d):(on||(!on&&e<d&&ctrl.lastSignal));
+ var statuses=['STOP NC: '+($('stopHealthy').checked?'closed':'OPEN'),'E-STOP permissive: '+($('estopHealthy').checked?'healthy':'OPEN'),'OVERLOAD NC: '+($('overloadHealthy').checked?'closed':'OPEN'),'PROCESS permissive: '+($('otherPermissive').checked?'true':'FALSE')];
+ $('controlStatus').textContent='Control: '+(healthy?'permissives satisfied':'BLOCKED — fail safe')+'\nCommand state: '+dir+'\nSeal-in: '+(ctrl.latched?'latched':'not latched')+'\nTimer '+$('timerType').value.toUpperCase()+': '+(timed?'OUTPUT ON':'output OFF')+' at '+e+' s / '+d+' s preset\n'+statuses.join('\n')+'\nThis is conceptual logic; no actual outputs are controlled.';
+ var svg='<svg class="diagram" viewBox="0 0 780 170" role="img" aria-label="Control circuit logic illustration"><rect width="780" height="170" rx="10" fill="#eff6fa"/><text x="20" y="30" font-size="18" fill="#163a50">Simplified logic — not installation wiring</text>';
+ var bits=[['STOP NC',$('stopHealthy').checked],['E-STOP',$('estopHealthy').checked],['OL NC',$('overloadHealthy').checked],['PERM',$('otherPermissive').checked],['COIL',on]];
+ bits.forEach(function(v,i){var x=30+i*150;svg+='<rect x="'+x+'" y="60" width="130" height="60" rx="8" fill="'+(v[1]?'#c8f5dc':'#ffd0d0')+'" stroke="#2c6a79"/><text x="'+(x+8)+'" y="90" font-size="15" fill="#163b52">'+v[0]+'</text><text x="'+(x+8)+'" y="109" font-size="13" fill="#163b52">'+(v[1]?'ON / CLOSED':'OPEN / OFF')+'</text>';if(i<4)svg+='<path d="M'+(x+130)+' 90h20" stroke="#235a76" stroke-width="3"/>'});
+ $('controlDiagram').innerHTML=svg+'</svg>';
+}
+$('startControl').onclick=function(){if(['stopHealthy','estopHealthy','overloadHealthy','otherPermissive'].every(function(x){return $(x).checked})){ctrl.latched=true;ctrl.forward=true;ctrl.reverse=false;ctrl.input=true;ctrl.lastSignal=true}else{ctrl.latched=false;ctrl.forward=false;ctrl.reverse=false}renderControl()};
+$('reverseControl').onclick=function(){if($('controlMode').value==='rev'&&['stopHealthy','estopHealthy','overloadHealthy','otherPermissive'].every(function(x){return $(x).checked})){ctrl.latched=true;ctrl.forward=false;ctrl.reverse=true;ctrl.input=true;ctrl.lastSignal=true}renderControl()};
+$('stopControl').onclick=function(){ctrl.lastSignal=ctrl.latched;ctrl.latched=false;ctrl.forward=false;ctrl.reverse=false;ctrl.input=false;renderControl()};
+$('resetControl').onclick=function(){ctrl={latched:false,forward:false,reverse:false,input:false,lastSignal:false};renderControl()};
+['controlMode','timerType','delaySeconds','elapsed','stopHealthy','estopHealthy','overloadHealthy','otherPermissive'].forEach(function(k){$(k).addEventListener('change',renderControl);$(k).addEventListener('input',renderControl)});
+$('saveControl').onclick=function(){saveRecord('Controls','Motor logic simulation',$('controlStatus').textContent,{mode:$('controlMode').value,timer:$('timerType').value})};renderControl();
+
+function renderSld(){
+ var width=950,height=Math.max(260,95+sld.length*113),svg='<svg class="diagram" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Single-line diagram sketch"><rect width="'+width+'" height="'+height+'" fill="#f1f7fa"/><text x="35" y="33" font-size="20" fill="#153d57">Single-line planning sketch · verify with design engineer</text>';
+ if(!sld.length)svg+='<text x="42" y="105" fill="#415e72">Add a source, transformer, distribution device, feeder or load.</text>';
+ sld.forEach(function(x,i){var y=70+i*113;svg+='<rect x="310" y="'+y+'" width="330" height="69" rx="8" fill="#fff" stroke="#147b92" stroke-width="2"/><text x="328" y="'+(y+25)+'" fill="#103a52" font-size="18">'+esc(x.name)+'</text><text x="328" y="'+(y+46)+'" fill="#335a72" font-size="14">'+esc(x.type)+' · '+esc(x.rating)+'</text>';
+ if(i>0)svg+='<path d="M475 '+(y-44)+'v44" stroke="#185c7e" stroke-width="4"/>'});
+ $('sldPreview').innerHTML=svg+'</svg>';$('sldStatus').textContent=sld.length+' components in connected source-to-load sketch.';
+}
+$('addSld').onclick=function(){var n=$('sldName').value.trim(),r=$('sldRating').value.trim();if(!n){alert('Enter an equipment tag.');return}if(sld.length>=20){alert('Up to 20 components in this sketch.');return}sld.push({type:$('sldType').value,name:n,rating:r});$('sldName').value='';$('sldRating').value='';renderSld()};
+$('undoSld').onclick=function(){sld.pop();renderSld()};
+$('exportSld').onclick=function(){var svg=$('sldPreview').querySelector('svg');if(!svg)return;var copy=svg.cloneNode(true);copy.setAttribute('xmlns','http://www.w3.org/2000/svg');copy.removeAttribute('class');download(new XMLSerializer().serializeToString(copy),'electrical-one-line-sketch.svg','image/svg+xml')};
+$('saveSld').onclick=function(){saveRecord('SLD','One-line diagram sketch',sld.map(function(x){return x.name}).join(' → '),sld.slice())};renderSld();
+
+var rules=[
+['General rules / approvals','CEC Section 2','Check scope, approvals, environment, markings, access and supplementary sections.'],
+['Conductors / temperature','CEC Section 4 · Rule 4-006','Check ampacity, temperature ratings, terminals, grouping and correction factors.'],
+['Service / dwelling load','CEC Section 8 · Rule 8-200','Determine connected load, demand and the occupancy-specific rule; separate conductor and OCPD decisions.'],
+['Apartment / multi-unit service','CEC Section 8 · Rule 8-202','Identify suite count, connected loads, applicable demand and common-area loads.'],
+['Grounding & bonding','CEC Section 10','Identify grounding electrode, service or derived system, equipment bonding path and applicable table/rule.'],
+['Raceway / conduit fill','CEC Section 12','Confirm trade size, conductor dimensions, support, bends, environment and field conditions.'],
+['Pull boxes / bends','CEC Section 12 · Rule 12-3036','Identify straight, angle, U or mixed pulls, conductor size, entry trade sizes and cover clearance.'],
+['Overcurrent protection','CEC Section 14 · Rule 14-104','Determine the load, conductor ampacity and protective-device rating/continuous loading constraints.'],
+['Class 1/2 circuits','CEC Section 16','Check power-limited classifications, conductors, segregation and compatible wiring methods.'],
+['Hazardous locations','CEC Sections 18 and 20','Identify location classification, gas/vapour/dust, equipment approval and suitable wiring method.'],
+['Receptacles & equipment','CEC Section 26','Review receptacle/branch requirements, equipment-specific provisions and terminal ratings.'],
+['Motors and motor control','CEC Section 28','Identify FLC versus nameplate, conductor, controller, overload and branch/feeder OCPD rules.'],
+['Emergency systems','CEC Section 46','Check power supply, transfer, permitted wiring methods, emergency loads and test requirements.'],
+['Electrical heating','CEC Section 62','Confirm heater type, continuous loading, installation constraints and temperature controls.'],
+['Pools/spas and wet locations','CEC Section 68','Check bonding, GFCI protection, wiring method and equipment-location restrictions.'],
+['Voltage drop / K factor','CEC Appendix D / Table D3','Use project conductor data and installation assumptions; distinguish calculated drop from prescriptive limits.'],
+['Fire alarm and signalling','CEC and applicable fire alarm installation standards','Coordinate panel listings, supervision, cabling, notification and acceptance requirements.']
+];
+function renderCode(){var q=$('codeSearch').value.trim().toLowerCase(),arr=rules.filter(function(r){return r.join(' ').toLowerCase().includes(q)});$('codeResults').innerHTML=arr.map(function(r){return '<div class="card" style="margin:0"><h3>'+esc(r[0])+'</h3><b>'+esc(r[1])+'</b><p>'+esc(r[2])+'</p></div>'}).join('')||'<p>No matching references. Try a shorter task keyword.</p>'}
+$('codeSearch').oninput=renderCode;renderCode();
+
+function newQuoteLine(desc,qty,unit,hours){quoteLines.push({desc:desc||'',qty:qty===undefined?1:qty,cost:unit===undefined?0:unit,hours:hours===undefined?0:hours});renderQuote()}
+function renderQuote(){
+ $('quoteRows').innerHTML=quoteLines.map(function(r,i){return '<tr><td><input data-row="'+i+'" data-col="desc" value="'+esc(r.desc)+'" aria-label="Line description"></td><td><input type="number" min="0" data-row="'+i+'" data-col="qty" value="'+r.qty+'" aria-label="Quantity"></td><td><input type="number" min="0" data-row="'+i+'" data-col="cost" value="'+r.cost+'" aria-label="Unit cost"></td><td><input type="number" min="0" data-row="'+i+'" data-col="hours" value="'+r.hours+'" aria-label="Labour hours per unit"></td><td><button data-remove="'+i+'">×</button></td></tr>'}).join('');
+ $('quoteRows').querySelectorAll('input').forEach(function(e){e.oninput=function(){var row=quoteLines[Number(e.dataset.row)];row[e.dataset.col]=e.dataset.col==='desc'?e.value:Number(e.value)||0;quoteTotal()}});
+ $('quoteRows').querySelectorAll('button').forEach(function(b){b.onclick=function(){quoteLines.splice(Number(b.dataset.remove),1);renderQuote()}});
+ quoteTotal();
+}
+function quoteTotal(){var rate=num('quoteRate'),markup=num('quoteMarkup'),tax=num('quoteTax'),cont=num('quoteContingency');if([rate,markup,tax,cont].some(function(x){return !Number.isFinite(x)||x<0})){$('quoteTotals').textContent='Check rates, markup, tax, and contingency.';return null}
+ var materials=quoteLines.reduce(function(s,r){return s+r.qty*r.cost},0),hours=quoteLines.reduce(function(s,r){return s+r.qty*r.hours},0),labour=hours*rate,marked=materials*(1+markup/100),before=(marked+labour)*(1+cont/100),taxAmt=before*tax/100,total=before+taxAmt;
+ $('quoteTotals').textContent='Materials cost: '+money(materials)+'\nMaterials including markup: '+money(marked)+'\nLabour: '+fmt(hours,1)+' hours × '+money(rate)+' = '+money(labour)+'\nSubtotal with contingency: '+money(before)+'\nEstimated tax: '+money(taxAmt)+'\nESTIMATED TOTAL: '+money(total);
+ return {materials:materials,marked:marked,hours:hours,labour:labour,subtotal:before,tax:taxAmt,total:total};
+}
+$('addQuoteRow').onclick=function(){newQuoteLine('',1,0,0)};
+['quoteRate','quoteMarkup','quoteTax','quoteContingency'].forEach(function(id){$(id).oninput=quoteTotal});
+$('saveQuote').onclick=function(){var t=quoteTotal();if(t)saveRecord('Quote',$('quoteCustomer').value||'Electrical estimate',money(t.total),{items:quoteLines.slice(),totals:t,customer:$('quoteCustomer').value})};
+$('exportQuote').onclick=function(){var t=quoteTotal();if(!t)return;download(csv([['Item','Quantity','Unit cost CAD','Labour hours per unit']].concat(quoteLines.map(function(r){return[r.desc,r.qty,r.cost,r.hours]}),[['TOTAL','','',t.total]])),'electrical-quote.csv','text/csv')};
+$('printQuote').onclick=function(){show('quote');window.print()};
+newQuoteLine('21 mm EMT conduit (per metre)',30,4.5,.15);newQuoteLine('Receptacle / box installation',4,28,1.1);
+
+var tests=['Work permit / safe isolation verified','Equipment identification and drawing revision','Visual inspection / mechanical fixing','Grounding and bonding verification','Termination checks / torque per OEM','Insulation / continuity test where appropriate','Protection / overload setting review','Control and E-stop / interlock function','Phase rotation / motor direction where applicable','Functional load test and alarms','Deficiencies cleared / documentation'];
+$('commissionDate').value=new Date().toISOString().slice(0,10);
+$('commissionChecks').innerHTML=tests.map(function(t,i){return '<div class="check"><label style="flex:1">'+esc(t)+'</label><select aria-label="'+esc(t)+'" id="test'+i+'" style="width:170px"><option>Not checked</option><option>Pass</option><option>Fail</option><option>N/A</option></select></div>'}).join('');
+$('saveCommission').onclick=function(){
+ var data={asset:$('commissionAsset').value,technician:$('commissionInspector').value,date:$('commissionDate').value,reference:$('commissionPermit').value,notes:$('commissionNotes').value,checks:tests.map(function(t,i){return {name:t,status:$('test'+i).value}})};
+ var msg=data.checks.filter(function(x){return x.status==='Pass'}).length+' passed, '+data.checks.filter(function(x){return x.status==='Fail'}).length+' failed, '+data.checks.filter(function(x){return x.status==='Not checked'}).length+' unchecked';
+ $('commissionStatus').textContent='Report summary: '+msg+'\nRecord contains status evidence, not certification or authorization for energization.';
+ if(data.checks.some(function(x){return x.status==='Fail'}))$('commissionStatus').textContent+='\nOutstanding failures: equipment must not be treated as accepted.';
+ saveRecord('Commissioning',data.asset||'Test report',msg,data);
+};
+$('printCommission').onclick=function(){show('commission');window.print()};
+
+$('photoFile').onchange=function(e){
+ var file=e.target.files[0];if(userPhotoUrl){URL.revokeObjectURL(userPhotoUrl);userPhotoUrl=null}
+ $('photoPreview').innerHTML='';if(!file)return; if(!file.type.startsWith('image/')){$('photoStatus').textContent='Select an image file.';return}
+ userPhotoUrl=URL.createObjectURL(file);var img=document.createElement('img');img.src=userPhotoUrl;img.alt='Selected equipment photo for manual transcription';img.style.maxWidth='100%';img.style.maxHeight='420px';img.style.borderRadius='10px';$('photoPreview').appendChild(img);
+ $('photoStatus').textContent='Image preview loaded. Manually transcribe and verify all values before saving.';
+};
+$('saveNameplate').onclick=function(){
+ var data={type:$('photoType').value,tag:$('photoTag').value.trim(),voltage:$('photoVoltage').value.trim(),current:$('photoCurrent').value.trim(),power:$('photoPower').value.trim(),serial:$('photoSerial').value.trim(),notes:$('photoNotes').value.trim(),photoStored:false};
+ if(!data.tag){$('photoStatus').textContent='Enter an equipment asset/model identifier first.';return}
+ if(saveRecord('Nameplate',data.tag,data.type+' · '+data.voltage+' · '+data.power,data))$('photoStatus').textContent='Verified text data saved; photo is not retained.';
+};
+updateProjectUI();show(location.hash.slice(1)||'home');
+if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('/field-tools-sw.js').catch(function(){})}
+})();
+</script></body></html>
