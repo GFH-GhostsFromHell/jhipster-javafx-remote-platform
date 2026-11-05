@@ -1,8 +1,8 @@
 'use strict';
 /* Offline cache for public static Field Suite worksheets only.
    Never cache authenticated API responses, user photos, account pages, or credentials. */
-const NAME='ew-field-suite-static-v1';
-const ASSETS=['/field-suite.html','/troubleshooting-kb.html','/bend-calcs.html','/bender-calibration.html','/pull-box-calcs.html'];
+const NAME='ew-field-suite-static-v2';
+const ASSETS=['/field-suite.html','/troubleshooting-kb.html','/bend-calcs.html','/bender-calibration.html','/pull-box-calcs.html','/bend-instruction-lab.html','/bend-instruction-lab.js'];
 self.addEventListener('install',event=>{
  event.waitUntil(caches.open(NAME).then(cache=>Promise.all(ASSETS.map(path=>cache.add(path).catch(()=>null)))).then(()=>self.skipWaiting()));
 });
