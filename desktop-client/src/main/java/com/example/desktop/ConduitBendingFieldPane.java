@@ -16,7 +16,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
     private final ChoiceBox<String> bender = new ChoiceBox<>(FXCollections.observableArrayList("1/2 EMT", "3/4 EMT", "1 EMT", "1 1/4 EMT", "Custom"));
     private final ChoiceBox<String> obstacleReference = new ChoiceBox<>(FXCollections.observableArrayList("Near bend critical", "Far bend critical"));
     private final ChoiceBox<String> tapeMarks = new ChoiceBox<>(FXCollections.observableArrayList("Exact", "1 mm", "5 mm"));
-    private final ChoiceBox<String> saddleMarks = new ChoiceBox<>(FXCollections.observableArrayList("Traditional centre-notch + outer arrow", "Geometric bend-centres (calibrated shoe)"));
+    private final ChoiceBox<String> saddleMarks = new ChoiceBox<>(FXCollections.observableArrayList("Traditional centre-notch + outer arrow", "Geometric bend centres (layout ONLY)"));
     private final HBox saddleSettings = new HBox();
     private final TextField rise = field("150"), roll = field("100"), distance = field("600"), stub = field("500");
     private final TextField takeup = field("127"), width = field("200"), center = field("600"), correction = field("0");
@@ -194,10 +194,12 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 double spacing=h*multiplier,shift=h*Math.tan(Math.toRadians(side/2));
                 double B=c+shift,A=B-spacing,C=B+spacing;
                 if(A<0)throw new IllegalArgumentException("Saddle near mark is before the datum. Use a longer lead or shorter/steeper saddle.");
-                visualMarks.add(new BendMarkStripPane.Mark(B,1,"B · centre","SADDLE / CENTRE","Saddle notch; shoe-specific","Bend "+a+"° centre FIRST"));
-                visualMarks.add(new BendMarkStripPane.Mark(A,2,"A · outer","ARROW","Flip/rotate for outside return","Bend "+side+"° outside return"));
-                visualMarks.add(new BendMarkStripPane.Mark(C,3,"C · outer","ARROW","Keep return in same plane","Bend "+side+"° outside return"));
+                visualMarks.add(new BendMarkStripPane.Mark(B,1,"B · centre",traditional?"SADDLE / CENTRE":"BEND CENTRE ONLY","Centre notch or calibrated reference","Bend "+a+"° centre FIRST"));
+                visualMarks.add(new BendMarkStripPane.Mark(A,2,"A · outer",traditional?"ARROW":"BEND CENTRE ONLY","Opposite return; verify shoe marks","Bend "+side+"° outside return"));
+                visualMarks.add(new BendMarkStripPane.Mark(C,3,"C · outer",traditional?"ARROW":"BEND CENTRE ONLY","Keep return in same plane","Bend "+side+"° outside return"));
                 s.append("Centre bend: ").append(a).append("° · side bends: ").append(side).append("°\n")
+                 .append("Marking method: ").append(saddleMarks.getValue()).append("\n")
+                 .append("Side spacing multiplier: ").append(dec(multiplier)).append(" (pure geometry: ").append(dec(geometricMultiplier)).append(")\n")
                  .append("Spacing each side of centre: ").append(measure(spacing)).append("\n")
                  .append("Geometric centre shift: ").append(measure(shift)).append("\n")
                  .append("A (first outside): ").append(measure(A)).append("\nB (centre): ").append(measure(B))
@@ -206,7 +208,9 @@ public final class ConduitBendingFieldPane extends BorderPane {
                  .append("2. Measure ").append(measure(spacing)).append(" either side for A and C.\n")
                  .append("3. Align B with the bender's saddle/centre notch (if equipped) and bend ").append(a).append("°.\n")
                  .append("4. Turn the conduit 180° on its length and bend A and C ").append(side).append("° in the opposite direction, in the SAME plane.\n")
-                 .append("5. Test-fit over the obstacle. Manufacturer saddle tables may give slightly different marks due to shoe radius.\n");
+                 .append("5. The traditional field values of 2.5 for a 45° centre and 3.8 for a 30° centre assume centre-notch and outer-arrow benchmarks; geometric centre-to-centre distances are NOT interchangeable with these shoe markings.\n")
+                 .append("6. Verify mark convention and bend-clearance on a scrap piece before production.\n");
+                if(!traditional||a!=30&&a!=45)s.append("WARNING: this centre angle / selected method has NO verified physical shoe-mark calibration. Geometry is a planning reference ONLY: do not line up unverified arrow/notch marks using these positions.\n");
             } else if(t.equals("Four-point saddle")){
                 double h=positive(rise,"saddle height"), w=positive(width,"obstacle width"),d=positive(distance,"distance to near face");
                 double spacing=h*mult,sh=h*shrinkFactor;
