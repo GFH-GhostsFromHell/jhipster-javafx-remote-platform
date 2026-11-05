@@ -420,6 +420,7 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
         MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
+         MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
     }
 }
 
