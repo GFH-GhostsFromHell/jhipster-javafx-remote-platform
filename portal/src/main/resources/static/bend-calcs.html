@@ -231,11 +231,12 @@ function renderSteps(){
   'Test both vertical rise and horizontal roll before installing.');
  }else if(current==='saddle3'||current==='round'){
   const ca=parseFloat(document.getElementById('centerAngle')?.value)||45;
+  const verified=document.getElementById('saddleMethod')?.value.startsWith('Traditional')&&[30,45].includes(ca);
   steps=make('Measure the centre of the obstruction from your marked datum. Add the calculated centre shift and make the centre mark B.',
   'Measure the outside marks A and C equally to either side of B using the computed side spacing.',
   'Align the centre mark B with the bender SADDLE/CENTRE NOTCH if your shoe has one; bend '+ca+'°.',
   'Rotate the conduit 180° along its length. Use the ARROW or manufacturer-designated outer mark to bend A and C '+(ca/2)+'° in the opposite direction.',
-  'Test-fit the saddle; check clearance above and around the obstacle. Manufacturer saddle tables take priority over simple geometric spacing.');
+  'Test-fit the saddle. '+(verified?'Use centre-notch and outer-arrow positions only with your calibrated bender.':'BEND-CENTRE PLANNING positions only; they must NOT be treated as physical arrow/notch marks.'));
  }else if(['saddle4','rect','square'].includes(current)){
   steps=make('Measure the actual obstacle height and width, including chosen clearances. Use all four calculated marks A, B, C and D.',
   'At A and B, make two equal '+angle+'° bends opposite each other, returning to a straight section above the obstruction.',
@@ -256,6 +257,12 @@ function renderSteps(){
   'Measure desired back-to-back leg spacing from the BACK of the first completed bend, not from the conduit end.',
   'Line up the STAR / BACK-OF-90 reference on your bender at the second reference location (and use correction only if calibrated for that shoe).',
   'Bend the second 90° in the proper plane and verify finished clear distance between legs.');
+ }else if(current==='gainCut'){
+  steps=make('Bend matching scrap through 90°; measure its original unbent length and its two finished straight legs.',
+  'Determine measured gain = both finished legs added together, minus the original straight stock length.',
+  'Enter the desired finished leg dimensions. Add the back-to-back span when making two 90s.',
+  'Calculate straight cut length = finished dimension sum minus number of 90s × gain per bend.',
+  'Use the dedicated 90° stub and back-to-back tools for ARROW and STAR physical marks, then verify the finished dimensions.');
  }else if(current==='segment90'){
   steps=make('Choose your target centreline radius and number of equal segments. Verify the bender can safely form each small bend.',
   'Set out the calculated approximate station spacing, adjusted for the actual shoe tangent/centre-of-bend convention.',
