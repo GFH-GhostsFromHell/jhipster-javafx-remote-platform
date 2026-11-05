@@ -134,6 +134,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
             tile("🎓 Learn & Daily 25","Red Seal daily quiz, CEC navigator, formulas, control trainer and province profile",()->setWorkspace(buildPlatform("Learn"))),
             tile("🛠 Field Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
              tile("↪ Conduit Bender / Calibration","Bend layouts, field instructions and saved bender measurements",()->setWorkspace(new ConduitBendingFieldPane())),
+             tile("↪ Try 3D Bend Instruction Lab","Experimental rotatable multi-bend preview and large marking/flip cues; current native bender remains unchanged",()->openFieldPage("/bend-instruction-lab.html")),
              tile("🛠 Industrial Troubleshooting KB","Offline motor, VFD, PLC, protection and Epiroc-style mining diagnostic guides",()->setWorkspace(new TroubleshootingKnowledgePane())),
              tile("📐 Field Suite · web workspace","Blueprint takeoff, 3D conduit previews, quotes, controls, one-line diagrams, commissioning and project records",()->openFieldPage("/field-suite.html")),
              tile("📘 Troubleshooting KB · full library","Open 23 detailed guided diagnostic procedures and saved troubleshooting cases",()->openFieldPage("/troubleshooting-kb.html")),
