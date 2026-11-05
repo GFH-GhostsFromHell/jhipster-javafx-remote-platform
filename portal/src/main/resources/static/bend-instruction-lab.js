@@ -123,6 +123,7 @@ function getLayout(){
   warning='Custom bend model is a visualization only, not a fabrication or cut list.';
  }
  if(!isKlein){
+  marks=marks.map(m=>Object.assign({},m,{tool:m.tool==='GEOMETRY ONLY'?m.tool:'VERIFY THIS SHOE'}));
   steps=steps.map(s=>Object.assign({},s,{reference:s.reference==='GEOMETRY ONLY'?s.reference:'VERIFY SHOE',hook:'CHECK YOUR BENDER',flip:'VERIFY OEM METHOD'}));
   warning+=' Your tool is set to OTHER: manufacturer-specific orientation cues have been suppressed.';
  }
@@ -148,12 +149,27 @@ function renderStep(){
  if(mode==='partial')renderModel();
 }
 function defaults(){
- const a=Number($('angle').value),kind=$('kind').value;
+ const a=Number($('angle').value),kind=$('kind').value,angleR=a*RAD;
+ const H=toMm(v('height')||0),W=toMm(v('width')||0),D=toMm(v('distance')||0),R=toMm(v('radius')||120);
+ const stubLead=Math.max(150,H-R*.8),lead=Math.max(150,Math.min(900,D*.45));
+ const offsetLength=rise=>Math.max(40,(rise-2*R*(1-Math.cos(angleR)))/Math.sin(angleR));
+ const offsetBetween=offsetLength(H),rollRise=Math.hypot(H,W),rollBetween=offsetLength(rollRise),rollPlane=Math.atan2(W,H)*180/Math.PI;
+ const centre=a===60?60:45,side=centre/2;
  const config={
- kickExtra:[[400,90,0],[370,a,90],[360,90,-90]],kick90:[[400,90,0],[370,a,90]],kickBefore:[[380,a,90],[370,90,0]],
- stub:[[430,90,0]],offset:[[370,a,0],[410,-a,0]],back:[[260,90,0],[550,90,0]],saddle3:[[240,22.5,0],[350,-45,0],[350,22.5,0]],saddle4:[[240,a,0],[340,-a,0],[460,-a,0],[340,a,0]],roll:[[340,a,32],[500,-a,0]],segment:[[160,15,0],[140,15,0],[140,15,0],[140,15,0],[140,15,0],[140,15,0]],custom:[[400,90,0],[390,30,90],[340,90,-90]]
+  kickExtra:[[stubLead,90,0],[Math.max(160,W*.7),a,90],[Math.max(190,D*.4),90,-90]],
+  kick90:[[stubLead,90,0],[Math.max(160,W*.7),a,90]],
+  kickBefore:[[Math.max(180,D*.35),a,90],[stubLead,90,0]],
+  stub:[[stubLead,90,0]],
+  offset:[[lead,a,0],[offsetBetween,-a,0]],
+  back:[[Math.max(140,H-R*.8),90,0],[Math.max(180,W),90,0]],
+  saddle3:[[Math.max(160,lead*.65),side,0],[Math.max(80,H/Math.sin(side*RAD)*.65),-centre,0],[Math.max(80,H/Math.sin(side*RAD)*.65),side,0]],
+  saddle4:[[Math.max(160,lead*.65),a,0],[offsetBetween,-a,0],[Math.max(170,W),-a,0],[offsetBetween,a,0]],
+  roll:[[lead,a,rollPlane],[rollBetween,-a,0]],
+  segment:[[160,15,0],[140,15,0],[140,15,0],[140,15,0],[140,15,0],[140,15,0]],
+  custom:[[stubLead,90,0],[Math.max(200,W*.6),30,90],[Math.max(200,D*.4),90,-90]]
  };
- ops=config[kind].map(row=>({before:row[0],angle:row[1],plane:row[2]}));renderOperations();
+ ops=config[kind].map(row=>({before:Math.round(row[0]),angle:row[1],plane:Math.round(row[2]*10)/10}));
+ renderOperations();
 }
 function renderOperations(){
  $('operationRows').innerHTML='';
@@ -252,7 +268,7 @@ function refresh(reset){
  }catch(e){$('markDrawing').innerHTML='';$('markCards').innerHTML='';$('markAlert').textContent='CHECK MEASUREMENTS: '+e.message;$('instruction').textContent='Correct the input fields above.'}
 }
 $('kind').onchange=()=>refresh(true);$('angle').onchange=()=>refresh(true);$('method').onchange=()=>refresh(false);
-$('critical').onchange=()=>refresh(false);$('recalc').onclick=()=>refresh(false);
+$('critical').onchange=()=>refresh(false);$('recalc').onclick=()=>refresh(true);
 $('unit').addEventListener('change',function(){
  const old=this.dataset.previous||'mm',now=this.value,change=old===now?1:now==='mm'?25.4:1/25.4;
  ['height','deduct','distance','extraMark','width','radius','stock'].forEach(id=>{let value=$(id).value.trim();if(value!==''&&Number.isFinite(Number(value)))$(id).value=fmt(Number(value)*change,now==='mm'?2:4)});
