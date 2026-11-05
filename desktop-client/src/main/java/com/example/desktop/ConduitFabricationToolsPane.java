@@ -50,7 +50,15 @@ final class ConduitFabricationToolsPane extends ScrollPane {
         Button calculateCut = primary("Calculate straight cut length");
         calculateCut.setOnAction(e -> computeCut());
         Button copyCut = new Button("Copy cut list");copyCut.setOnAction(e -> copy(cutResult.getText()));
-        cut.getChildren().addAll(note("Measure each finished straight dimension using the same back-of-bend convention you used when calibrating gain. Do NOT confuse gain with arrow take-up/deduct."), c, new HBox(9, calculateCut, copyCut), cutResult);
+        Button useSavedGain = primary("Use saved bender gain");
+        useSavedGain.setOnAction(e -> {
+            Double measured=BenderCalibrationPane.value("gain",units.getValue());
+            if(measured==null){cutResult.setText("No saved gain. Open the Bender Calibration tab and measure a scrap 90° first.");return;}
+            shoeGain.setText(String.format(Locale.ROOT,"%.4f",measured));
+            computeCut();
+            cutResult.setText("Loaded "+BenderCalibrationPane.profileDescription()+". Verify the same actual shoe and back-of-bend measurement convention.\n\n"+cutResult.getText());
+        });
+        cut.getChildren().addAll(note("Measure each finished straight dimension using the same back-of-bend convention you used when calibrating gain. Do NOT confuse gain with arrow take-up/deduct."), c, new HBox(9, useSavedGain, calculateCut, copyCut), cutResult);
 
         VBox calibrate = card("Measure gain from a scrap 90° bend");
         GridPane test = new GridPane();test.setHgap(12);test.setVgap(10);
