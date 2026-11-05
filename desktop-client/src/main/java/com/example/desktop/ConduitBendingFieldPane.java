@@ -16,6 +16,8 @@ public final class ConduitBendingFieldPane extends BorderPane {
     private final ChoiceBox<String> bender = new ChoiceBox<>(FXCollections.observableArrayList("1/2 EMT", "3/4 EMT", "1 EMT", "1 1/4 EMT", "Custom"));
     private final ChoiceBox<String> obstacleReference = new ChoiceBox<>(FXCollections.observableArrayList("Near bend critical", "Far bend critical"));
     private final ChoiceBox<String> tapeMarks = new ChoiceBox<>(FXCollections.observableArrayList("Exact", "1 mm", "5 mm"));
+    private final ChoiceBox<String> saddleMarks = new ChoiceBox<>(FXCollections.observableArrayList("Traditional centre-notch + outer arrow", "Geometric bend-centres (calibrated shoe)"));
+    private final HBox saddleSettings = new HBox();
     private final TextField rise = field("150"), roll = field("100"), distance = field("600"), stub = field("500");
     private final TextField takeup = field("127"), width = field("200"), center = field("600"), correction = field("0");
     private final TextField segments = field("6");
@@ -27,6 +29,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
     public ConduitBendingFieldPane() {
         type.setValue(TYPES[0]); units.setValue("Millimetres"); angle.setValue(30d); bender.setValue("1/2 EMT");
         obstacleReference.setValue("Near bend critical"); tapeMarks.setValue("1 mm");
+        saddleMarks.setValue("Traditional centre-notch + outer arrow");
         VBox page = new VBox(12); page.setPadding(new Insets(14));
         Label title = new Label("Conduit bender · field layout & instructions");
         title.setStyle("-fx-font-size:21px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
@@ -37,6 +40,9 @@ public final class ConduitBendingFieldPane extends BorderPane {
         settings.setAlignment(Pos.CENTER_LEFT);
         HBox fieldSettings = new HBox(10,label("Offset reference"),obstacleReference,label("Tape mark precision"),tapeMarks);
         fieldSettings.setAlignment(Pos.CENTER_LEFT);
+        saddleSettings.getChildren().addAll(label("3-point saddle marking"),saddleMarks);
+        saddleSettings.setSpacing(10);
+        saddleSettings.setAlignment(Pos.CENTER_LEFT);
         VBox inputs = new VBox(9);
         put(inputs,"rise","Rise / obstacle height",rise);
         put(inputs,"roll","Horizontal roll",roll);
@@ -58,7 +64,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         TitledPane bendHelp=new TitledPane("Help · exact marking, shoe reference, bender orientation & order",help);
         bendHelp.setExpanded(true);
         bendHelp.setCollapsible(true);
-        page.getChildren().addAll(title,intro,selectors,settings,fieldSettings,inputs,new HBox(10,calculate,copy),visual,bendHelp,answer,
+        page.getChildren().addAll(title,intro,selectors,settings,fieldSettings,saddleSettings,inputs,new HBox(10,calculate,copy),visual,bendHelp,answer,
             note("Hand-bender arrows, star/back-of-90 marks, saddle notches, deduct, minimum stub and springback vary by manufacturer, conduit size and type. Field shrink charts are rounded; this calculator shows geometric values. Measure conduit on its centreline, keep bends in the intended plane, and check a test piece before cutting production runs."));
         ScrollPane scroll = new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
         TabPane screens=new TabPane();
@@ -66,6 +72,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         screens.getTabs().addAll(
             new Tab("Single Bend & Field Guide",scroll),
             new Tab("Advanced · Multiple Bends on One Pipe",new AdvancedConduitBendPane()),
+            new Tab("Gain, Cut Length & Rack Offsets",new ConduitFabricationToolsPane()),
             new Tab("Multiplier Chart & Quick Sheet",new ConduitBendReferencePane())
         );
         setCenter(screens);
@@ -73,6 +80,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         angle.setOnAction(e->calculate());
         obstacleReference.setOnAction(e->calculate());
         tapeMarks.setOnAction(e->calculate());
+        saddleMarks.setOnAction(e->calculate());
         bender.setOnAction(e->{
             double in = switch(bender.getValue()){case "1/2 EMT" -> 5;case "3/4 EMT" -> 6;case "1 EMT" -> 8;case "1 1/4 EMT" -> 11;default -> -1;};
             if(in>0)takeup.setText(String.format(Locale.ROOT,"%.3f", units.getValue().equals("Inches") ? in : in*25.4));
@@ -112,6 +120,9 @@ public final class ConduitBendingFieldPane extends BorderPane {
         bender.setDisable(!List.of("90° stub-up","Back-to-back 90s","Kicked 90°").contains(t));
         boolean isOffset = t.equals("Two-bend offset") || t.equals("Rolling offset");
         obstacleReference.setDisable(!isOffset);
+        boolean isSaddle=t.equals("Three-point saddle");
+        saddleSettings.setVisible(isSaddle);
+        saddleSettings.setManaged(isSaddle);
         angle.setDisable(List.of("90° stub-up","Back-to-back 90s","Segmented 90°").contains(t));
     }
 
@@ -177,7 +188,10 @@ public final class ConduitBendingFieldPane extends BorderPane {
                 }
             } else if(t.equals("Three-point saddle")){
                 double h=positive(rise,"saddle height"), c=positive(center,"obstruction centre"), side=a/2;
-                double spacing=h/Math.sin(Math.toRadians(side)),shift=h*Math.tan(Math.toRadians(side/2));
+                double geometricMultiplier=1/Math.sin(Math.toRadians(side));
+                boolean traditional=saddleMarks.getValue().startsWith("Traditional");
+                double multiplier=traditional&&a==45?2.5:traditional&&a==30?3.8:geometricMultiplier;
+                double spacing=h*multiplier,shift=h*Math.tan(Math.toRadians(side/2));
                 double B=c+shift,A=B-spacing,C=B+spacing;
                 if(A<0)throw new IllegalArgumentException("Saddle near mark is before the datum. Use a longer lead or shorter/steeper saddle.");
                 visualMarks.add(new BendMarkStripPane.Mark(B,1,"B · centre","SADDLE / CENTRE","Saddle notch; shoe-specific","Bend "+a+"° centre FIRST"));
