@@ -420,6 +420,7 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
         MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
+         MWHubCard("TRY · 3D Bend Instruction Lab", "Optional beginner wizard: exact supported marks, bender facing/flip cues, and draggable 3D kicked-90 and multi-bend preview") { onOpenWeb("/bend-instruction-lab.html") }
          MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
          MWHubCard("Field Suite · installations and projects", "Blueprint takeoff, 3D bends, motor-control logic, one-line diagrams, estimating, commissioning and camera nameplates") { onOpenWeb("/field-suite.html") }
          MWHubCard("Industrial troubleshooting knowledge base", "23 structured Epiroc-style diagnostics covering motors, VFDs, PLCs, mining vehicles, protection, HVAC and site safety") { onOpenWeb("/troubleshooting-kb.html") }
