@@ -415,10 +415,12 @@ function mbCompute(){
    case 'Single kick':
     put(o.pos,'A','ARROW / SHOE REF','Confirm head hook and datum','Kick '+o.a+'° toward '+o.plane);break;
    case 'Three-point saddle':
-    {const side=o.a/2,flank=o.h/Math.sin(side*Math.PI/180);
-     put(o.pos,'B','CENTRE / SADDLE NOTCH','Head notch; centre FIRST','Centre '+o.a+'° toward '+o.plane);
-     put(o.pos-flank,'A','ARROW','↻ FLIP for outer return','Outer '+side+'° opposite '+o.plane);
-     put(o.pos+flank,'C','ARROW','Maintain same plane','Outer '+side+'° opposite '+o.plane);}break;
+    {const side=o.a/2,fieldMethod=[30,45].includes(o.a),multiplier=o.a===45?2.5:o.a===30?3.8:1/Math.sin(side*Math.PI/180),flank=o.h*multiplier;
+     const centreRef=fieldMethod?'CENTRE / SADDLE NOTCH':'BEND CENTRE ONLY',outerRef=fieldMethod?'ARROW':'BEND CENTRE ONLY';
+     put(o.pos,'B',centreRef,'Verify centre benchmark','Centre '+o.a+'° toward '+o.plane);
+     put(o.pos-flank,'A',outerRef,'↻ FLIP for outer return','Outer '+side+'° opposite '+o.plane);
+     put(o.pos+flank,'C',outerRef,'Maintain same plane','Outer '+side+'° opposite '+o.plane);
+     if(!fieldMethod)issues.push('Three-point saddle: geometric bend-centre marks only, not calibrated shoe ARROW/NOTCH references.');}break;
    case 'Four-point saddle':
     {const A=o.pos,B=A+span,C=B+o.w,D=C+span;
      put(A,'A','ARROW','HOOK ← toward datum','Rise '+o.a+'° '+o.plane);
