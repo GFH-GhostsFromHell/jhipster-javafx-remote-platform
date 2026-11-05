@@ -62,7 +62,7 @@ svg.diagram{width:100%;max-width:950px;background:#f1f7f9;border-radius:9px;over
 <canvas class="canvas" id="drawingCanvas" width="860" height="300" aria-label="Click pairs of points on uploaded drawing to set scale or measure runs"></canvas>
 <div class="result" id="drawingStatus">Upload a drawing image, choose Set reference, and select two endpoints of a known distance.</div>
 <div class="grid threecol"><div class="field"><label for="manualRun">Run length (metres; measured or manual)</label><input id="manualRun" type="number" min="0" value="10" step="any"></div><div class="field"><label for="conduitType">Conduit / cable description</label><input id="conduitType" value="21 mm EMT"></div><div class="field"><label for="runQuantity">Number of identical runs</label><input id="runQuantity" type="number" min="1" value="1"></div></div>
-<div class="actions"><button class="primary" id="addRun">Add run to takeoff</button><button id="exportTakeoff">Export takeoff CSV</button><button id="saveTakeoff">Save takeoff to project</button></div>
+<div class="actions"><button class="primary" id="addRun">Add run to takeoff</button><button id="exportTakeoff">Export takeoff CSV</button><button id="saveTakeoff">Save takeoff to project</button><button id="takeoffToQuote">Add takeoff lines to quote</button></div>
 <div class="scroll"><table><thead><tr><th>Description</th><th>Run length</th><th>Quantity</th><th>Total metres</th><th>Action</th></tr></thead><tbody id="takeoffRows"></tbody></table></div>
 <div class="field" style="max-width:250px"><label for="wastePct">Material waste allowance (%)</label><input id="wastePct" type="number" min="0" value="10"></div><div id="takeoffSummary" class="result"></div></div></section>
 <section class="view" id="view-controls"><div class="card"><h2>Motor starter and control logic simulator</h2><p>Practice seal-in, START/STOP priority, E-stop/overload permissives, FWD/REV interlocks and TON/TOF timer logic. This is an educational truth-table simulator, not a controller connected to equipment.</p>
@@ -83,6 +83,10 @@ svg.diagram{width:100%;max-width:950px;background:#f1f7f9;border-radius:9px;over
 <section class="view" id="view-projects"><div class="card"><h2>Projects and calculation history</h2><p>Locally store reference notes, takeoffs, test results, diagrams, and quotation snapshots. The current version does <b>not</b> sync data across browsers, Android, or Windows accounts.</p>
 <div class="grid"><div class="field"><label for="projectName">Project name</label><input id="projectName" placeholder="e.g. Site B - Pump Upgrade"></div><div class="field"><label for="projectNotes">Project site / notes</label><input id="projectNotes" placeholder="Site / electrical system"></div></div>
 <div class="actions"><button class="primary" id="createProject">Create / update project</button><button id="exportProjects">Export all projects JSON</button><button id="importProjectsButton">Import projects JSON</button><input id="importProjectsFile" type="file" accept="application/json" style="display:none"><button class="danger" id="deleteProject">Delete selected project</button></div>
+<div class="card" style="margin-top:14px"><h3>Save an existing calculator result to this project</h3><p class="note">Paste a verified output from a CEC worksheet or calculation. This stores a reference copy; it does not independently verify the calculation.</p>
+<div class="grid"><div class="field"><label for="externalCalcTitle">Calculation title</label><input id="externalCalcTitle" placeholder="e.g. 600 V feeder voltage drop"></div><div class="field"><label for="externalCalcSource">Calculator / code reference</label><input id="externalCalcSource" placeholder="e.g. CEC 2024 Appendix D"></div></div>
+<label for="externalCalcResult">Calculation results, assumptions and verification notes</label><textarea id="externalCalcResult" placeholder="Paste measured data, assumed conductor temperature, calculation steps and final verified answer"></textarea>
+<div class="actions"><button class="primary" id="saveExternalCalc">Save calculation snapshot</button></div></div>
 <div id="projectList"></div><div id="historyList"></div></div></section>
 <section class="view" id="view-commission"><div class="card"><h2>Commissioning and inspection report</h2><p>Capture job details and test evidence. Not every test is appropriate for every installation; use OEM procedures, commissioning plans and required qualifications.</p>
 <div class="grid"><div class="field"><label for="commissionAsset">Equipment / circuit</label><input id="commissionAsset" placeholder="e.g. MCC-01 / 25 hp motor"></div><div class="field"><label for="commissionInspector">Technician</label><input id="commissionInspector" placeholder="Name / role"></div><div class="field"><label for="commissionDate">Test date</label><input id="commissionDate" type="date"></div><div class="field"><label for="commissionPermit">Permit / reference</label><input id="commissionPermit" placeholder="Work order / permit"></div></div>
@@ -144,6 +148,13 @@ document.querySelectorAll('[data-jump]').forEach(function(b){b.onclick=function(
 $('projectChoice').onchange=function(){chooseProject(this.value)};
 $('newProject').onclick=function(){$('projectName').value='';$('projectNotes').value='';try{localStorage.setItem(PROJECT,'')}catch(e){}updateProjectUI();show('projects');$('projectName').focus()};
 $('createProject').onclick=createProject;
+$('saveExternalCalc').onclick=function(){
+ var title=$('externalCalcTitle').value.trim(),body=$('externalCalcResult').value.trim();
+ if(!title||!body){alert('Enter a calculation title and the resulting worksheet text.');return}
+ if(saveRecord('Calculation',title,$('externalCalcSource').value.trim()+' · '+body.slice(0,130),{source:$('externalCalcSource').value.trim(),result:body})){
+  $('externalCalcTitle').value='';$('externalCalcSource').value='';$('externalCalcResult').value='';
+ }
+};
 $('deleteProject').onclick=function(){if(!selected())return;if(!confirm('Delete selected project and its local records?'))return;putProjects(getProjects().filter(function(x){return x.id!==selected()}));chooseProject('')};
 $('exportProjects').onclick=function(){download(JSON.stringify(getProjects(),null,2),'electrical-workbench-projects.json','application/json')};
 $('importProjectsButton').onclick=function(){$('importProjectsFile').click()};
@@ -196,7 +207,14 @@ function renderTakeoff(){
 $('addRun').onclick=function(){var len=num('manualRun'),qty=num('runQuantity'),d=$('conduitType').value.trim();if(!positive(len)||!Number.isInteger(qty)||qty<1||!d){alert('Enter valid description, positive length, and whole-number quantity.');return}runs.push({desc:d,length:len,qty:qty});renderTakeoff()};
 $('wastePct').oninput=renderTakeoff;
 $('exportTakeoff').onclick=function(){download(csv([['Description','Run metres','Qty','Total metres']].concat(runs.map(function(r){return[r.desc,r.length,r.qty,r.length*r.qty]}))),'electrical-takeoff.csv','text/csv')};
-$('saveTakeoff').onclick=function(){saveRecord('Takeoff','Conduit/material takeoff',runs.length+' rows',runs.slice())};drawCanvas();renderTakeoff();
+$('saveTakeoff').onclick=function(){saveRecord('Takeoff','Conduit/material takeoff',runs.length+' rows',runs.slice())};
+$('takeoffToQuote').onclick=function(){
+ if(!runs.length){alert('Add at least one takeoff run.');return}
+ var waste=Math.max(0,num('wastePct')||0);
+ runs.forEach(function(r){quoteLines.push({desc:r.desc+' (metres)',qty:Number((r.length*r.qty*(1+waste/100)).toFixed(3)),cost:0,hours:0})});
+ renderQuote();show('quote');alert('Takeoff quantities added to the quote. Enter your actual unit prices and labour hours.');
+};
+drawCanvas();renderTakeoff();
 
 function renderControl(){
  var mode=$('controlMode').value,healthy=['stopHealthy','estopHealthy','overloadHealthy','otherPermissive'].every(function(id){return $(id).checked});
