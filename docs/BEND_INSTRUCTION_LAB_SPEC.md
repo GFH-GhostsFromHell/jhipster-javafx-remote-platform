@@ -1,6 +1,6 @@
 # Bend Instruction Mode — experimental developer/UI package
 
-Status: implemented as an **opt-in** web experiment at \`/bend-instruction-lab.html\`. The existing \`/bend-calcs.html\`, native bender tools and stored measurements are intentionally retained. This is a trial for field usability, not a replacement for checked, tool-specific manufacturing instructions.
+Status: implemented as an **opt-in** web experiment at `/bend-instruction-lab.html`. The existing `/bend-calcs.html`, native bender tools and stored measurements are intentionally retained. This is a trial for field usability, not a replacement for checked, tool-specific manufacturing instructions.
 
 ## User experience contract
 
@@ -89,7 +89,7 @@ Keep this distinction extremely obvious: **mathematical arc-entry points are not
 
 ## Acceptance tests
 
-- Existing \`/bend-calcs.html\` continues working and contains only an additive experiment link.
+- Existing `/bend-calcs.html` continues working and contains only an additive experiment link.
 - Experimental page loads from web dashboard, Android Workbench and Windows cloud-view menu.
 - Valid measured stub: 500 mm − 127 mm = 373 mm first arrow tape mark.
 - Example two-bend offset 150 mm at 30°: theoretical mark spacing = 300 mm; geometric shrink ≈ 40.2 mm. Test near/far reference branches.
