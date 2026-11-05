@@ -423,6 +423,7 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
          MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
          MWHubCard("Field Suite · installations and projects", "Blueprint takeoff, 3D bends, motor-control logic, one-line diagrams, estimating, commissioning and camera nameplates") { onOpenWeb("/field-suite.html") }
          MWHubCard("Industrial troubleshooting knowledge base", "23 structured Epiroc-style diagnostics covering motors, VFDs, PLCs, mining vehicles, protection, HVAC and site safety") { onOpenWeb("/troubleshooting-kb.html") }
+         MWHubCard("Troubleshooting KB · native offline", "Safety-first checklists, fault decision methods and locally saved work orders without internet") { context.startActivity(Intent(context, FieldSizingActivity::class.java).putExtra("toolTab", "Troubleshooting")) }
     }
 }
 
