@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bender Calibration · Electrical Workbench</title>
+<style>
+:root{color-scheme:dark;font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background:#081b2c;color:#e9f4ff}
+*{box-sizing:border-box}body{margin:0}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px max(16px,calc((100vw - 1100px)/2));background:#102b42;border-bottom:1px solid #31516a}
+.brand{font-size:18px;font-weight:800;color:#91edfa}a{color:#78e8f6}.top a{text-decoration:none;font-weight:700}.wrap{max-width:1050px;margin:auto;padding:20px 16px 60px}h1{font-size:clamp(25px,4vw,36px);margin:4px 0}h2{font-size:19px;margin:0 0 14px}h3{margin:0 0 10px}
+p{color:#bdd1e1}.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:#132d43;border:1px solid #385872;border-radius:15px;padding:18px;min-width:0}.full{grid-column:1/-1}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}label{display:block;font-size:13px;font-weight:700;color:#c6deeb;margin-bottom:4px}
+input,select{width:100%;background:#081c2f;color:#fff;border:1px solid #53728b;border-radius:9px;padding:11px;font:inherit;min-height:42px}
+input:focus,select:focus{outline:2px solid #67e8f9;outline-offset:1px}button{border:1px solid #53728b;border-radius:10px;background:#194761;color:#fff;font-weight:800;font:inherit;padding:11px 16px;cursor:pointer}
+button.primary{background:#087d92;border-color:#16afc9}button.danger{background:#563044;border-color:#bb627b}button:focus-visible,a:focus-visible{outline:3px solid #8bf1f6}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.result{padding:12px;margin-top:10px;border-radius:10px;border:1px solid #476c83;background:#09253a;white-space:pre-wrap}
+strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;background:#102b41;color:#c3dce7;margin:12px 0}.small{font-size:13px;color:#b6cfdd}.error{color:#ffbbbc}.success{color:#8bf0bb}
+@media(max-width:700px){.cards{grid-template-columns:1fr}.full{grid-column:auto}.fields{grid-template-columns:1fr}.top{flex-wrap:wrap}}
+</style></head><body>
+<header class="top"><div class="brand">ϟ Electrical Workbench · Bender Calibration</div><nav><a href="/bend-calcs.html">Bending calculators</a> · <a href="/portal.html">Dashboard</a></nav></header>
+<main class="wrap"><h1>Bender calibration</h1>
+<p>Measure your own shoe on scrap conduit. Save a separate profile for each bender, conduit type and trade size. No manufacturer deduct or gain is assumed.</p>
+<div class="cards">
+<section class="card full"><h2>1 · Bender profile</h2>
+<div class="fields">
+<div><label for="saved">Saved profile</label><select id="saved"><option value="">New calibration</option></select></div>
+<div><label for="name">Profile name</label><input id="name" placeholder="e.g. Shop bender · 3/4 EMT" autocomplete="off"></div>
+<div><label for="model">Make / model</label><input id="model" placeholder="Bender make and model" autocomplete="off"></div>
+<div><label for="material">Conduit material</label><select id="material"><option>EMT</option><option>IMC</option><option>RMC</option><option>PVC</option><option>Other</option></select></div>
+<div><label for="size">Trade size</label><select id="size"><option>1/2</option><option>3/4</option><option>1</option><option>1-1/4</option><option>1-1/2</option><option>2</option><option>Other</option></select></div>
+<div><label for="units">Measurement units</label><select id="units"><option value="in">Inches</option><option value="mm">Millimetres</option></select></div>
+</div><div class="actions"><button id="new">New profile</button><button class="primary" id="save">Save & make active</button><button class="danger" id="delete">Delete selected profile</button></div><p class="small" id="storageStatus">Profiles are saved only on this device/browser. They do not automatically sync to other devices.</p></section>
+<section class="card"><h2>2 · Calibrate stub-up deduct</h2>
+<p>Make a 90° test stub. Measure the actual finished stub and the original arrow mark distance from the same square stock end and specified reference surfaces.</p>
+<div class="fields">
+<div><label for="arrowMark">Arrow mark from starting end</label><input id="arrowMark" type="number" min="0" step="any" placeholder="Measured mark"></div>
+<div><label for="actualStub">Actual finished stub height</label><input id="actualStub" type="number" min="0" step="any" placeholder="Measured stub"></div>
+</div><div class="tip">Effective deduct = finished stub height − distance to arrow mark. Use the same measurement convention each time.</div><div class="result" id="deductResult" aria-live="polite">Enter the two measurements above.</div>
+</section>
+<section class="card"><h2>3 · Calibrate 90° bend gain</h2>
+<p>Bend a straight test piece through 90°. Measure its two finished legs consistently to the back-of-bend reference used for the cut-length calculator.</p>
+<div class="fields">
+<div><label for="stock">Original straight stock length</label><input id="stock" type="number" min="0" step="any" placeholder="Before bending"></div>
+<div><label for="legA">First finished test leg</label><input id="legA" type="number" min="0" step="any" placeholder="Finished leg A"></div>
+<div><label for="legB">Second finished test leg</label><input id="legB" type="number" min="0" step="any" placeholder="Finished leg B"></div>
+</div><div class="tip">Gain = finished leg A + finished leg B − original stock. Gain is not the stub arrow deduct.</div><div class="result" id="gainResult" aria-live="polite">Enter three test-piece measurements above.</div>
+</section>
+<section class="card full"><h2>4 · Check angle and apply calibration</h2>
+<div class="fields"><div><label for="targetAngle">Target bend angle (degrees)</label><input id="targetAngle" type="number" min="1" max="180" step="any" value="90"></div><div><label for="actualAngle">Measured bend angle (degrees, optional)</label><input id="actualAngle" type="number" min="0" max="180" step="any" placeholder="e.g. 88.5"></div></div>
+<div class="result" id="angleResult" aria-live="polite">Angle check is optional.</div>
+<div class="actions"><button class="primary" id="calculate">Recalculate all</button><a href="/bend-calcs.html" style="padding:11px 0">Return to bending calculators</a></div>
+<p class="small">After saving, open the Stub-up, Kicked 90°, Back-to-back 90°, or Bend Gain tool and select <b>Use saved calibration</b>. Calibration belongs to the recorded bender/size/material only. Check springback, radius, minimum stub, bends between pull points and manufacturer instructions on the job.</p>
+</section>
+</div></main>
+<script>
+(function(){
+'use strict';
+const KEY='ew.benderCalibration.v1', ACTIVE='ew.benderCalibration.active.v1';
+const ids=['name','model','material','size','units','arrowMark','actualStub','stock','legA','legB','targetAngle','actualAngle'];
+const el=id=>document.getElementById(id);let activeId='';
+function num(id){let value=el(id).value.trim();return value===''?null:Number(value)}
+function finitePositive(n){return n!==null&&Number.isFinite(n)&&n>0}
+function compute(){
+ const mark=num('arrowMark'),stub=num('actualStub'),stock=num('stock'),a=num('legA'),b=num('legB'),target=num('targetAngle'),actual=num('actualAngle');
+ let deduct=null,gain=null;const u=el('units').value==='mm'?'mm':'in';
+ if(mark===null&&stub===null)el('deductResult').textContent='Enter both test-stub measurements.';
+ else if(mark===null||!finitePositive(stub)||mark<0||!Number.isFinite(mark)||stub-mark<0)el('deductResult').textContent='Check inputs: both measurements required and finished stub must be at least the arrow-mark distance.';
+ else{deduct=stub-mark;el('deductResult').textContent='MEASURED TAKE-UP / DEDUCT: '+deduct.toFixed(3)+' '+u;}
+ if(stock===null&&a===null&&b===null)el('gainResult').textContent='Enter all three test-piece measurements.';
+ else if(!finitePositive(stock)||!finitePositive(a)||!finitePositive(b)||a+b-stock<0)el('gainResult').textContent='Check inputs: all dimensions must be positive and gain must not be negative.';
+ else{gain=a+b-stock;el('gainResult').textContent='MEASURED 90° GAIN: '+gain.toFixed(3)+' '+u;}
+ if(actual===null)el('angleResult').textContent='Angle check is optional.';
+ else if(!finitePositive(target)||!finitePositive(actual)||target>180||actual>180)el('angleResult').textContent='Enter valid angles between 0 and 180 degrees.';
+ else{const diff=target-actual;el('angleResult').textContent=Math.abs(diff)<0.05?'Bend is at target angle.':('Measured bend is '+Math.abs(diff).toFixed(2)+'° '+(diff>0?'under':'over')+' target. Make a trial adjustment; springback compensation is tool/material-specific.');}
+ return {deduct,gain};
+}
+function profiles(){try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x:[]}catch(_){return []}}
+function refresh(){const s=el('saved');const all=profiles();s.replaceChildren(new Option('New calibration',''));all.forEach(p=>s.add(new Option(p.name+' · '+p.size+' '+p.material,p.id)));s.value=activeId;}
+function changeProfile(id){const p=profiles().find(x=>x.id===id);activeId=p?p.id:'';for(const key of ids) el(key).value=p&&p[key]!==undefined?p[key]:(key==='targetAngle'?'90':'');if(!p){el('material').value='EMT';el('size').value='1/2';el('units').value='in'}refresh();compute();}
+function save(){
+ const name=el('name').value.trim(),model=el('model').value.trim();const {deduct,gain}=compute();
+ if(!name){el('storageStatus').textContent='Enter a profile name before saving.';el('storageStatus').className='small error';return;}
+ const candidates=['arrowMark','actualStub','stock','legA','legB'];
+ const hasAny=candidates.some(id=>el(id).value.trim()!=='');
+ const invalidDeduct=el('arrowMark').value.trim()!==''||el('actualStub').value.trim()!=='';
+ const invalidGain=['stock','legA','legB'].some(id=>el(id).value.trim()!=='');
+ if(!hasAny||invalidDeduct&&deduct===null||invalidGain&&gain===null){el('storageStatus').textContent='Complete at least one valid measurement set before saving.';el('storageStatus').className='small error';return;}
+ const all=profiles();const id=activeId||'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+ const record={id,name,model,deduct,gain};ids.filter(k=>!['name','model'].includes(k)).forEach(k=>record[k]=el(k).value);
+ const index=all.findIndex(p=>p.id===id);if(index>=0)all[index]=record;else all.push(record);
+ try{localStorage.setItem(KEY,JSON.stringify(all));localStorage.setItem(ACTIVE,JSON.stringify(record));activeId=id;refresh();el('storageStatus').textContent='Calibration saved and selected for this browser. Return to a bending calculator and press Use saved calibration.';el('storageStatus').className='small success';}
+ catch(e){el('storageStatus').textContent='Could not save locally: '+e.message;el('storageStatus').className='small error';}
+}
+function remove(){if(!activeId)return;const kept=profiles().filter(p=>p.id!==activeId);try{localStorage.setItem(KEY,JSON.stringify(kept));localStorage.removeItem(ACTIVE);changeProfile('');el('storageStatus').textContent='Selected calibration deleted from this browser.';}catch(e){el('storageStatus').textContent='Delete failed: '+e.message;}}
+el('saved').addEventListener('change',e=>changeProfile(e.target.value));
+el('new').addEventListener('click',()=>changeProfile(''));
+el('save').addEventListener('click',save);el('delete').addEventListener('click',remove);
+el('calculate').addEventListener('click',compute);
+for(const id of ids)el(id).addEventListener('input',compute);
+changeProfile('');const all=profiles();try{const p=JSON.parse(localStorage.getItem(ACTIVE)||'null');if(p&&all.some(x=>x.id===p.id))changeProfile(p.id);}catch(_){}
+})();
+</script></body></html>
