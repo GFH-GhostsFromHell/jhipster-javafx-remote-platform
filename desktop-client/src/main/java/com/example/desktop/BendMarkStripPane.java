@@ -33,6 +33,7 @@ final class BendMarkStripPane extends VBox {
     private final TableView<Mark> table = new TableView<>();
     private List<Mark> current = List.of();
     private String unit = "mm";
+    private String tapePrecision = "Exact";
     private double stockLength = 0;
 
     BendMarkStripPane() {
@@ -63,7 +64,11 @@ final class BendMarkStripPane extends VBox {
         return c;
     }
     void setPlan(String title,List<Mark> marks,double stockLength,String units) {
+        setPlan(title,marks,stockLength,units,"Exact");
+    }
+    void setPlan(String title,List<Mark> marks,double stockLength,String units,String precision) {
         this.current=new ArrayList<>(marks);
+        this.tapePrecision=precision;
         this.unit="Inches".equals(units)?"in":"mm";
         this.stockLength=stockLength;
         caption.setText(title+"  •  All marks measured from LEFT / DATUM unless noted");
@@ -76,7 +81,22 @@ final class BendMarkStripPane extends VBox {
         draw();
     }
     private String format(double value) {
-        return String.format(Locale.CANADA,"%.2f %s",value,unit);
+        if("Exact".equals(tapePrecision))
+            return String.format(Locale.CANADA,"%.2f %s",value,unit);
+        if("mm".equals(unit)){
+            double increment="5 mm".equals(tapePrecision)?5d:1d;
+            return String.format(Locale.CANADA,"%.0f mm",Math.round(value/increment)*increment);
+        }
+        int denominator="1/4 in".equals(tapePrecision)?4:"1/8 in".equals(tapePrecision)?8:16;
+        long ticks=Math.round(Math.abs(value)*denominator),whole=ticks/denominator,part=ticks%denominator;
+        String fraction;
+        if(part==0)fraction=Long.toString(whole);
+        else{
+            int a=(int)part,b=denominator;
+            while(b!=0){int tmp=a%b;a=b;b=tmp;}
+            fraction=(whole==0?"":whole+" ")+(part/a)+"/"+(denominator/a);
+        }
+        return (value<0?"-":"")+fraction+" in";
     }
     private void draw() {
         GraphicsContext g=canvas.getGraphicsContext2D();

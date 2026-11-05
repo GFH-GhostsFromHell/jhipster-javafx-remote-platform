@@ -26,8 +26,13 @@ class FieldSizingActivity : ComponentActivity() {
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick={tab="Pull box"}){Text("Pull box")}
                         OutlinedButton(onClick={tab="Bender"}){Text("Conduit bender")}
+                        OutlinedButton(onClick={tab="Fabrication"}){Text("Gain & racks")}
                     }
-                    if(tab=="Pull box") PullBoxMobile() else BenderMobile()
+                    when(tab) {
+                        "Pull box" -> PullBoxMobile()
+                        "Fabrication" -> ConduitFabricationMobile()
+                        else -> BenderMobile()
+                    }
                     Text("Advisory worksheets. Verify the applicable CEC/OESC edition, manufacturer instructions, actual conduit and cable details, and AHJ requirements.",color=Color(0xFFADBDCD),style=MaterialTheme.typography.bodySmall)
                 }
             }
@@ -158,6 +163,9 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     var width by remember{mutableStateOf("200")}
     var centre by remember{mutableStateOf("600")}
     var result by remember{mutableStateOf("Select a bend and calculate marks.") }
+    var offsetReference by remember { mutableStateOf("Near bend critical") }
+    var saddleMethod by remember { mutableStateOf("Traditional notch & outer arrow") }
+    var precision by remember { mutableStateOf("1 mm") }
     Text("Conduit bending · field guide",style=MaterialTheme.typography.titleLarge)
     Text("Uses geometric centreline dimensions. Always confirm shoe deduct, arrow/star/saddle-notch alignment and springback.")
     FieldDropdown("Bend",bend,bends){bend=it}
@@ -166,9 +174,13 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
             val factor=if(next=="in")1/25.4 else 25.4
             fun cv(s:String)=s.toDoubleOrNull()?.let{String.format(Locale.ROOT,"%.3f",it*factor)}?:s
             rise=cv(rise);roll=cv(roll);distance=cv(distance);stub=cv(stub);takeup=cv(takeup);width=cv(width);centre=cv(centre);units=next
+            precision=if(next=="in")"1/16 in" else "1 mm"
         }
     }
+    FieldDropdown("Tape precision",precision,if(units=="mm")listOf("Exact","1 mm","5 mm") else listOf("Exact","1/16 in","1/8 in","1/4 in")){precision=it}
     if(bend!="90° stub"&&bend!="Back-to-back 90s")FieldDropdown("Bend angle",angle,listOf("10","15","22.5","30","45","60")){angle=it}
+    if(bend in listOf("Offset","Rolling offset"))FieldDropdown("Critical obstruction reference",offsetReference,listOf("Near bend critical","Far bend critical")){offsetReference=it}
+    if(bend=="Three-point saddle")FieldDropdown("Saddle marking method",saddleMethod,listOf("Traditional notch & outer arrow","Geometric bend centres ONLY")){saddleMethod=it}
     if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle","Kicked 90°"))NumberInput("Rise/height ("+units+")",rise){rise=it}
     if(bend=="Rolling offset")NumberInput("Horizontal roll ("+units+")",roll){roll=it}
     if(bend in listOf("Offset","Rolling offset","Four-point saddle"))NumberInput("Reference / obstacle distance ("+units+")",distance){distance=it}
@@ -180,25 +192,27 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     if(bend=="Three-point saddle")NumberInput("Obstruction centre from datum ("+units+")",centre){centre=it}
     if(bend in listOf("Four-point saddle","Back-to-back 90s"))NumberInput("Obstacle width / back-to-back distance ("+units+")",width){width=it}
     Button(onClick={
-        result=runCatching{bendMath(bend,units,angle.toDouble(),rise.toDouble(),roll.toDouble(),distance.toDouble(),stub.toDouble(),takeup.toDouble(),width.toDouble(),centre.toDouble())}
+        result=runCatching{bendMath(bend,units,angle.toDouble(),rise.toDouble(),roll.toDouble(),distance.toDouble(),stub.toDouble(),takeup.toDouble(),width.toDouble(),centre.toDouble(),offsetReference,saddleMethod,precision)}
             .getOrElse{"Check inputs: "+it.message}
     },modifier=Modifier.fillMaxWidth()){Text("Calculate marks & instructions")}
     Text(result,style=MaterialTheme.typography.bodyMedium)
     Text("Field check: use the correct-size shoe and firm foot pressure, keep bend planes aligned, check springback and avoid conduit flattening. Test a piece before cutting to final length.",color=Color(0xFFFFD68A))
 }
-private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double):String {
-    require(angle>0&&angle<90){"Angle must be between 0° and 90°."}
+private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double,offsetReference:String,saddleMethod:String,precision:String):String {
+    require(angle.isFinite()&&angle>0&&angle<90){"Angle must be between 0° and 90°."}
+    require(listOf(rise,roll,dist,stub,takeup,width,centre).all{it.isFinite()&&it>=0}){"Measurements must be finite and nonnegative."}
     val radians=Math.toRadians(angle);val mult=1/sin(radians)
-    fun f(x:Double):String=if(u=="mm")String.format(Locale.CANADA,"%.1f mm",x)else String.format(Locale.CANADA,"%.3f in",x)
+    fun f(x:Double):String=mobileBendMeasure(x,u,precision)
     return when(type) {
         "Offset","Rolling offset"->{
             require(rise>0&&dist>0&&roll>=0){"Rise and reference must be positive."}
             val h=if(type=="Rolling offset")hypot(rise,roll)else rise
             val spacing=h*mult;val shrink=h*tan(radians/2)
-            val a=dist-shrink;val b=a+spacing
+            val a=if(offsetReference.startsWith("Far"))dist+shrink-spacing else dist+shrink
+            val b=a+spacing
             require(a>=0){"Lead is too short for the calculated mark."}
             (if(type=="Rolling offset")"True offset: "+f(h)+"\nRotate plane from vertical: "+String.format(Locale.CANADA,"%.1f",Math.toDegrees(atan2(roll,rise)))+"°\n" else "")+
-            "Multiplier: "+String.format(Locale.CANADA,"%.3f",mult)+"\nSpacing: "+f(spacing)+"\nShrink: "+f(shrink)+
+            "Critical reference: "+offsetReference+"\nMultiplier: "+String.format(Locale.CANADA,"%.3f",mult)+"\nSpacing: "+f(spacing)+"\nEstimated geometric shrink: "+f(shrink)+
             "\nA near mark: "+f(a)+"\nB far mark: "+f(b)+"\n\n"+
             "1. Mark the reference end, A and B.\n2. Align shoe ARROW to A; bend "+angle+"°.\n3. Rotate pipe 180° along its LENGTH. Align ARROW with B; bend the same angle opposite to first bend.\n4. Check both ends are parallel; verify rise, roll and obstacle clearance."
         }
@@ -216,12 +230,20 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
         }
         "Three-point saddle"->{
             require(rise>0&&centre>0){"Height and centre required."}
-            val side=angle/2;val spacing=rise/sin(Math.toRadians(side));val shift=rise*tan(Math.toRadians(side/2))
+            val side=angle/2
+            val geometric=1/sin(Math.toRadians(side))
+            val traditional=saddleMethod.startsWith("Traditional")
+            val calibrated=traditional&&(angle==30.0||angle==45.0)
+            val multiplier=if(traditional&&angle==45.0)2.5 else if(traditional&&angle==30.0)3.8 else geometric
+            val spacing=rise*multiplier;val shift=rise*tan(Math.toRadians(side/2))
             val b=centre+shift;val a=b-spacing;val c=b+spacing
             require(a>=0){"Not enough lead for first mark."}
-            "Center "+angle+"°, side "+side+"°\nSide spacing: "+f(spacing)+"\nCenter shift: "+f(shift)+
+            "Center "+angle+"°, side "+side+"°\nMarking method: "+saddleMethod+
+            "\nSpacing multiplier: "+String.format(Locale.CANADA,"%.3f",multiplier)+" (geometric bend-centre = "+String.format(Locale.CANADA,"%.3f",geometric)+")"+
+            "\nSide spacing: "+f(spacing)+"\nCenter shift: "+f(shift)+
             "\nA / B / C: "+f(a)+" / "+f(b)+" / "+f(c)+
-            "\n\n1. Mark centre B at obstruction centre plus shift.\n2. Mark outside A and C equal spacing from B.\n3. Align B with the shoe SADDLE/CENTRE notch and bend "+angle+"°.\n4. Rotate conduit 180° on its length; make outer bends "+side+"° opposite to centre.\n5. Test-fit and check manufacturer saddle chart."
+            "\n\n1. Mark centre B at obstruction centre plus shift.\n2. Mark outside A and C equal spacing from B.\n3. Make centre bend "+angle+"° and two opposite outer bends "+side+"° in the same plane.\n4. Confirm shoe reference, gain and test-fit over the obstruction.\n"+
+            (if(calibrated)"Traditional 2.5/3.8 field factors use centre NOTCH and outer ARROW; do not interchange with geometric centre positions." else "WARNING: THESE ARE GEOMETRIC BEND-CENTRE PLANNING POSITIONS, NOT VERIFIED ARROW/NOTCH SHOE MARKS.")
         }
         "Four-point saddle"->{
             require(rise>0&&width>0&&dist>0){"Height, width and reference required."}
@@ -234,4 +256,20 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
         }
         else->"Choose a bend type."
     }
+}
+
+private fun mobileBendMeasure(value:Double, units:String, precision:String):String {
+    if(precision=="Exact")return String.format(Locale.CANADA,"%.3f %s",value,units)
+    if(units=="mm") {
+        val increment=if(precision=="5 mm")5.0 else 1.0
+        return String.format(Locale.CANADA,"%.0f mm",round(value/increment)*increment)
+    }
+    val d=when(precision){"1/4 in"->4;"1/8 in"->8;else->16}
+    val ticks=round(abs(value)*d).toLong()
+    val whole=ticks/d
+    val part=(ticks%d).toInt()
+    if(part==0)return (if(value<0)"−" else "")+whole+" in"
+    fun gcd(a:Int,b:Int):Int{var x=a;var y=b;while(y!=0){val t=x%y;x=y;y=t};return x}
+    val divisor=gcd(part,d)
+    return (if(value<0)"−" else "")+(if(whole==0L)"" else whole.toString()+" ")+(part/divisor)+"/"+(d/divisor)+" in"
 }

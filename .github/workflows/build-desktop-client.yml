@@ -1,6 +1,11 @@
 name: Build Windows Desktop Client
 
 on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'desktop-client/**'
+      - '.github/workflows/build-desktop-client.yml'
   workflow_dispatch:
   push:
     branches: [ main ]
@@ -77,6 +82,7 @@ jobs:
           path: desktop-client/target/installer/RemoteJavaFXClient-Setup.msi
 
       - name: Publish GitHub Release
+        if: github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

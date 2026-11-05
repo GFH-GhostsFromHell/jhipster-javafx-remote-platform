@@ -6,6 +6,11 @@ on:
     paths:
       - 'android-client/**'
       - '.github/workflows/build-android-client.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android-client/**'
+      - '.github/workflows/build-android-client.yml'
   workflow_dispatch:
 
 permissions:

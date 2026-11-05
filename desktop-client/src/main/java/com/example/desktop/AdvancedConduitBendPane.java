@@ -190,10 +190,15 @@ public final class AdvancedConduitBendPane extends BorderPane {
                     case "Single kick" ->
                         proposal.add(new Proposed(op.position(),"A","ARROW*","Hook/orientation by exact shoe","Single "+op.angle()+"° kick to "+dir));
                     case "Three-point saddle" -> {
-                        double side=op.angle()/2.0, flank=op.height()/Math.sin(Math.toRadians(side));
-                        proposal.add(new Proposed(op.position(),"B","SADDLE CENTRE","Notch / centre-of-bend reference","Centre "+op.angle()+"° toward "+dir));
-                        proposal.add(new Proposed(op.position()-flank,"A","ARROW","Flip for return bend; stay in plane","Outside "+side+"° opposite "+dir));
-                        proposal.add(new Proposed(op.position()+flank,"C","ARROW","Keep returns in same plane","Outside "+side+"° opposite "+dir));
+                        double side=op.angle()/2.0;
+                         boolean fieldMethod=op.angle()==45||op.angle()==30;
+                         double multiplier=op.angle()==45?2.5:op.angle()==30?3.8:1/Math.sin(Math.toRadians(side));
+                         double flank=op.height()*multiplier;
+                        proposal.add(new Proposed(op.position(),"B",fieldMethod?"SADDLE CENTRE":"BEND CENTRE ONLY","Notch or calibrated centre reference","Centre "+op.angle()+"° toward "+dir));
+                        proposal.add(new Proposed(op.position()-flank,"A",fieldMethod?"ARROW":"BEND CENTRE ONLY","Flip for return bend; stay in plane","Outside "+side+"° opposite "+dir));
+                        proposal.add(new Proposed(op.position()+flank,"C",fieldMethod?"ARROW":"BEND CENTRE ONLY","Keep returns in same plane","Outside "+side+"° opposite "+dir));
+                         text.append("  Saddle mark multiplier ").append(number(multiplier)).append(" (geometric centre multiplier ").append(number(1/Math.sin(Math.toRadians(side)))).append(").\n");
+                         if(!fieldMethod)issues.add("Group "+group+": geometric bend centres only. No verified ARROW/NOTCH marks for this centre angle.");
                     }
                     case "Four-point saddle" -> {
                         double a=op.position(),b=a+spacing,c=b+op.width(),d=c+spacing;
