@@ -21,7 +21,7 @@ class FieldSizingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF22D3EE),background=Color(0xFF06111F),surface=Color(0xFF10253A))) {
-                var tab by remember { mutableStateOf("Pull box") }
+                var tab by remember { mutableStateOf(intent.getStringExtra("toolTab") ?: "Pull box") }
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text("Electrical Workbench · Field Tools",style=MaterialTheme.typography.headlineSmall)
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -30,10 +30,12 @@ class FieldSizingActivity : ComponentActivity() {
                         OutlinedButton(onClick={tab="Fabrication"}){Text("Gain & racks")}
                     }
                     OutlinedButton(onClick={tab="Calibration"},modifier=Modifier.fillMaxWidth()) { Text("Bender Calibration · offline") }
+                    OutlinedButton(onClick={tab="Troubleshooting"},modifier=Modifier.fillMaxWidth()) { Text("Industrial Troubleshooting · offline knowledge base") }
                     when(tab) {
                         "Pull box" -> PullBoxMobile()
                         "Fabrication" -> ConduitFabricationMobile()
                          "Calibration" -> BenderCalibrationMobile()
+                         "Troubleshooting" -> TroubleshootingKnowledgeMobile()
                         else -> BenderMobile()
                     }
                     Text("Advisory worksheets. Verify the applicable CEC/OESC edition, manufacturer instructions, actual conduit and cable details, and AHJ requirements.",color=Color(0xFFADBDCD),style=MaterialTheme.typography.bodySmall)
