@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.util.Locale
@@ -28,9 +29,11 @@ class FieldSizingActivity : ComponentActivity() {
                         OutlinedButton(onClick={tab="Bender"}){Text("Conduit bender")}
                         OutlinedButton(onClick={tab="Fabrication"}){Text("Gain & racks")}
                     }
+                    OutlinedButton(onClick={tab="Calibration"},modifier=Modifier.fillMaxWidth()) { Text("Bender Calibration · offline") }
                     when(tab) {
                         "Pull box" -> PullBoxMobile()
                         "Fabrication" -> ConduitFabricationMobile()
+                         "Calibration" -> BenderCalibrationMobile()
                         else -> BenderMobile()
                     }
                     Text("Advisory worksheets. Verify the applicable CEC/OESC edition, manufacturer instructions, actual conduit and cable details, and AHJ requirements.",color=Color(0xFFADBDCD),style=MaterialTheme.typography.bodySmall)
@@ -152,6 +155,7 @@ private fun pullBoxMath(entries:List<PipeEntry>,type:String,u:String,od:Double):
 }
 private val bends=listOf("Offset","Rolling offset","90° stub","Three-point saddle","Four-point saddle","Back-to-back 90s","Kicked 90°")
 @Composable private fun BenderMobile() {
+    val context=LocalContext.current
     var bend by remember{mutableStateOf("Offset")}
     var units by remember{mutableStateOf("mm")}
     var angle by remember{mutableStateOf("30")}
@@ -187,6 +191,11 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     if(bend in listOf("90° stub","Back-to-back 90s","Kicked 90°")){
         NumberInput("Desired stub ("+units+")",stub){stub=it}
         NumberInput("Take-up / deduct from your bender ("+units+")",takeup){takeup=it}
+         OutlinedButton(onClick={
+             val saved=LocalBenderCalibration.measured(context,"deduct",units)
+             if(saved==null) result="No saved shoe deduct. Open Bender Calibration, measure a 90° test stub and save it."
+             else {takeup=String.format(Locale.ROOT,"%.4f",saved);result="Loaded "+LocalBenderCalibration.description(context)+". Confirm this is the same physical bender and conduit."}
+         },modifier=Modifier.fillMaxWidth()) { Text("Use saved bender calibration") }
         Text("Common hand-bender starting points: 1/2 EMT 5 in, 3/4 EMT 6 in, 1 EMT 8 in. The actual shoe stamp controls.",style=MaterialTheme.typography.bodySmall)
     }
     if(bend=="Three-point saddle")NumberInput("Obstruction centre from datum ("+units+")",centre){centre=it}
