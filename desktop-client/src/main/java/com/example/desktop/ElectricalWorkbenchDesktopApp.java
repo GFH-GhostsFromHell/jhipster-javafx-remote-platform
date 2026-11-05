@@ -244,6 +244,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
             homeTile("🧮 Electrical Calculators", "Open the cloud calculator workspace", () -> openCloudPath("/calculators.html")),
             homeTile("↪ Conduit Bending", "Open bend calculation tools", () -> openCloudPath("/bend-calcs.html")),
              homeTile("🎯 Bender Calibration", "Measure and save shoe deduct and bend gain", () -> openCloudPath("/bender-calibration.html")),
+             homeTile("↪ 3D Bend Lab · TRY", "Optional large mark guides, bender facing/flip help and rotatable multi-bends", () -> openCloudPath("/bend-instruction-lab.html")),
              homeTile("🛠 Field Suite", "Takeoffs, SLDs, estimates, commissioning, project history", () -> openCloudPath("/field-suite.html")),
              homeTile("☑ Troubleshooting KB", "Industrial Epiroc-style diagnostic procedures", () -> openCloudPath("/troubleshooting-kb.html")),
             homeTile("☁ Cloud Portal", "Account and subscription workspace", () -> openCloudPath("/portal.html"))
@@ -281,6 +282,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
             homeTile("🧮 Electrical Calculators", "Transformers, motors, voltage drop and field calculations", () -> openCloudPath("/calculators.html")),
             homeTile("↪ Conduit Bending", "Bend calculations and layout tools", () -> openCloudPath("/bend-calcs.html")),
              homeTile("🎯 Bender Calibration", "Measure and save tool-specific deduct and gain", () -> openCloudPath("/bender-calibration.html")),
+             homeTile("↪ 3D Bend Lab · TRY", "Optional mark/flip wizard and rotatable multi-bend previews", () -> openCloudPath("/bend-instruction-lab.html")),
              homeTile("🛠 Field Suite", "Field design, controls, quoting and job records", () -> openCloudPath("/field-suite.html")),
              homeTile("☑ Troubleshooting KB", "Step-by-step motor, VFD, PLC and mining diagnostics", () -> openCloudPath("/troubleshooting-kb.html")),
             homeTile("⚡ Code News", "Native desktop ESA/OESC feed", () -> setWorkspace(buildNativeNews())),
