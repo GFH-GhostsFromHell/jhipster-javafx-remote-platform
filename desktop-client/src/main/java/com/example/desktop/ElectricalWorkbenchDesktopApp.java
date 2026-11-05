@@ -243,6 +243,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
             homeTile("⚡ CEC 2024 & Ontario Code News", "Native live ESA/OESC feed", () -> setWorkspace(buildNativeNews())),
             homeTile("🧮 Electrical Calculators", "Open the cloud calculator workspace", () -> openCloudPath("/calculators.html")),
             homeTile("↪ Conduit Bending", "Open bend calculation tools", () -> openCloudPath("/bend-calcs.html")),
+             homeTile("🎯 Bender Calibration", "Measure and save shoe deduct and bend gain", () -> openCloudPath("/bender-calibration.html")),
             homeTile("☁ Cloud Portal", "Account and subscription workspace", () -> openCloudPath("/portal.html"))
         );
 
@@ -277,6 +278,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
         tiles.getChildren().addAll(
             homeTile("🧮 Electrical Calculators", "Transformers, motors, voltage drop and field calculations", () -> openCloudPath("/calculators.html")),
             homeTile("↪ Conduit Bending", "Bend calculations and layout tools", () -> openCloudPath("/bend-calcs.html")),
+             homeTile("🎯 Bender Calibration", "Measure and save tool-specific deduct and gain", () -> openCloudPath("/bender-calibration.html")),
             homeTile("⚡ Code News", "Native desktop ESA/OESC feed", () -> setWorkspace(buildNativeNews())),
             homeTile("☁ Cloud Portal", "Account, subscriptions and cloud workspace", () -> openCloudPath("/portal.html"))
         );
