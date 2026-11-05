@@ -135,6 +135,8 @@ public final class ElectricalWorkbenchNativeApp extends Application {
             tile("🛠 Field Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
              tile("↪ Conduit Bender / Calibration","Bend layouts, field instructions and saved bender measurements",()->setWorkspace(new ConduitBendingFieldPane())),
              tile("🛠 Industrial Troubleshooting KB","Offline motor, VFD, PLC, protection and Epiroc-style mining diagnostic guides",()->setWorkspace(new TroubleshootingKnowledgePane())),
+             tile("📐 Field Suite · web workspace","Blueprint takeoff, 3D conduit previews, quotes, controls, one-line diagrams, commissioning and project records",()->openFieldPage("/field-suite.html")),
+             tile("📘 Troubleshooting KB · full library","Open 23 detailed guided diagnostic procedures and saved troubleshooting cases",()->openFieldPage("/troubleshooting-kb.html")),
             tile("🦺 Electrical Safety","PPE rating checks, approach-distance planning, unsafe-condition photos, glove testing and safety-equipment maintenance",()->setWorkspace(buildSafety())),
             tile("📁 Project Workspace","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
             tile("📈 Career & Apprenticeship","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
@@ -144,6 +146,14 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         if(isEnterpriseOwner()) tiles.getChildren().add(tile("🏢 Business / Enterprise","Manage electricians, apprentices, field roles and Tier 1–3 business seats",()->setWorkspace(new EnterpriseTeamPane(portal,currentUsername,currentPassword))));
         VBox info=new VBox(8);info.setPadding(new Insets(18));info.setStyle(CARD);Label infoTitle=new Label("Native desktop architecture");infoTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label infoText=new Label("The UI remains JavaFX. Calculations can use cloud APIs, while quiz history, projects, field sheets, apprenticeship hours and credentials are stored locally for offline use. Engineering Power is embedded inside the desktop app and uses the same account tier permissions as the cloud portal.");infoText.setWrapText(true);infoText.setStyle("-fx-text-fill:#475569;-fx-line-spacing:3px;");info.getChildren().addAll(infoTitle,infoText);
         page.getChildren().addAll(head,note,managedNotice,tiles,info);ScrollPane scroll=new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");return scroll;
+    }
+
+    private void openFieldPage(String path) {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(portal.baseUrl()+path));
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, "Unable to open Field Suite page: "+e.getMessage()).showAndWait();
+        }
     }
 
     private Node buildCalculators(){return new NativeCalculatorPane(portal,json,currentUsername,currentPassword);}
