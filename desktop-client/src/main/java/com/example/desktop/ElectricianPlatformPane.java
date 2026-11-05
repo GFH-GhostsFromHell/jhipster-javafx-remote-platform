@@ -246,7 +246,7 @@ Movement = run length × ΔT × expansion coefficient
     private Node fieldPane() {
         TabPane tabs=nestedTabs(); tabs.getTabs().addAll(
             tab("Troubleshoot", troubleshooting()), tab("Nameplate Capture", nameplateCapture()), tab("Commissioning", commissioning()),
-            tab("Inspection", inspection()), tab("Blueprint Helper", blueprintHelper()), tab("Fault Current", faultCurrent()), tab("Ground/Bond Wizard", groundingWizard())
+            tab("Inspection", inspection()), tab("Conduit Bender / Calibration", new ConduitBendingFieldPane()), tab("Blueprint Helper", blueprintHelper()), tab("Fault Current", faultCurrent()), tab("Ground/Bond Wizard", groundingWizard())
         ); return tabs;
     }
 
