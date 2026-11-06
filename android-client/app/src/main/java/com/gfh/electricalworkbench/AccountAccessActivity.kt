@@ -40,6 +40,11 @@ class AccountAccessActivity : ComponentActivity() {
                         true
                     }
                 }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    view?.let(::applyMobileWebStyle)
+                }
             }
             clearCache(true)
             loadUrl("$ACCOUNT_PORTAL_BASE/account.html#$tab")
