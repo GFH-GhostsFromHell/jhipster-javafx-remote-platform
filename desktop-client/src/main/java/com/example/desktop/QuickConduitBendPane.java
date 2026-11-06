@@ -21,13 +21,16 @@ final class QuickConduitBendPane extends BorderPane {
             "Two-bend offset", "90° stub-up", "Rolling offset", "Back-to-back 90s"));
     private final ChoiceBox<String> units = new ChoiceBox<>(FXCollections.observableArrayList("Millimetres","Inches"));
     private final ChoiceBox<Double> angle = new ChoiceBox<>(FXCollections.observableArrayList(10d,15d,22.5d,30d,45d,60d));
+    private static final double STOCK_MM = 3048.0;
     private final TextField rise = field("150"), datum = field("600"), deduct = field(""), roll = field("100"), span = field("300");
+    private final TextField minShoeMarkGap = field("");
     private final VBox riseBox=labeled("Offset rise / stub height",rise),datumBox=labeled("Reference from tape end",datum),
             deductBox=labeled("Actual bender take-up / deduct",deduct),rollBox=labeled("Horizontal roll",roll),
             spanBox=labeled("Back-of-first-90 to second 90",span),angleBox=labeled("Bend angle",angle);
     private final Label headline = new Label("Enter the measurements for your bend");
     private final Label instructions = new Label();
     private final Label notice = new Label();
+    private final Label stockNotice = new Label("10 ft EMT stock · 3,048 mm / 120 in");
     private final BendMarkStripPane markStrip = new BendMarkStripPane();
     private String clipboard = "";
 
@@ -46,6 +49,10 @@ final class QuickConduitBendPane extends BorderPane {
         kind.setPrefWidth(225);
         FlowPane measurements=new FlowPane(12,10,riseBox,datumBox,angleBox,deductBox,rollBox,spanBox);
         measurements.setAlignment(Pos.CENTER_LEFT);
+        VBox shoeGapBox=labeled("Verified minimum shoe mark spacing (optional)",minShoeMarkGap);
+        Label clearanceNote=note("Tool clearance varies by shoe. Leave spacing blank if unknown; the result will say NOT VERIFIED.");
+        stockNotice.setWrapText(true);
+        stockNotice.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#166534;");
         Button load=primary("Use saved shoe deduct");
         load.setOnAction(e -> {
             Double calibrated=BenderCalibrationPane.value("deduct",units.getValue());
@@ -68,10 +75,10 @@ final class QuickConduitBendPane extends BorderPane {
         instructions.setStyle("-fx-font-size:14px;-fx-text-fill:#1e293b;");
         notice.setWrapText(true);
         notice.setStyle("-fx-text-fill:#9a3412;-fx-font-size:13px;");
-        VBox results=new VBox(10,headline,instructions,copy,notice);
+        VBox results=new VBox(10,stockNotice,headline,instructions,copy,notice);
         results.setPadding(new Insets(15));
         results.setStyle("-fx-background-color:white;-fx-border-color:#b8dae5;-fx-border-radius:12;-fx-background-radius:12;");
-        content.getChildren().addAll(title,intro,selectors,measurements,load,results,
+        content.getChildren().addAll(title,intro,selectors,measurements,shoeGapBox,clearanceNote,load,results,
                 note("The tape-zero end is LEFT. For offsets, the near-bend-critical geometric reference is used. Check whether your actual obstruction measurement and bender method match that convention."),
                 markStrip,note("FIELD SAFETY · Confirm the stamped ARROW/STAR/NOTCH, manufacturer instructions, actual take-up, springback and minimum bend radius. Layout marks do not verify tool access or final fit."));
 
@@ -84,7 +91,7 @@ final class QuickConduitBendPane extends BorderPane {
         units.getSelectionModel().selectedItemProperty().addListener((o,a,b)->{
             if(a==null||b==null||a.equals(b))return;
             double factor="Inches".equals(b)?1.0/25.4:25.4;
-            for(TextField f:List.of(rise,datum,deduct,roll,span)) {
+            for(TextField f:List.of(rise,datum,deduct,roll,span,minShoeMarkGap)) {
                 if(f.getText().isBlank())continue;
                 try{f.setText(String.format(Locale.ROOT,"%.3f",Double.parseDouble(f.getText())*factor));}
                 catch(Exception ignored){}
@@ -92,7 +99,7 @@ final class QuickConduitBendPane extends BorderPane {
             calculate();
         });
         angle.getSelectionModel().selectedItemProperty().addListener((o,a,b)->calculate());
-        for(TextField f:List.of(rise,datum,deduct,roll,span))
+        for(TextField f:List.of(rise,datum,deduct,roll,span,minShoeMarkGap))
             f.textProperty().addListener((o,a,b)->calculate());
         showInputs();
         calculate();
@@ -139,12 +146,14 @@ final class QuickConduitBendPane extends BorderPane {
                 double take=positive(deduct,"actual bender deduct");
                 double markA=h-take;
                 if(markA<0)throw new IllegalArgumentException("The desired stub is shorter than the actual bender deduct.");
+                if(h>stockLimit(unit))throw new IllegalArgumentException("CALCULATION NOT POSSIBLE: stub height exceeds a 10 ft EMT stick.");
                 headline.setText("Mark A = "+fmt(markA,unit)+" from the short end");
                 marks.add(new BendMarkStripPane.Mark(markA,1,"A","ARROW","HOOK ← toward short end","Make first 90° stub"));
                 steps.append("1. Tape from the end that becomes the short stub. Mark A at ").append(fmt(markA,unit)).append(".\n");
                 steps.append("2. Align the actual shoe ARROW at A, with hook facing toward the stub end. Bend 90° and check the result.\n");
                 if("Back-to-back 90s".equals(type)) {
                     double between=positive(span,"back-to-back distance");
+                    if(between>stockLimit(unit))throw new IllegalArgumentException("CALCULATION NOT POSSIBLE: second relative 90 reference exceeds one 10 ft EMT stick.");
                     steps.append("3. From the BACK of the completed first 90°, measure ").append(fmt(between,unit)).append(" for the second STAR / back-of-90 reference.\n");
                     steps.append("4. Point the hook toward the remaining free end, align STAR (not ARROW) as directed by your shoe, bend 90° and verify spacing.");
                     marks.add(new BendMarkStripPane.Mark(between,2,"B · relative","STAR / BACK OF 90","HOOK → toward free end","Measure from back of first bend",true));
@@ -152,16 +161,46 @@ final class QuickConduitBendPane extends BorderPane {
                 }
                 notice.setText("The actual stamped / calibrated deduct is REQUIRED. Back-to-back mark B is relative to the completed first bend, not straight-pipe zero.");
             }
+            validateStockAndShoeSpacing(marks,unit);
+            stockNotice.setText("10 ft STOCK CHECK · Plotted marks within "+fmt(stockLimit(unit),unit)+
+                ". "+(minShoeMarkGap.getText().isBlank()
+                ? "Shoe mark spacing NOT VERIFIED — enter the actual bender minimum."
+                : "Same-datum marks checked against your measured minimum.")+
+                " Remaining straight material and shoe-head access require field verification.");
             instructions.setText(steps.toString());
             clipboard=type+"\n"+headline.getText()+"\n"+steps+"\n"+notice.getText();
             double longest=marks.stream().filter(m->!m.relativeReference()).mapToDouble(BendMarkStripPane.Mark::position).max().orElse(200);
-            markStrip.setPlan(type,marks,Math.max(longest*1.2, "mm".equals(unit)?600:24),units.getValue());
+            markStrip.setPlan(type,marks,stockLimit(unit),units.getValue());
         }catch(RuntimeException ex) {
-            headline.setText("Enter the required measurement");
+            stockNotice.setText("CALCULATION NOT POSSIBLE / CHECK INPUTS");
+            headline.setText("Check the stock or bend spacing");
             instructions.setText(ex.getMessage());
             notice.setText("No physical mark is provided until the required inputs are valid. Do not guess your bender deduct.");
             clipboard="";
             markStrip.setPlan("Waiting for valid field measurements",List.of(),0,units.getValue());
+        }
+    }
+    private static double stockLimit(String unit){return "mm".equals(unit)?STOCK_MM:120.0;}
+    private void validateStockAndShoeSpacing(List<BendMarkStripPane.Mark> marks,String unit) {
+        double stock=stockLimit(unit);
+        for(BendMarkStripPane.Mark mark:marks) {
+            if(!Double.isFinite(mark.position())||mark.position()<0||mark.position()>stock+1e-6)
+                throw new IllegalArgumentException("CALCULATION NOT POSSIBLE on one 10 ft EMT: mark "+mark.name()+
+                    " at "+fmt(mark.position(),unit)+" falls outside "+fmt(stock,unit)+" stock.");
+        }
+        String entry=minShoeMarkGap.getText().trim();
+        if(entry.isEmpty())return;
+        double minimum;
+        try{minimum=Double.parseDouble(entry);}catch(NumberFormatException ex){throw new IllegalArgumentException("Enter a numeric shoe minimum or leave it blank.");}
+        if(!Double.isFinite(minimum)||minimum<0)throw new IllegalArgumentException("Shoe minimum must be zero or greater.");
+        List<BendMarkStripPane.Mark> sameDatum=marks.stream().filter(m->!m.relativeReference())
+            .sorted(java.util.Comparator.comparingDouble(BendMarkStripPane.Mark::position)).toList();
+        for(int index=1;index<sameDatum.size();index++) {
+            double distance=sameDatum.get(index).position()-sameDatum.get(index-1).position();
+            if(distance+1e-6<minimum)
+                throw new IllegalArgumentException("BENDS TOO CLOSE: "+fmt(distance,unit)+
+                    " between marks "+sameDatum.get(index-1).name()+" and "+sameDatum.get(index).name()+
+                    ", less than your bender minimum of "+fmt(minimum,unit)+".");
         }
     }
     private static String fmt(double x,String unit) {
