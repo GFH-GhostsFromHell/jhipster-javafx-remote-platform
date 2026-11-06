@@ -44,7 +44,7 @@ if(geometryStart<0||geometryEnd<=geometryStart){
    const model=vm.runInNewContext(geometry+'\ncalculatePath()',{
     ops,TEN_FOOT_EMT_MM:3048,
     v:name=>name==='radius'?120:name==='stock'?3048:name==='minStraight'?null:400,
-    toMm:n=>n,RAD:Math.PI/180
+    toMm:n=>n,fmt:n=>String(n),RAD:Math.PI/180
    });
    if(model.pts.length<2||model.pts.some(point=>point.p.length!==3||point.p.some(n=>!Number.isFinite(n))))
     throw Error('Non-finite 3D coordinate');
@@ -62,7 +62,7 @@ if(geometryStart<0||geometryEnd<=geometryStart){
    vm.runInNewContext(geometry+'\ncalculatePath()',{
     ops:check.ops,TEN_FOOT_EMT_MM:3048,
     v:name=>name==='radius'?120:name==='stock'?3048:name==='minStraight'?check.minStraight:400,
-    toMm:n=>n,RAD:Math.PI/180
+    toMm:n=>n,fmt:n=>String(n),RAD:Math.PI/180
    });
    console.error('Expected rejection not raised: '+check.name);failed=true;
   }catch(error){
