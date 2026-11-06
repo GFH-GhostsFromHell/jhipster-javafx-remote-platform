@@ -1,5 +1,76 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Electrical Workbench — Guided Worksheets</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071523"><meta name="color-scheme" content="dark"><title>Electrical Workbench — Guided Worksheets</title><style>
 :root{--bg:#07111f;--panel:#0b1b2e;--card:#10243b;--line:#24415f;--cyan:#22d3ee;--text:#eef6fb;--muted:#a7b8c9;--good:#34d399}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#050b14,#0b2743);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}header{padding:18px 20px;border-bottom:1px solid #164e63;background:rgba(5,11,20,.96);position:sticky;top:0;z-index:5}.eyebrow{font-size:11px;letter-spacing:.13em;color:#67e8f9;font-weight:800}h1{margin:4px 0 4px;font-size:25px}header p{margin:0;color:var(--muted);max-width:1100px}.toolbar{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}.mode{padding:8px 11px;border-radius:9px;background:#0a1829;border:1px solid #2a4865;color:#fff}.wrap{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 145px)}nav{padding:15px;background:#07111f;border-right:1px solid #17324d;position:sticky;top:145px;height:calc(100vh - 145px);overflow:auto}.navbtn{width:100%;text-align:left;margin:0 0 7px;padding:10px;border:1px solid #193650;border-radius:9px;background:#0a1829;color:#cfe5f5;font-weight:700;cursor:pointer}.navbtn.active,.navbtn:hover{border-color:var(--cyan);background:#0b2743}.main{padding:18px;min-width:0}.module{display:none}.module.active{display:block}.lead{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:rgba(16,36,59,.96);border:1px solid var(--line);border-radius:14px;padding:15px}.card h3{margin:0 0 10px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.field label{display:block;color:#bdd0e0;font-size:12px;margin-bottom:4px}.field input,.field select{width:100%;padding:9px;border-radius:8px;border:1px solid #31516f;background:#081522;color:#fff}.wide{grid-column:1/-1}.adv{display:none}.advanced .adv{display:block}.btn{border:0;border-radius:9px;padding:10px 13px;background:linear-gradient(90deg,#0e7490,#1d4ed8);color:#fff;font-weight:800;cursor:pointer;margin-top:10px}.secondary{background:#0a1829;border:1px solid #31516f}.out{white-space:pre-wrap;margin-top:12px;background:#06101c;border:1px solid #21405d;border-radius:10px;padding:13px;min-height:180px;color:#d9f3ff;font-family:Consolas,monospace;font-size:12.5px}.actions{display:flex;gap:8px;flex-wrap:wrap}.preset{min-height:68px}.note{color:var(--muted);font-size:12px;line-height:1.45}.good{color:var(--good)}@media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto;display:flex;overflow:auto;gap:6px;border-right:0;border-bottom:1px solid #17324d}.navbtn{min-width:165px;margin:0}.grid,.fields{grid-template-columns:1fr}.main{padding:12px}header{position:static}.wide{grid-column:auto}}
+
+/* Explicitly paint every WebView surface. Some Android theme/WebView combinations
+   paint the main area white while inheriting pale headings from the body. */
+:root{
+  color-scheme:dark;
+  --bg:#071523;
+  --panel:#0b2034;
+  --card:#122b42;
+  --line:#31546e;
+  --text:#f0f7fc;
+  --muted:#b9cddd;
+}
+html{color-scheme:dark;background:#071523}
+body{
+  min-height:100vh;
+  background:#071523;
+  color:var(--text);
+  -webkit-text-size-adjust:100%;
+}
+header{background:#091b2c;color:var(--text)}
+header h1{color:#f8fbff}
+header p{color:#bdcfdf;line-height:1.5}
+.toolbar label{display:inline-flex;gap:8px;align-items:center;color:#ecf6fc;font-weight:600}
+.toolbar input[type=checkbox]{width:19px;height:19px;accent-color:#22d3ee}
+.toolbar .btn{min-height:42px}
+.wrap{background:#071523;min-width:0}
+nav{background:#091b2c;color:#eaf4fc}
+.navbtn{background:#112940;border:1px solid #36556e;color:#e3f1fc;min-height:44px}
+.navbtn.active{background:#17445d;border-color:#28d3ee;color:#fff;box-shadow:inset 0 0 0 1px #28d3ee}
+.main{min-width:0;min-height:calc(100vh - 145px);background:#0b2033;color:#f0f7fc}
+.module{color:#f0f7fc}
+.module.active{display:block;background:transparent}
+.module h2{color:#f8fbff;font-size:clamp(23px,4.5vw,31px);line-height:1.25;margin:6px 0 10px}
+.module h3,.card h3{color:#f5fbff}
+.module .lead{color:#bbcfdf;font-size:15px;line-height:1.55;margin:0 0 20px}
+.card{background:#142c43;border:1px solid #3a5b75;color:#f0f7fc;box-shadow:0 4px 16px rgba(0,0,0,.13)}
+.field label{color:#c5d9e8;font-size:13px;line-height:1.4;font-weight:600}
+.field input,.field select,.mode{
+  min-height:46px;
+  border:1px solid #52738e;
+  background:#081b2c;
+  color:#f8fcff;
+  color-scheme:dark;
+  font-size:15px;
+}
+.field input::placeholder{color:#a9bfd0}
+.field input:focus-visible,.field select:focus-visible,.navbtn:focus-visible,.btn:focus-visible{
+  outline:2px solid #67e8f9;
+  outline-offset:2px;
+}
+.note{color:#bbcfdd}
+.out{background:#081b2d;color:#e2f7ff;border-color:#3a647f;overflow-wrap:anywhere}
+@media(max-width:900px){
+  header{padding:14px 16px}
+  header h1{font-size:24px}
+  nav{padding:10px 12px;gap:8px;scrollbar-width:thin}
+  .navbtn{flex:0 0 auto;min-width:150px;white-space:normal;line-height:1.3}
+  .main{min-height:calc(100vh - 230px);padding:18px 15px 70px;background:#0b2033}
+  .module h2{font-size:25px}
+  .module .lead{font-size:15px}
+  .card{padding:15px;border-radius:13px}
+  .field input,.field select{min-height:49px;font-size:16px}
+  .btn{min-height:46px}
+}
+@media(max-width:380px){
+  .main{padding:15px 12px 60px}
+  .toolbar{gap:8px}
+  .toolbar .btn{flex:1 1 145px;margin-top:0}
+  .module h2{font-size:23px}
+}
+
 </style></head><body><header><div class="eyebrow">ELECTRICAL WORKBENCH • GUIDED C OF Q WORKSHEETS</div><h1>Guided Worksheets</h1><p>Enter the facts from the question, see the numbered arithmetic, the rule path, rounding direction and a final answer. Licensed CEC/OESC table values and equipment markings still govern field use.</p><div class="toolbar"><label><input id="advanced" type="checkbox" onchange="document.body.classList.toggle('advanced',this.checked)"> Advanced inputs</label><button class="btn secondary" onclick="location.href='/calculators.html'">CEC section calculators</button><button class="btn secondary" onclick="location.href='/advanced-calculations.html'">Advanced pack</button></div></header><div class="wrap"><nav id="nav"></nav><main class="main">
 <section id="quick" class="module active"><h2>Quick Start</h2><p class="lead">Common worksheet families and shortcuts.</p><div class="grid" id="presets"></div></section>
 <section id="ampacity" class="module"><h2>Conductor Ampacity / Sizing</h2><p class="lead">Load ampacity, ambient/grouping derating, terminal limitation and branch-circuit/OCPD restrictions as separate checks.</p><div class="card"><div class="fields"><F id="a_i" l="Load current A" v="16"></F><S id="a_use" l="Circuit / use" o="General / feeder|Dwelling-unit lighting|General-use receptacle — 15 A|General-use receptacle — 20 A|Dwelling dryer receptacle — 30 A|Motor / HVAC / nameplate special rule"></S><F id="a_oc" l="Selected OCPD / breaker A" v="20"></F><S id="a_load" l="Load treatment" o="Non-continuous / 100% load|Continuous on 80%-rated equipment — 125%|Continuous on 100%-rated equipment — 100%"></S><S id="a_mat" l="Material" o="Copper|Aluminum"></S><S id="a_term" l="Terminal temperature" o="75 °C|60 °C|90 °C"></S><F class="adv" id="a_temp" l="Ambient °C (reference only)" v="30"></F><F class="adv" id="a_amb" l="Ambient correction factor — Table 5A input" v="1.00"></F><F class="adv" id="a_ccc" l="Current-carrying conductors" v="2"></F><F class="adv" id="a_grp" l="Grouping factor — Table 5C input" v="1.00"></F><F class="adv" id="a_base" l="Selected conductor insulation-column ampacity A (optional exact verification)" v=""></F><F class="adv" id="a_tlim" l="Terminal-temperature ampacity limit A (optional exact verification)" v=""></F></div><button class="btn" onclick="ampacity()">Size conductor & explain</button><O id="o_ampacity"></O><p class="note">Automatic sizing uses the existing Electrical Workbench 75 °C starter dataset. Enter the exact insulation-column and terminal-limit ampacities in Advanced mode when a 60 °C or 90 °C table column controls.</p></div></section>
