@@ -82,6 +82,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         TabPane screens=new TabPane();
         screens.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         screens.getTabs().addAll(
+            new Tab("Quick Bend · Fast Field Marks",new QuickConduitBendPane()),
             new Tab("Single Bend & Field Guide",scroll),
             new Tab("Advanced · Multiple Bends on One Pipe",new AdvancedConduitBendPane()),
             new Tab("3D Conduit Preview · Rotate & Zoom",new Conduit3DPreviewPane()),
