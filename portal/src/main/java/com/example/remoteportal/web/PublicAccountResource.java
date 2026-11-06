@@ -5,6 +5,8 @@ import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.TierCheckoutService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.mail.MailException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -41,10 +43,17 @@ public class PublicAccountResource {
     try {
       return accounts.beginRegistration(request.username(), request.displayName(), request.email(), request.password(), request.requestedTier());
     } catch (IllegalArgumentException ex) {
+      LOG.info("Registration rejected: {}", ex.getMessage());
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+    } catch (MailException ex) {
+      LOG.warn("Registration SMTP delivery failure (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
+      throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The verification email could not be sent by Mailjet. Check Mailjet activity and sender settings.");
+    } catch (DataAccessException ex) {
+      LOG.error("Registration database failure (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Registration could not be saved in the database. Please contact support.");
     } catch (RuntimeException ex) {
-      LOG.warn("Signup verification email could not be delivered (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
-      throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The verification email could not be sent. Please try again.");
+      LOG.error("Registration unexpected server failure (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Registration could not be completed. Please contact support.");
     }
   }
 
