@@ -203,7 +203,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     var roll by remember{mutableStateOf("100")}
     var distance by remember{mutableStateOf("600")}
     var stub by remember{mutableStateOf("500")}
-    var takeup by remember{mutableStateOf("127")}
+    var takeup by remember{mutableStateOf("0")}
     var width by remember{mutableStateOf("200")}
     var centre by remember{mutableStateOf("600")}
     var minimumShoeGap by remember { mutableStateOf("") }
@@ -308,7 +308,8 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
             "HOOK FACING BY MARK:\nA · ARROW · ← HOOK toward tape zero.\nB · ARROW · ← HOOK after bender flip / cradle rotation (Klein method).\n\n1. Mark the reference end, A and B.\n2. Align shoe ARROW to A; bend "+angle+"°.\n3. Flip bender and rotate conduit 180° IN ITS CRADLE as the shoe specifies; align ARROW at B and keep the bend plane unchanged.\n4. Check both ends are parallel; verify rise, roll and obstacle clearance."
         }
         "90° stub","Back-to-back 90s","Kicked 90°"->{
-            require(stub>takeup&&takeup>0){"Desired stub must exceed the actual shoe deduct."}
+            require(takeup>0){"Enter the verified deduct stamped or measured on your bender."}
+            require(stub>takeup){"Desired stub must exceed your actual shoe deduct."}
             checkMarks(stub-takeup)
             require(stub<=stock){"CALCULATION NOT POSSIBLE: desired stub "+f(stub)+" is longer than the 10 ft stock "+f(stock)+"."}
             var steps="First arrow mark: "+f(stub-takeup)+"\nMARK A · ARROW · ← HOOK toward original datum / short end.\n1. Measure from square reference end to arrow mark.\n2. Align bender ARROW and bend a 90° with steady foot pressure.\n3. Check finished stub and springback."
