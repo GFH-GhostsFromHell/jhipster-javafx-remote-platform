@@ -24,13 +24,10 @@ class FieldSizingActivity : ComponentActivity() {
                 var tab by remember { mutableStateOf(intent.getStringExtra("toolTab") ?: "Pull box") }
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text("Electrical Workbench · Field Tools",style=MaterialTheme.typography.headlineSmall)
-                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick={tab="Pull box"}){Text("Pull box")}
-                        OutlinedButton(onClick={tab="Bender"}){Text("Conduit bender")}
-                        OutlinedButton(onClick={tab="Fabrication"}){Text("Gain & racks")}
-                    }
-                    OutlinedButton(onClick={tab="Calibration"},modifier=Modifier.fillMaxWidth()) { Text("Bender Calibration · offline") }
-                    OutlinedButton(onClick={tab="Troubleshooting"},modifier=Modifier.fillMaxWidth()) { Text("Industrial Troubleshooting · offline knowledge base") }
+                    FieldDropdown(
+                        "Choose a field tool", tab,
+                        listOf("Pull box", "Bender", "Fabrication", "Calibration", "Troubleshooting")
+                    ) { tab = it }
                     when(tab) {
                         "Pull box" -> PullBoxMobile()
                         "Fabrication" -> ConduitFabricationMobile()
@@ -214,7 +211,9 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     var offsetReference by remember { mutableStateOf("Near bend critical") }
     var saddleMethod by remember { mutableStateOf("Traditional notch & outer arrow") }
     var precision by remember { mutableStateOf("1 mm") }
-    Text("Conduit bending · field guide",style=MaterialTheme.typography.titleLarge)
+    var showMoreOptions by remember { mutableStateOf(false) }
+    var showOrientationDetails by remember { mutableStateOf(false) }
+    Text("Conduit bending · quick marks",style=MaterialTheme.typography.titleLarge)
     Text("Uses geometric centreline dimensions. Always confirm shoe deduct, arrow/star/saddle-notch alignment and springback.")
     FieldDropdown("Bend",bend,bends){bend=it}
     FieldDropdown("Input units",units,listOf("mm","in")){next->
@@ -225,9 +224,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
             precision=if(next=="in")"1/16 in" else "1 mm"
         }
     }
-    FieldDropdown("Tape precision",precision,if(units=="mm")listOf("Exact","1 mm","5 mm") else listOf("Exact","1/16 in","1/8 in","1/4 in")){precision=it}
     if(bend!="90° stub"&&bend!="Back-to-back 90s")FieldDropdown("Bend angle",angle,listOf("10","15","22.5","30","45","60")){angle=it}
-    if(bend in listOf("Offset","Rolling offset"))FieldDropdown("Critical obstruction reference",offsetReference,listOf("Near bend critical","Far bend critical")){offsetReference=it}
     if(bend=="Three-point saddle")FieldDropdown("Saddle marking method",saddleMethod,listOf("Traditional notch & outer arrow","Geometric bend centres ONLY")){saddleMethod=it}
     if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle","Kicked 90°"))NumberInput("Rise/height ("+units+")",rise){rise=it}
     if(bend=="Rolling offset")NumberInput("Horizontal roll ("+units+")",roll){roll=it}
@@ -240,14 +237,23 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
              if(saved==null) result="No saved shoe deduct. Open Bender Calibration, measure a 90° test stub and save it."
              else {takeup=String.format(Locale.ROOT,"%.4f",saved);result="Loaded "+LocalBenderCalibration.description(context)+". Confirm this is the same physical bender and conduit."}
          },modifier=Modifier.fillMaxWidth()) { Text("Use saved bender calibration") }
-        Text("Common hand-bender starting points: 1/2 EMT 5 in, 3/4 EMT 6 in, 1 EMT 8 in. The actual shoe stamp controls.",style=MaterialTheme.typography.bodySmall)
     }
     if(bend=="Three-point saddle")NumberInput("Obstruction centre from datum ("+units+")",centre){centre=it}
     if(bend in listOf("Four-point saddle","Back-to-back 90s"))NumberInput("Obstacle width / back-to-back distance ("+units+")",width){width=it}
     Text("10 ft EMT stock limit: "+if(units=="mm")"3,048 mm" else "120 in",color=Color(0xFF91E5D5))
-    if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle")) {
-        NumberInput("Minimum same-datum mark spacing for YOUR shoe (optional, "+units+")",minimumShoeGap){minimumShoeGap=it}
-        Text("Leave blank when unknown: shoe clearance will be marked NOT VERIFIED, not assumed safe.",style=MaterialTheme.typography.bodySmall)
+    OutlinedButton(onClick = { showMoreOptions = !showMoreOptions }, modifier = Modifier.fillMaxWidth()) {
+        Text(if (showMoreOptions) "Hide additional settings ▲" else "More options · precision, references & shoe spacing ▼")
+    }
+    if (showMoreOptions) {
+        FieldDropdown("Tape rounding",precision,if(units=="mm")listOf("Exact","1 mm","5 mm") else listOf("Exact","1/16 in","1/8 in","1/4 in")) { precision=it }
+        if (bend in listOf("Offset","Rolling offset"))
+            FieldDropdown("Obstacle reference",offsetReference,listOf("Near bend critical","Far bend critical")) { offsetReference=it }
+        if (bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle")) {
+            NumberInput("Verified minimum spacing for YOUR bender ("+units+")",minimumShoeGap) { minimumShoeGap=it }
+            Text("Unknown spacing means clearance NOT VERIFIED. Do not assume a tight bend fits.",style=MaterialTheme.typography.bodySmall)
+        }
+        if (bend in listOf("90° stub","Back-to-back 90s","Kicked 90°"))
+            Text("Typical examples are 1/2 EMT 5 in, 3/4 EMT 6 in and 1 EMT 8 in. Use the deduct stamped or measured on YOUR shoe.",style=MaterialTheme.typography.bodySmall)
     }
     Button(onClick={
         result=runCatching{
@@ -256,9 +262,17 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
             bendMath(bend,units,angle.toDouble(),rise.toDouble(),roll.toDouble(),distance.toDouble(),stub.toDouble(),takeup.toDouble(),width.toDouble(),centre.toDouble(),offsetReference,saddleMethod,precision,gap)
         }
             .getOrElse{"Check inputs: "+it.message}
-    },modifier=Modifier.fillMaxWidth()){Text("Calculate marks & instructions")}
-    Text(result,style=MaterialTheme.typography.bodyMedium)
-    BendHookFacingCards(bend,angle,saddleMethod)
+    },modifier=Modifier.fillMaxWidth()){Text("Show tape marks & bending steps")}
+    OutlinedCard(modifier=Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Text("FIELD RESULT",style=MaterialTheme.typography.labelLarge,color=Color(0xFF93EEEC))
+            Text(result,style=MaterialTheme.typography.bodyMedium)
+        }
+    }
+    OutlinedButton(onClick = { showOrientationDetails = !showOrientationDetails },modifier=Modifier.fillMaxWidth()) {
+        Text(if(showOrientationDetails) "Hide hook-facing guide ▲" else "Show hook facing for each bend ▼")
+    }
+    if(showOrientationDetails) BendHookFacingCards(bend,angle,saddleMethod)
     Text("Field check: use the correct-size shoe and firm foot pressure, keep bend planes aligned, check springback and avoid conduit flattening. Test a piece before cutting to final length.",color=Color(0xFFFFD68A))
 }
 private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double,offsetReference:String,saddleMethod:String,precision:String,minShoeGap:Double?):String {
