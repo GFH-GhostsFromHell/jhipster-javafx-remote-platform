@@ -36,6 +36,7 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 }
 @media(max-width:370px){.quick-fields{grid-template-columns:1fr}.quick-fields .field:first-child{grid-column:auto}}
 
+.stock-status{padding:11px 13px;background:#123c35;border:1px solid #42bda6;border-radius:11px;font-weight:800;color:#b4fff0;line-height:1.5;margin:12px 0}.stock-status.bad{background:#4c2025;border-color:#fc8897;color:#fff}.stock-status.pending{background:#403322;border-color:#e8b65a;color:#ffe2aa}
 </style></head><body>
 <header><b>ϟ Electrical Workbench · Bend Instruction Lab <span class="pill">EXPERIMENTAL</span></b><nav><a href="/bend-calcs.html">Existing bending calculator</a> · <a href="/bender-calibration.html">Calibration</a> · <a href="/field-suite.html">Field Suite</a></nav></header>
 <main><h1>Bend it right. Mark it fast.</h1><p>Only the measurements you need. Clear tape marks, hook direction and the next bend. Open the 3D preview when you need it.</p>
@@ -51,14 +52,18 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 <div class="field"><label for="width">Flat / obstacle / back-to-back width</label><input id="width" type="number" step="any" min="0" value="500"></div>
 </div>
 <div class="actions quick-actions"><button id="recalc" class="primary">Show my marks</button><button id="quickCopy">Copy marks</button><button id="loadProfile">Use saved bender deduct</button><span class="note" id="profileStatus">90° marks need the actual shoe deduct. It is never guessed.</span></div>
+<div class="stock-status" id="stockStatus" role="status" aria-live="polite">10 ft EMT · 3,048 mm stock limit</div>
 <div class="quick-summary" role="status" aria-live="polite" id="quickSummary"><strong>Enter your bend measurements</strong><span>Physical marks appear here.</span></div>
 <details class="advanced-disclosure" id="advancedOptions"><summary>More options · shoe method, reference, 3D radius & stock length</summary>
 <div class="fields advanced-fields"><div class="field"><label for="method">Physical hand-bender method</label><select id="method"><option value="klein">Klein-style manufacturer guide</option><option value="other">Other / unverified shoe</option></select></div>
 <div class="field"><label for="critical">Offset reference</label><select id="critical"><option value="near">Near bend critical</option><option value="far">Far bend critical</option></select></div>
 <div class="field"><label for="extraMark">Manual additional kick mark from tape end</label><input id="extraMark" type="number" step="any" min="0" placeholder="Optional; not guessed"></div>
 <div class="field"><label for="radius">3D preview centerline radius</label><input id="radius" type="number" step="any" min="1" value="120"></div>
-<div class="field"><label for="stock">Stock length for mark drawing</label><input id="stock" type="number" step="any" min="1" value="2500"></div></div>
-<p class="note">Use the actual shoe information for any manufacturer-specific bend marks and hook direction. Advanced values are optional unless your bend requires one.</p>
+<div class="field"><label for="stock">Actual straight-stock length (max 10 ft)</label><input id="stock" type="number" step="any" min="1" value="3048"></div>
+<div class="field"><label for="minMarkGap">Minimum ARROW/NOTCH mark spacing for YOUR bender (optional)</label><input id="minMarkGap" type="number" min="0" step="any" placeholder="Measured / manufacturer value"></div>
+<div class="field"><label for="minStraight">Minimum straight between bend arcs for YOUR shoe (mm, optional)</label><input id="minStraight" type="number" min="0" step="any" placeholder="Measured / manufacturer value"></div>
+</div>
+<p class="note">Default maximum straight stock is 10 ft (3,048 mm). Change to a shorter cut piece if needed. Mark gaps and shoe clearance vary by bender and cannot be certified without your verified tool minimums. The centreline radius field is only a preview assumption until calibrated.</p>
 </details>
 <div class="warning">Use the exact bender's arrow/star/notch and take-up. Geometry-only preview positions are <b>not</b> approved physical bending marks. Confirm dimensions, springback, and shoe access on site.</div>
 </section>
@@ -77,4 +82,4 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 </details>
 <section class="card"><h2>Before you bend the real conduit</h2><div id="checks"></div><div class="actions"><button id="copyPlan">Copy instruction plan</button><button id="print">Print worksheet</button><a href="/bend-calcs.html">Return to existing calculations</a></div>
 <p class="note">Manufacturer reference: <a href="https://data.kleintools.com/sites/all/product_assets/documents/instructions/klein/ConduitBenderGuide.pdf" target="_blank" rel="noopener noreferrer">Klein Tools Conduit Bender Guide</a>. Physical handling varies with the exact shoe and whether floor bending or air bending. Always verify against the equipment you are holding.</p>
-</section></main><script src="/bend-instruction-lab.js?v=20261106-quick2" defer></script></body></html>
+</section></main><script src="/bend-instruction-lab.js?v=20261106-stock-check-v1" defer></script></body></html>
