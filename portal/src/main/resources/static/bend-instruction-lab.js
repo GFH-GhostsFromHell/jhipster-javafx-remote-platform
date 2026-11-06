@@ -13,6 +13,29 @@ function marker(tag,pos,tool,note){return {tag,pos,tool,note}}
 function instruction(label,where,reference,hook,flip,body,caution){
  return {label,where,reference,hook,flip,body,caution};
 }
+function hookSide(kind,stepIndex,isKlein){
+ if(!isKlein)return 'unknown';
+ const verified={
+  stub:['left'],offset:['left','left'],roll:['left','left'],
+  back:['left','right'],kick90:['left','unknown'],kickExtra:['left','unknown','unknown'],
+  kickBefore:['unknown','left'],saddle3:['unknown','right','left']
+ };
+ return (verified[kind]||[])[stepIndex]||'unknown';
+}
+function hookCaption(side){
+ return side==='left'?'← HOOK FACES LEFT · TOWARD DATUM':
+        side==='right'?'HOOK FACES RIGHT → · TOWARD FAR END':
+        '? VERIFY HOOK FACING WITH YOUR SHOE';
+}
+function markerHookSide(kind,tag,isKlein){
+ if(!isKlein)return 'unknown';
+ if(['stub','offset','roll','back','kick90','kickExtra','kickBefore'].includes(kind)){
+  if(tag==='A')return 'left';
+  if(tag==='B'&&['offset','roll'].includes(kind))return 'left';
+ }
+ if(kind==='saddle3')return tag==='A'?'right':tag==='B'?'left':'unknown';
+ return 'unknown';
+}
 function valid(){
  for(const key of ['height','distance','width','radius','stock']){
   const n=v(key);if(n===null||!Number.isFinite(n)||n<0||(['radius','stock'].includes(key)&&n===0))throw Error('Invalid '+key+' measurement.');
@@ -127,6 +150,8 @@ function getLayout(){
   steps=steps.map(s=>Object.assign({},s,{reference:s.reference==='GEOMETRY ONLY'?s.reference:'VERIFY SHOE',hook:'CHECK YOUR BENDER',flip:'VERIFY OEM METHOD'}));
   warning+=' Your tool is set to OTHER: manufacturer-specific orientation cues have been suppressed.';
  }
+ steps=steps.map((item,index)=>Object.assign({},item,{hookSide:hookSide(type,index,isKlein)}));
+ marks=marks.map(item=>Object.assign({},item,{hookSide:markerHookSide(type,item.tag,isKlein)}));
  return {name,datum,warning,steps,marks};
 }
 function renderMarks(){
@@ -134,16 +159,20 @@ function renderMarks(){
  const xx=n=>65+Math.min(1,n/max)*890;
  let code='<svg viewBox="0 0 1030 225" role="img" aria-label="Conduit with tape datum and exact supported field marks"><defs><linearGradient id="m" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e8f9ff"/><stop offset=".4" stop-color="#a0b5c6"/><stop offset="1" stop-color="#506c7e"/></linearGradient></defs>';
  code+='<rect x="60" y="89" width="915" height="27" rx="13" fill="url(#m)" stroke="#35566c"/><path d="M65 68V133" stroke="#164e70" stroke-width="4"/><text x="57" y="52" fill="#164e70" font-size="18" font-weight="900">0 · MEASURE FROM HERE</text>';
- layout.marks.forEach((m,i)=>{const x=xx(m.pos),color=['#eb2d51','#008fbe','#a4591b','#774aba'][i%4];code+='<path d="M'+x+' 79V127" stroke="'+color+'" stroke-width="6"/><text x="'+x+'" y="'+(i%2?168:60)+'" font-size="20" font-weight="900" text-anchor="middle" fill="'+color+'">'+html(m.tag)+'</text>'});
+ layout.marks.forEach((m,i)=>{const x=xx(m.pos),color=['#eb2d51','#008fbe','#a4591b','#774aba'][i%4],facing=m.hookSide==='left'?'← HOOK':m.hookSide==='right'?'HOOK →':'? CHECK SHOE';code+='<path d="M'+x+' 79V127" stroke="'+color+'" stroke-width="6"/><text x="'+x+'" y="'+(i%2?168:60)+'" font-size="20" font-weight="900" text-anchor="middle" fill="'+color+'">'+html(m.tag)+'</text><text x="'+x+'" y="'+(i%2?189:28)+'" font-size="14" font-weight="900" text-anchor="middle" fill="'+(m.hookSide==='unknown'?'#a4591b':'#085e82')+'">'+html(facing)+'</text>'});
  code+='<text x="63" y="209" fill="#244d67" font-size="16">DRAW A FULL LINE AT EACH NUMBERED PHYSICAL MARK; read exact dimensions below</text></svg>';
  $svg.innerHTML=code;$('datum').textContent=layout.datum;
- $('markCards').innerHTML=layout.marks.map(m=>'<div class="mark"><b>'+html(m.tag)+' = '+html(length(m.pos))+'</b><small>'+html(m.tool)+'</small><small>'+html(m.note)+'</small></div>').join('')||'<p>No verified physical marks are calculated for this arrangement.</p>';
+ $('markCards').innerHTML=layout.marks.map(m=>'<div class="mark"><b>'+html(m.tag)+' = '+html(length(m.pos))+'</b><div class="face-direction '+(m.hookSide==='unknown'?'unverified':'')+'">'+html(hookCaption(m.hookSide))+'</div><small>'+html(m.tool)+'</small><small>'+html(m.note)+'</small></div>').join('')||'<p>No verified physical marks are calculated for this arrangement.</p>';
+ if($('kind').value==='back'&&$('method').value==='klein')
+  $('markCards').innerHTML+='<div class="mark"><b>STAR · second 90°</b><div class="face-direction">'+html(hookCaption('right'))+'</div><small>Measure from BACK of completed first bend, not straight-stock zero. Align STAR, not ARROW.</small></div>';
  $('markAlert').textContent=layout.warning;
 }
 function renderStep(){
  const item=layout.steps[step];
  $('stepCounter').textContent='Step '+(step+1)+' / '+layout.steps.length;$('stepTitle').textContent=item.label;
- $('cueMark').textContent=item.where;$('cueReference').textContent=item.reference;$('cueHook').textContent=item.hook;$('cueFlip').textContent=item.flip;
+ $('cueMark').textContent=item.where;$('cueReference').textContent=item.reference;$('cueHook').textContent=hookCaption(item.hookSide)+' · '+item.hook;$('cueFlip').textContent=item.flip;
+ $('hookVisual').textContent=hookCaption(item.hookSide);
+ $('hookVisual').className='hookvisual '+(item.hookSide==='unknown'?'unverified':'');
  $('instruction').textContent=item.body;$('stepWarning').textContent=item.caution;
  $('prev').disabled=step===0;$('next').disabled=step===layout.steps.length-1;
  if(mode==='partial')renderModel();
@@ -283,7 +312,7 @@ $('loadProfile').onclick=()=>{
 $('copyPlan').onclick=()=>{
  if(!layout)return;
  const data=[layout.name,layout.datum,'PHYSICAL MARKS:'].concat(layout.marks.map(m=>m.tag+': '+length(m.pos)+' — '+m.tool+' — '+m.note))
- .concat(['INSTRUCTIONS:']).concat(layout.steps.map((s,i)=>(i+1)+'. '+s.label+'\nMARK: '+s.where+'\nTOOL: '+s.reference+'\nHOOK: '+s.hook+'\nFLIP / ROLL: '+s.flip+'\n'+s.body+'\nCAUTION: '+s.caution)).concat(['SAFETY: '+layout.warning]).join('\n');
+ .concat(['INSTRUCTIONS:']).concat(layout.steps.map((s,i)=>(i+1)+'. '+s.label+'\nMARK: '+s.where+'\nTOOL: '+s.reference+'\nHOOK FACING: '+hookCaption(s.hookSide)+'\nHOOK SETUP: '+s.hook+'\nFLIP / ROLL: '+s.flip+'\n'+s.body+'\nCAUTION: '+s.caution)).concat(['SAFETY: '+layout.warning]).join('\n');
  navigator.clipboard.writeText(data).then(()=>alert('Instruction plan copied.'),()=>alert('Clipboard unavailable here.'));
 };
 $('print').onclick=()=>window.print();
