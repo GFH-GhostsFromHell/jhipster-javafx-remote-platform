@@ -41,17 +41,17 @@ internal fun MobileAccountRecovery() {
             color = MWMuted,
             fontWeight = FontWeight.SemiBold
         )
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedButton(
                 onClick = { dialog = RecoveryDialog.USERNAME },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth()
             ) { Text("Find username") }
             OutlinedButton(
                 onClick = { dialog = RecoveryDialog.PASSWORD },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth()
             ) { Text("Reset password") }
         }
     }
