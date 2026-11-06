@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.mail.MailException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -176,6 +177,30 @@ public class PublicAccountResource {
     Throwable cause = ex;
     for (int i = 0; i < 5 && cause.getCause() != null; i++) cause = cause.getCause();
     return cause.getClass().getSimpleName();
+  }
+
+  /**
+   * Consistent, safe JSON errors for account forms. Spring's default error body
+   * can omit ResponseStatusException.reason, leaving the browser with only
+   * a generic failure even when a specific validation error is known.
+   */
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<Map<String,Object>> accountError(ResponseStatusException ex) {
+    String reason = Objects.toString(ex.getReason(), "The request could not be completed.");
+    String code = "REQUEST_FAILED";
+    String field = "";
+    if (reason.contains("username is already in use")) { code = "USERNAME_IN_USE"; field = "username"; }
+    else if (reason.contains("email address is already associated")) { code = "EMAIL_IN_USE"; field = "email"; }
+    else if (reason.startsWith("Username must")) { code = "INVALID_USERNAME"; field = "username"; }
+    else if (reason.startsWith("Enter a valid email")) { code = "INVALID_EMAIL"; field = "email"; }
+    else if (reason.contains("Passwords do not match")) { code = "PASSWORD_MISMATCH"; field = "password"; }
+    else if (reason.contains("at least 8 characters")) { code = "INVALID_PASSWORD"; field = "password"; }
+    else if (reason.contains("verification code is invalid or expired") || reason.contains("6-digit code")) { code = "INVALID_CODE"; field = "code"; }
+    else if (reason.contains("verification email could not be sent")) { code = "EMAIL_DELIVERY_FAILED"; }
+    else if (reason.contains("Registration could not be saved")) { code = "REGISTRATION_DATABASE_ERROR"; }
+    else if (reason.contains("Email verification and recovery are not configured")) { code = "EMAIL_NOT_CONFIGURED"; }
+    return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
+        "message", reason, "code", code, "field", field, "status", ex.getStatusCode().value()));
   }
 
   private void requireMail() {
