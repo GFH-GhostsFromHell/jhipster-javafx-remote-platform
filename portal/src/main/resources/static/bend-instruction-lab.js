@@ -37,10 +37,26 @@ function markerHookSide(kind,tag,isKlein){
  return 'unknown';
 }
 function valid(){
- for(const key of ['height','distance','width','radius','stock']){
-  const n=v(key);if(n===null||!Number.isFinite(n)||n<0||(['radius','stock'].includes(key)&&n===0))throw Error('Invalid '+key+' measurement.');
+ const required={
+  stub:['height'], offset:['height','distance'],roll:['height','distance','width'],
+  back:['height','width'],kick90:['height'],kickBefore:['height','distance'],
+  kickExtra:['height','distance','width'],saddle3:['height','distance'],
+  saddle4:['height','distance','width'],segment:[],custom:[]
+ }[$('kind').value]||[];
+ const names={height:'rise / stub height',distance:'distance from tape zero',width:'width / sideways roll'};
+ for(const id of required){
+  const number=v(id);
+  if(number===null)throw Error('Enter '+names[id]+' to calculate this bend.');
+  if(!Number.isFinite(number)||number<0)throw Error('Enter a valid '+names[id]+'.');
  }
- for(const key of ['deduct','extraMark']){const n=v(key);if(n!==null&&(!Number.isFinite(n)||n<0))throw Error('Invalid '+key+'.')}
+ for(const id of ['radius','stock']){
+  const number=v(id);
+  if(number===null||!Number.isFinite(number)||number<=0)throw Error('Enter a valid '+id+'.');
+ }
+ for(const id of ['deduct','extraMark','minMarkGap','minStraight']){
+  const number=v(id);
+  if(number!==null&&(!Number.isFinite(number)||number<0))throw Error('Enter a valid '+id+' or leave it blank.');
+ }
 }
 function getLayout(){
  valid();const type=$('kind').value,height=v('height'),deduct=v('deduct'),angle=Number($('angle').value),distance=v('distance'),width=v('width'),extra=v('extraMark'),isKlein=$('method').value==='klein';
@@ -214,7 +230,7 @@ function checkStockAndSpacing(){
 
 function showQuickSummary(error){
  const box=$('quickSummary');
- if(error){box.innerHTML='<strong>Check your measurements</strong><span>'+html(error.message||String(error))+'</span>';return}
+ if(error){const msg=error.message||String(error);box.innerHTML='<strong>'+(/^Enter /.test(msg)?'Enter your job measurements':'Check these measurements')+'</strong><span>'+html(msg)+'</span>';return}
  if(!layout)return;
  const marks=layout.marks.filter(m=>m.tool!=='GEOMETRY ONLY');
  const first=layout.steps[0];
@@ -396,7 +412,7 @@ function refresh(reset){
   syncQuickFields();step=0;renderMarks();renderStep();showQuickSummary();renderModel();
  }catch(e){
   layout=null;
-  $('stockStatus').className='stock-status bad';
+  $('stockStatus').className=/^Enter /.test(e.message)?'stock-status pending':'stock-status bad';
   $('stockStatus').textContent=e.message;
   syncQuickFields();showQuickSummary(e);
   $('markDrawing').innerHTML='';$('markCards').innerHTML='';
