@@ -165,10 +165,14 @@ function syncQuickFields(){
   saddle3:['height','angle','distance'],saddle4:['height','angle','distance','width'],
   segment:['height'],custom:[]
  };
- const active=shown[$('kind').value]||[];
+ const kind=$('kind').value, active=shown[kind]||[];
  ['height','deduct','angle','distance','width'].forEach(id=>{
   $(id).closest('.field').style.display=active.includes(id)?'':'none';
  });
+ const offset=['offset','roll'].includes(kind),back=kind==='back';
+ document.querySelector('label[for="height"]').textContent=offset?'Required offset rise':kind==='stub'||back?'Required 90° stub height':'Height / kick rise';
+ document.querySelector('label[for="width"]').textContent=kind==='roll'?'Horizontal roll':back?'Back-to-back distance':'Obstacle / spacing width';
+ document.querySelector('label[for="distance"]').textContent=offset?'Near obstacle reference from tape end':'Reference distance from tape end';
 }
 function showQuickSummary(error){
  const box=$('quickSummary');
@@ -370,6 +374,7 @@ $('copyPlan').onclick=()=>{
  navigator.clipboard.writeText(data).then(()=>alert('Instruction plan copied.'),()=>alert('Clipboard unavailable here.'));
 };
 $('print').onclick=()=>window.print();
+$('quickCopy').onclick=()=>$('copyPlan').click();
 const items=['Tape zero and reference end are confirmed.','I know which ARROW/STAR/NOTCH belongs on EACH physical mark.','Hook direction matches this exact bender and floor/air method.','I checked whether to FLIP the bender assembly for the next bend.','I checked pipe ROTATION and preserved the intended bend plane.','The finished shape, shoe clearance, radius, springback and bend sum are verified.'];
 $('checks').innerHTML=items.map((t,i)=>'<label class="check"><input type="checkbox" aria-label="Field check '+(i+1)+'"><span>'+html(t)+'</span></label>').join('');
 $('unit').dataset.previous='mm';defaults();refresh(false);
