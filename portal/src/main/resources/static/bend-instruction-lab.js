@@ -174,6 +174,41 @@ function syncQuickFields(){
  document.querySelector('label[for="width"]').textContent=kind==='roll'?'Horizontal roll':back?'Back-to-back distance':'Obstacle / spacing width';
  document.querySelector('label[for="distance"]').textContent=offset?'Near obstacle reference from tape end':'Reference distance from tape end';
 }
+
+const TEN_FOOT_EMT_MM=3048;
+// Stock checks use the SAME straight-stock datum. A back-of-bend STAR mark
+// is relative to a formed bend and must not be compared with first-end marks.
+function checkStockAndSpacing(){
+ const stock=v('stock'), minMarkGap=v('minMarkGap');
+ const stockMm=toMm(stock);
+ if(stock===null||!Number.isFinite(stock)||stock<=0)
+  throw Error('Enter a positive actual stock length.');
+ if(stockMm> TEN_FOOT_EMT_MM+1e-6)
+  throw Error('CALCULATION NOT POSSIBLE: stock is over one standard 10 ft EMT stick (3,048 mm). Select 10 ft or a shorter piece.');
+ if(minMarkGap!==null&&(!Number.isFinite(minMarkGap)||minMarkGap<0))
+  throw Error('Minimum shoe mark spacing must be zero or greater.');
+ const marks=layout.marks.filter(m=>Number.isFinite(m.pos));
+ const overshot=marks.find(m=>m.pos<0||toMm(m.pos)>stockMm+1e-6);
+ if(overshot)
+  throw Error('CALCULATION NOT POSSIBLE on one 10 ft EMT: mark '+overshot.tag+' is at '+length(overshot.pos)+', outside '+length(stock)+' of actual stock.');
+ const ordered=marks.filter(m=>m.tool!=='GEOMETRY ONLY').slice().sort((a,b)=>a.pos-b.pos);
+ if(minMarkGap!==null&&minMarkGap>0){
+  for(let i=1;i<ordered.length;i++){
+   const gap=ordered[i].pos-ordered[i-1].pos;
+   if(gap+1e-6<minMarkGap)
+    throw Error('CALCULATION NOT POSSIBLE: '+ordered[i-1].tag+' and '+ordered[i].tag+
+     ' are only '+length(gap)+' apart, below the bender minimum of '+length(minMarkGap)+'.');
+  }
+ }
+ const furthest=marks.length?Math.max(...marks.map(m=>m.pos)):0;
+ $('stockStatus').className='stock-status pending';
+ $('stockStatus').textContent='10 ft EMT CHECK · furthest plotted mark '+length(furthest)+
+  ' / available '+length(stock)+'. '+(minMarkGap===null?
+  'Shoe spacing NOT VERIFIED — enter the actual tool minimum in More options.':
+  'Checked same-datum marks against your entered '+length(minMarkGap)+' minimum.')+
+  ' Physical bender access, actual bend radius and developed length still require verification.';
+}
+
 function showQuickSummary(error){
  const box=$('quickSummary');
  if(error){box.innerHTML='<strong>Check your measurements</strong><span>'+html(error.message||String(error))+'</span>';return}
@@ -250,8 +285,20 @@ function renderOperations(){
 }
 const add=(a,b)=>a.map((n,i)=>n+b[i]),times=(a,n)=>a.map(x=>x*n),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm=a=>times(a,1/Math.max(1e-8,Math.hypot(...a)));
 function calculatePath(){
- const radius=toMm(v('radius')),tail=v('tail');
+ const radius=toMm(v('radius')),tail=v('tail'),minStraight=v('minStraight');
+ const stock=toMm(v('stock'));
  if(!Number.isFinite(radius)||radius<=0||tail===null||!Number.isFinite(tail)||tail<0)throw Error('Preview radius and tail must be valid.');
+ if(!Number.isFinite(stock)||stock<=0||stock>TEN_FOOT_EMT_MM+1e-6)
+  throw Error('CALCULATION NOT POSSIBLE: enter stock from 0 to 10 ft (3,048 mm).');
+ if(minStraight!==null&&(!Number.isFinite(minStraight)||minStraight<0))
+  throw Error('Enter a valid minimum straight between arcs (mm).');
+ const developed=ops.reduce((sum,o)=>sum+o.before+Math.abs(o.angle)*RAD*radius,toMm(tail));
+ if(!Number.isFinite(developed)||developed>stock+1e-6)
+  throw Error('CALCULATION NOT POSSIBLE on one 10 ft EMT: 3D developed centreline needs '+fmt(developed,1)+' mm, available '+fmt(stock,1)+' mm. Shorten the leads or bends.');
+ if(minStraight!==null&&minStraight>0)
+  for(let i=1;i<ops.length;i++)
+   if(ops[i].before+1e-6<minStraight)
+    throw Error('BENDS TOO CLOSE: B'+(i+1)+' has '+fmt(ops[i].before,1)+' mm straight before it; your shoe needs '+fmt(minStraight,1)+' mm.');
  let pos=[0,0,0],t=[1,0,0],n=[0,0,1];
  const pts=[{p:pos.slice(),bend:0}],ends=[];
  function straight(distance,bend){
@@ -276,7 +323,7 @@ function calculatePath(){
  // Prevent invalid projected positions from silently drawing an empty canvas.
  if(pts.some(pt=>pt.p.length!==3||pt.p.some(n=>!Number.isFinite(n))))
   throw Error('3D coordinates are invalid. Reset the bend sequence or check its dimensions.');
- return {pts,ends,radius};
+ return {pts,ends,radius,developed};
 }
 const canvas=$('tubeCanvas'),ctx=canvas.getContext('2d');
 function rotated(v){
@@ -317,7 +364,7 @@ function renderModel(){
  });
  if(screen.length){ctx.fillStyle='#9cf5ff';ctx.font='bold 17px system-ui';let a=screen[0],b=screen[screen.length-1];ctx.fillText('START',a[0]+8,a[1]-15);ctx.fillText(mode==='partial'?'IN PROGRESS':'FINISH',b[0]+8,b[1]+23)}
  ctx.fillStyle='#d1e7f3';ctx.font='15px system-ui';ctx.fillText('3D CENTRELINE · GEOMETRY ONLY · NOT AN ARROW / STAR SHOP MARK',16,25);
- $('geometryNote').textContent='Bends: '+ops.map((o,i)=>'B'+(i+1)+' '+fmt(o.angle)+'° / plane '+fmt(o.plane)+'° / lead '+fmt(o.before)+' mm').join(' · ')+'. Model radius '+fmt(model.radius)+' mm. Verify physical radii and shoe allowances before installation.';
+ $('geometryNote').textContent='Bends: '+ops.map((o,i)=>'B'+(i+1)+' '+fmt(o.angle)+'° / plane '+fmt(o.plane)+'° / lead '+fmt(o.before)+' mm').join(' · ')+'. Developed material '+fmt(model.developed,1)+' / '+fmt(toMm(v('stock')),1)+' mm; preview radius '+fmt(model.radius)+' mm. Actual radius and physical shoe clearance must be verified.';
 }
 function view(name){
  const options={iso:[-.7,.38],front:[0,0],side:[-Math.PI/2,0],top:[0,1.56]};
@@ -341,9 +388,19 @@ $('resetBends').onclick=()=>{defaults();renderModel()};
 function refresh(reset){
  try{
   layout=getLayout();
+  checkStockAndSpacing();
   if(reset)defaults();
   syncQuickFields();step=0;renderMarks();renderStep();showQuickSummary();renderModel();
- }catch(e){syncQuickFields();showQuickSummary(e);$('markDrawing').innerHTML='';$('markCards').innerHTML='';$('markAlert').textContent='CHECK MEASUREMENTS: '+e.message;$('instruction').textContent='Correct the input fields above.'}
+ }catch(e){
+  layout=null;
+  $('stockStatus').className='stock-status bad';
+  $('stockStatus').textContent=e.message;
+  syncQuickFields();showQuickSummary(e);
+  $('markDrawing').innerHTML='';$('markCards').innerHTML='';
+  $('markAlert').textContent=e.message;
+  $('instruction').textContent='Correct the measurements. No physical bend plan is approved.';
+  $('geometryNote').textContent='Preview withheld while field stock or mark check fails.';
+ }
 }
 
 let quickInputTimer;
@@ -356,9 +413,10 @@ $('threeDDetails').addEventListener('toggle',()=>{if($('threeDDetails').open)ren
 $('editorDetails').addEventListener('toggle',()=>{if($('editorDetails').open)renderModel()});
 $('kind').onchange=()=>refresh(true);$('angle').onchange=()=>refresh(true);$('method').onchange=()=>refresh(false);
 $('critical').onchange=()=>refresh(false);$('recalc').onclick=()=>refresh(true);
+['stock','minMarkGap','minStraight'].forEach(id=>$(id).addEventListener('input',()=>refresh(false)));
 $('unit').addEventListener('change',function(){
  const old=this.dataset.previous||'mm',now=this.value,change=old===now?1:now==='mm'?25.4:1/25.4;
- ['height','deduct','distance','extraMark','width','radius','stock'].forEach(id=>{let value=$(id).value.trim();if(value!==''&&Number.isFinite(Number(value)))$(id).value=fmt(Number(value)*change,now==='mm'?2:4)});
+ ['height','deduct','distance','extraMark','width','radius','stock','minMarkGap'].forEach(id=>{let value=$(id).value.trim();if(value!==''&&Number.isFinite(Number(value)))$(id).value=fmt(Number(value)*change,now==='mm'?2:4)});
  this.dataset.previous=now;refresh(false);
 });
 $('loadProfile').onclick=()=>{
