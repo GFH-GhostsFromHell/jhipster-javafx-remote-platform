@@ -64,7 +64,7 @@ public class AccountLifecycleService {
     Integer emailUsed = db.queryForObject(
         "select count(*) from client_account where email is not null and lower(email)=lower(?) and lower(username)<>lower(?)",
         Integer.class, e, u);
-    if (emailUsed != null && emailUsed > 0) throw new IllegalArgumentException("That email address is already associated with an account.");
+    if (emailUsed != null && emailUsed > 0) throw new IllegalArgumentException("This email address already has an Electrical Workbench account. Use Forgot password to recover it, or use a different email.");
 
     String hash = encoder.encode(password);
     if (!existing.isEmpty()) {
@@ -73,12 +73,12 @@ public class AccountLifecycleService {
       String provider = Objects.toString(row.get("provider"), "PASSWORD");
       String oldEmail = Objects.toString(row.get("email"), "");
       if (enabled || !"PASSWORD".equalsIgnoreCase(provider) || (!oldEmail.isBlank() && !oldEmail.equalsIgnoreCase(e))) {
-        throw new IllegalArgumentException("That username is already in use.");
+        throw new IllegalArgumentException("That username is already in use. Choose a different username, or use Forgot password if it belongs to you.");
       }
       Integer pending = db.queryForObject(
           "select count(*) from account_action_code where purpose='REGISTER' and lookup_key=?",
           Integer.class, u.toLowerCase(Locale.ROOT));
-      if (pending == null || pending == 0) throw new IllegalArgumentException("That username is already in use.");
+      if (pending == null || pending == 0) throw new IllegalArgumentException("That username is already in use. Choose a different username, or use Forgot password if it belongs to you.");
       db.update("update client_account set display_name=?,email=?,password_hash=?,enabled=false,email_verified=false,subscription_tier='TIER_1',requested_tier=?,auth_provider='PASSWORD' where lower(username)=lower(?)",
           name, e, hash, requested, u);
     } else {
@@ -108,7 +108,7 @@ public class AccountLifecycleService {
   public void sendUsernameReminder(String email) {
     ensureMail();
     String e = clean(email).toLowerCase(Locale.ROOT);
-    if (!EMAIL.matcher(e).matches()) throw new IllegalArgumentException("Enter a valid email address.");
+    if (!EMAIL.matcher(e).matches()) throw new IllegalArgumentException("Enter a valid email address, such as name@example.com.");
     List<String> usernames = db.query(
         "select username from client_account where email is not null and lower(email)=lower(?) and enabled=true order by username",
         (rs,row)->rs.getString(1), e);
@@ -151,9 +151,9 @@ public class AccountLifecycleService {
   }
 
   private void validateRegistration(String username, String email, String password) {
-    if (!USERNAME.matcher(username).matches()) throw new IllegalArgumentException("Username must be 3–40 characters using letters, numbers, dot, dash or underscore.");
-    if (!EMAIL.matcher(email).matches()) throw new IllegalArgumentException("Enter a valid email address.");
-    if (password == null || password.length() < 8) throw new IllegalArgumentException("Password must be at least 8 characters.");
+    if (!USERNAME.matcher(username).matches()) throw new IllegalArgumentException("Username must be 3–40 characters. Use only letters, numbers, periods, hyphens or underscores.");
+    if (!EMAIL.matcher(email).matches()) throw new IllegalArgumentException("Enter a valid email address, such as name@example.com.");
+    if (password == null || password.length() < 8) throw new IllegalArgumentException("Password must contain at least 8 characters.");
   }
 
   private void saveCode(String purpose, String key, String username, String code) {
@@ -169,15 +169,15 @@ public class AccountLifecycleService {
     if (code == null || !code.matches("\\d{6}")) throw new IllegalArgumentException("Enter the 6-digit code from your email.");
     List<CodeRow> rows = db.query("select code_hash,expires_at,attempts from account_action_code where purpose=? and lookup_key=?",
         (rs,row)->new CodeRow(rs.getString("code_hash"), rs.getTimestamp("expires_at"), rs.getInt("attempts")), purpose, key);
-    if (rows.isEmpty()) throw new IllegalArgumentException("The verification code is invalid or expired.");
+    if (rows.isEmpty()) throw new IllegalArgumentException("The verification code is incorrect, expired, or has been replaced. Request a new code and try again.");
     CodeRow row = rows.getFirst();
     if (row.attempts() >= MAX_ATTEMPTS || row.expiresAt() == null || Instant.now().isAfter(row.expiresAt().toInstant())) {
       deleteCode(purpose, key);
-      throw new IllegalArgumentException("The verification code is invalid or expired.");
+      throw new IllegalArgumentException("The verification code is incorrect, expired, or has been replaced. Request a new code and try again.");
     }
     if (!encoder.matches(code, row.hash())) {
       db.update("update account_action_code set attempts=attempts+1 where purpose=? and lookup_key=?", purpose, key);
-      throw new IllegalArgumentException("The verification code is invalid or expired.");
+      throw new IllegalArgumentException("The verification code is incorrect, expired, or has been replaced. Request a new code and try again.");
     }
   }
 
