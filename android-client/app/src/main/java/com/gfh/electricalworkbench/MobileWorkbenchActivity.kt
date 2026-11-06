@@ -532,7 +532,8 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 @Composable
 private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
     val context = LocalContext.current
-    MWPage("CEC 2024 Workbench", "Guided Worksheets is the default exam-style workflow; the full section calculators and advanced pack remain available for detailed work.") {
+    MWPage("CEC 2024 Workbench", "Fast field tools first. Advanced calculations and exam worksheets are below.") {
+        MWHubCard("⚡ Fast Conduit Bender · mark in seconds", "Choose your bend, enter only its required dimensions, then read the tape marks and shoe orientation. Optional 3D preview.") { onOpenWeb("/bend-instruction-lab.html") }
         MWHubCard("Guided C of Q Worksheets", "Default guided workflow with worked steps, Why-this-answer explanations, conductor + voltage drop, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm, service demand, presets and saved solutions") { onOpenWeb("/guided-calculators.html") }
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
@@ -546,7 +547,6 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
         MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
-         MWHubCard("TRY · 3D Bend Instruction Lab", "Optional beginner wizard: exact supported marks, bender facing/flip cues, and draggable 3D kicked-90 and multi-bend preview") { onOpenWeb("/bend-instruction-lab.html") }
          MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
          MWHubCard("Field Suite · installations and projects", "Blueprint takeoff, 3D bends, motor-control logic, one-line diagrams, estimating, commissioning and camera nameplates") { onOpenWeb("/field-suite.html") }
          MWHubCard("Industrial troubleshooting knowledge base", "23 structured Epiroc-style diagnostics covering motors, VFDs, PLCs, mining vehicles, protection, HVAC and site safety") { onOpenWeb("/troubleshooting-kb.html") }
