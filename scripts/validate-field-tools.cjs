@@ -72,7 +72,7 @@ if(geometryStart<0||geometryEnd<=geometryStart){
   }
  }
 }
-if(!/src="\\/bend-instruction-lab\\.js(?:\?[^"]*)?"/.test(labHtml)){console.error('Bend lab JS is not linked');failed=true}
+if(!/src="\/bend-instruction-lab\.js(?:\?[^"]*)?"/.test(labHtml)){console.error('Bend lab JS is not linked');failed=true}
 for(const key of ['kickExtra','kick90','back','roll','saddle3','saddle4','offset','segment','custom']){
  if(!labHtml.includes('value="'+key+'"')){console.error('Missing bend preset '+key);failed=true}
 }
