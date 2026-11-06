@@ -209,6 +209,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     var takeup by remember{mutableStateOf("127")}
     var width by remember{mutableStateOf("200")}
     var centre by remember{mutableStateOf("600")}
+    var minimumShoeGap by remember { mutableStateOf("") }
     var result by remember{mutableStateOf("Select a bend and calculate marks.") }
     var offsetReference by remember { mutableStateOf("Near bend critical") }
     var saddleMethod by remember { mutableStateOf("Traditional notch & outer arrow") }
@@ -220,7 +221,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
         if(next!=units){
             val factor=if(next=="in")1/25.4 else 25.4
             fun cv(s:String)=s.toDoubleOrNull()?.let{String.format(Locale.ROOT,"%.3f",it*factor)}?:s
-            rise=cv(rise);roll=cv(roll);distance=cv(distance);stub=cv(stub);takeup=cv(takeup);width=cv(width);centre=cv(centre);units=next
+            rise=cv(rise);roll=cv(roll);distance=cv(distance);stub=cv(stub);takeup=cv(takeup);width=cv(width);centre=cv(centre);minimumShoeGap=cv(minimumShoeGap);units=next
             precision=if(next=="in")"1/16 in" else "1 mm"
         }
     }
@@ -243,20 +244,42 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     }
     if(bend=="Three-point saddle")NumberInput("Obstruction centre from datum ("+units+")",centre){centre=it}
     if(bend in listOf("Four-point saddle","Back-to-back 90s"))NumberInput("Obstacle width / back-to-back distance ("+units+")",width){width=it}
+    Text("10 ft EMT stock limit: "+if(units=="mm")"3,048 mm" else "120 in",color=Color(0xFF91E5D5))
+    if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle")) {
+        NumberInput("Minimum same-datum mark spacing for YOUR shoe (optional, "+units+")",minimumShoeGap){minimumShoeGap=it}
+        Text("Leave blank when unknown: shoe clearance will be marked NOT VERIFIED, not assumed safe.",style=MaterialTheme.typography.bodySmall)
+    }
     Button(onClick={
-        result=runCatching{bendMath(bend,units,angle.toDouble(),rise.toDouble(),roll.toDouble(),distance.toDouble(),stub.toDouble(),takeup.toDouble(),width.toDouble(),centre.toDouble(),offsetReference,saddleMethod,precision)}
+        result=runCatching{
+            val gap=if(minimumShoeGap.isBlank())null
+                    else minimumShoeGap.toDoubleOrNull()?:error("Enter a valid shoe gap, or leave blank.")
+            bendMath(bend,units,angle.toDouble(),rise.toDouble(),roll.toDouble(),distance.toDouble(),stub.toDouble(),takeup.toDouble(),width.toDouble(),centre.toDouble(),offsetReference,saddleMethod,precision,gap)
+        }
             .getOrElse{"Check inputs: "+it.message}
     },modifier=Modifier.fillMaxWidth()){Text("Calculate marks & instructions")}
     Text(result,style=MaterialTheme.typography.bodyMedium)
     BendHookFacingCards(bend,angle,saddleMethod)
     Text("Field check: use the correct-size shoe and firm foot pressure, keep bend planes aligned, check springback and avoid conduit flattening. Test a piece before cutting to final length.",color=Color(0xFFFFD68A))
 }
-private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double,offsetReference:String,saddleMethod:String,precision:String):String {
+private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double,offsetReference:String,saddleMethod:String,precision:String,minShoeGap:Double?):String {
     require(angle.isFinite()&&angle>0&&angle<90){"Angle must be between 0° and 90°."}
     require(listOf(rise,roll,dist,stub,takeup,width,centre).all{it.isFinite()&&it>=0}){"Measurements must be finite and nonnegative."}
     val radians=Math.toRadians(angle);val mult=1/sin(radians)
+    val stock=if(u=="mm")3048.0 else 120.0
+    require(minShoeGap==null||(minShoeGap.isFinite()&&minShoeGap>=0)){"Minimum shoe spacing must be zero or greater."}
     fun f(x:Double):String=mobileBendMeasure(x,u,precision)
-    return when(type) {
+    fun checkMarks(vararg marks:Double) {
+        require(marks.all { it.isFinite()&&it>=0&&it<=stock+0.000001 }) {
+            "CALCULATION NOT POSSIBLE on one 10 ft EMT: at least one mark lies outside "+f(stock)+" of stock."
+        }
+        if(minShoeGap!=null&&minShoeGap>0) {
+            val sorted=marks.sorted()
+            for(i in 1 until sorted.size) require(sorted[i]-sorted[i-1]+0.000001>=minShoeGap) {
+                "BENDS TOO CLOSE: "+f(sorted[i]-sorted[i-1])+" between marks is less than your shoe's "+f(minShoeGap)+" minimum."
+            }
+        }
+    }
+    val output=when(type) {
         "Offset","Rolling offset"->{
             require(rise>0&&dist>0&&roll>=0){"Rise and reference must be positive."}
             val h=if(type=="Rolling offset")hypot(rise,roll)else rise
@@ -264,6 +287,7 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
             val a=if(offsetReference.startsWith("Far"))dist+shrink-spacing else dist+shrink
             val b=a+spacing
             require(a>=0){"Lead is too short for the calculated mark."}
+            checkMarks(a,b)
             (if(type=="Rolling offset")"True offset: "+f(h)+"\nRotate plane from vertical: "+String.format(Locale.CANADA,"%.1f",Math.toDegrees(atan2(roll,rise)))+"°\n" else "")+
             "Critical reference: "+offsetReference+"\nMultiplier: "+String.format(Locale.CANADA,"%.3f",mult)+"\nSpacing: "+f(spacing)+"\nEstimated geometric shrink: "+f(shrink)+
             "\nA near mark: "+f(a)+"\nB far mark: "+f(b)+"\n\n"+
@@ -271,9 +295,12 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
         }
         "90° stub","Back-to-back 90s","Kicked 90°"->{
             require(stub>takeup&&takeup>0){"Desired stub must exceed the actual shoe deduct."}
+            checkMarks(stub-takeup)
+            require(stub<=stock){"CALCULATION NOT POSSIBLE: desired stub "+f(stub)+" is longer than the 10 ft stock "+f(stock)+"."}
             var steps="First arrow mark: "+f(stub-takeup)+"\nMARK A · ARROW · ← HOOK toward original datum / short end.\n1. Measure from square reference end to arrow mark.\n2. Align bender ARROW and bend a 90° with steady foot pressure.\n3. Check finished stub and springback."
             if(type=="Back-to-back 90s"){
                 require(width>0){"Back-to-back distance required."}
+                require(width<=stock){"CALCULATION NOT POSSIBLE: second 90 relative reference exceeds 10 ft stock."}
                 steps+="\nMARK B · STAR · HOOK FACES RIGHT → toward remaining free end (Klein method).\nBack of first 90° to second STAR reference: "+f(width)+" (adjust for shoe if instructed).\n4. Measure from the back of the first completed 90°; use STAR/back-of-90 reference for second bend, not the arrow deduct.\n5. Bend in one plane, verify leg separation."
             }else if(type=="Kicked 90°"){
                 require(rise>0){"Kick rise required."}
@@ -291,6 +318,7 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
             val spacing=rise*multiplier;val shift=rise*tan(Math.toRadians(side/2))
             val b=centre+shift;val a=b-spacing;val c=b+spacing
             require(a>=0){"Not enough lead for first mark."}
+            checkMarks(a,b,c)
             "Center "+angle+"°, side "+side+"°\nMarking method: "+saddleMethod+
             "\nSpacing multiplier: "+String.format(Locale.CANADA,"%.3f",multiplier)+" (geometric bend-centre = "+String.format(Locale.CANADA,"%.3f",geometric)+")"+
             "\nSide spacing: "+f(spacing)+"\nCenter shift: "+f(shift)+
@@ -303,12 +331,19 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
             val spacing=rise*mult;val shrink=rise*tan(radians/2)
             val b=dist+shrink;val a=b-spacing;val c=b+width;val d=c+spacing
             require(a>=0){"Not enough lead from reference."}
+            checkMarks(a,b,c,d)
             "Side spacing: "+f(spacing)+"\nShrink per offset: "+f(shrink)+
             "\nA/B/C/D: "+f(a)+" / "+f(b)+" / "+f(c)+" / "+f(d)+
             "\n\n1. Mark A,B,C,D from SAME end.\n2. Bend A and B opposite directions to rise over the obstruction.\n3. Bend C and D as a reverse offset back to original plane.\n4. Check all bends are level, parallel and clear of the obstacle."
         }
         else->"Choose a bend type."
     }
+    val shoeCheck=if(type in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle"))
+        if(minShoeGap==null)"Shoe spacing NOT VERIFIED: enter your bender minimum to check close marks."
+        else "Mark gaps checked against your entered minimum of "+f(minShoeGap)+"."
+        else "Additional shoe clearance and remaining developed material length NOT VERIFIED for this layout."
+    return "10 FT EMT STOCK CHECK · 120 in / 3,048 mm maximum. Plotted same-datum marks are within stock.\n"+output+
+        "\n\n"+shoeCheck+" Physical shoe radius, gain, head access and remaining straight legs still need confirmation."
 }
 
 private fun mobileBendMeasure(value:Double, units:String, precision:String):String {
