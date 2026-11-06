@@ -190,12 +190,12 @@ public class PublicAccountResource {
     String code = "REQUEST_FAILED";
     String field = "";
     if (reason.contains("username is already in use")) { code = "USERNAME_IN_USE"; field = "username"; }
-    else if (reason.contains("email address is already associated")) { code = "EMAIL_IN_USE"; field = "email"; }
+    else if (reason.contains("email address already has an Electrical Workbench account")) { code = "EMAIL_IN_USE"; field = "email"; }
     else if (reason.startsWith("Username must")) { code = "INVALID_USERNAME"; field = "username"; }
     else if (reason.startsWith("Enter a valid email")) { code = "INVALID_EMAIL"; field = "email"; }
     else if (reason.contains("Passwords do not match")) { code = "PASSWORD_MISMATCH"; field = "password"; }
     else if (reason.contains("at least 8 characters")) { code = "INVALID_PASSWORD"; field = "password"; }
-    else if (reason.contains("verification code is invalid or expired") || reason.contains("6-digit code")) { code = "INVALID_CODE"; field = "code"; }
+    else if (reason.contains("verification code is incorrect") || reason.contains("6-digit code")) { code = "INVALID_CODE"; field = "code"; }
     else if (reason.contains("verification email could not be sent")) { code = "EMAIL_DELIVERY_FAILED"; }
     else if (reason.contains("Registration could not be saved")) { code = "REGISTRATION_DATABASE_ERROR"; }
     else if (reason.contains("Email verification and recovery are not configured")) { code = "EMAIL_NOT_CONFIGURED"; }
