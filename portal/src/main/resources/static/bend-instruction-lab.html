@@ -40,9 +40,9 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 <header><b>ϟ Electrical Workbench · Bend Instruction Lab <span class="pill">EXPERIMENTAL</span></b><nav><a href="/bend-calcs.html">Existing bending calculator</a> · <a href="/bender-calibration.html">Calibration</a> · <a href="/field-suite.html">Field Suite</a></nav></header>
 <main><h1>Bend it right. Mark it fast.</h1><p>Only the measurements you need. Clear tape marks, hook direction and the next bend. Open the 3D preview when you need it.</p>
 <section class="card quick-card"><h2>Fast Bend · mark the conduit</h2>
-<p class="note">Choose a bend, enter the few measurements shown, and see your marks and bender direction straight away. No setup wizard.</p>
+<p class="note">Choose a bend and enter the measurements shown. Marks and bender direction update automatically. Replace the sample values with your actual job dimensions.</p>
 <div class="fields quick-fields" id="quickFields">
-<div class="field"><label for="kind">Bend / combination</label><select id="kind"><option value="kickExtra">Kicked 90 + second 90 (3 bends)</option><option value="kick90">90° then kick (2 bends)</option><option value="kickBefore">Kick then 90° (2 bends)</option><option value="stub">90° stub-up</option><option value="offset">Two-bend offset</option><option value="back">Back-to-back 90s</option><option value="saddle3">Three-point saddle</option><option value="saddle4">Four-point saddle</option><option value="roll">Rolled offset</option><option value="segment">Segmented 90°</option><option value="custom">Custom multi-bend geometry</option></select></div>
+<div class="field"><label for="kind">Bend / combination</label><select id="kind"><option value="kickExtra">Kicked 90 + second 90 (3 bends)</option><option value="kick90">90° then kick (2 bends)</option><option value="kickBefore">Kick then 90° (2 bends)</option><option value="stub">90° stub-up</option><option value="offset" selected>Two-bend offset</option><option value="back">Back-to-back 90s</option><option value="saddle3">Three-point saddle</option><option value="saddle4">Four-point saddle</option><option value="roll">Rolled offset</option><option value="segment">Segmented 90°</option><option value="custom">Custom multi-bend geometry</option></select></div>
 <div class="field"><label for="unit">Measurement units</label><select id="unit"><option value="mm">Millimetres</option><option value="in">Inches</option></select></div>
 <div class="field"><label for="height">Stub height / offset rise</label><input id="height" type="number" step="any" min="0" value="500"></div>
 <div class="field"><label for="deduct">90° take-up / deduct (actual shoe)</label><input id="deduct" type="number" step="any" min="0" placeholder="Enter or load calibration"></div>
@@ -50,7 +50,7 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 <div class="field"><label for="distance">Obstacle / reference from tape end</label><input id="distance" type="number" step="any" min="0" value="900"></div>
 <div class="field"><label for="width">Flat / obstacle / back-to-back width</label><input id="width" type="number" step="any" min="0" value="500"></div>
 </div>
-<div class="actions quick-actions"><button id="recalc" class="primary">Show my marks</button><button id="loadProfile">Use saved bender deduct</button><span class="note" id="profileStatus">90° marks need the actual shoe deduct. It is never guessed.</span></div>
+<div class="actions quick-actions"><button id="recalc" class="primary">Show my marks</button><button id="quickCopy">Copy marks</button><button id="loadProfile">Use saved bender deduct</button><span class="note" id="profileStatus">90° marks need the actual shoe deduct. It is never guessed.</span></div>
 <div class="quick-summary" role="status" aria-live="polite" id="quickSummary"><strong>Enter your bend measurements</strong><span>Physical marks appear here.</span></div>
 <details class="advanced-disclosure" id="advancedOptions"><summary>More options · shoe method, reference, 3D radius & stock length</summary>
 <div class="fields advanced-fields"><div class="field"><label for="method">Physical hand-bender method</label><select id="method"><option value="klein">Klein-style manufacturer guide</option><option value="other">Other / unverified shoe</option></select></div>
@@ -77,4 +77,4 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 </details>
 <section class="card"><h2>Before you bend the real conduit</h2><div id="checks"></div><div class="actions"><button id="copyPlan">Copy instruction plan</button><button id="print">Print worksheet</button><a href="/bend-calcs.html">Return to existing calculations</a></div>
 <p class="note">Manufacturer reference: <a href="https://data.kleintools.com/sites/all/product_assets/documents/instructions/klein/ConduitBenderGuide.pdf" target="_blank" rel="noopener noreferrer">Klein Tools Conduit Bender Guide</a>. Physical handling varies with the exact shoe and whether floor bending or air bending. Always verify against the equipment you are holding.</p>
-</section></main><script src="/bend-instruction-lab.js?v=20261106-quick1" defer></script></body></html>
+</section></main><script src="/bend-instruction-lab.js?v=20261106-quick2" defer></script></body></html>
