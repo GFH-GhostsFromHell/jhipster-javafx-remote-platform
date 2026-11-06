@@ -175,9 +175,9 @@ private fun TransformerSizingScreen() {
 private fun TxLoadCard(load: TxLoad, onChange: (TxLoad) -> Unit, onDelete: () -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(if (load.isService) "Calculated service load" else "Equipment load", fontWeight = FontWeight.Bold)
-                OutlinedButton(onClick = onDelete) { Text("Remove") }
+                OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) { Text("Remove load") }
             }
             TxInput("Description", load.name) { onChange(load.copy(name = it)) }
             TxDropDown("Load type", load.type, txEquipmentTypes + txServiceTypes) { type ->
