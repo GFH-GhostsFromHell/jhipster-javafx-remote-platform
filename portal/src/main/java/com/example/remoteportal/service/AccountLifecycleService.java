@@ -2,6 +2,8 @@ package com.example.remoteportal.service;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import java.util.regex.Pattern;
 
 @Service
 public class AccountLifecycleService {
+  private static final Logger LOG = LoggerFactory.getLogger(AccountLifecycleService.class);
   private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9._-]{3,40}");
   private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
   private static final int MAX_ATTEMPTS = 8;
@@ -47,6 +50,7 @@ public class AccountLifecycleService {
     String name = clean(displayName);
     String requested = TierCheckoutService.normalize(requestedTier);
     validateRegistration(u, e, password);
+    LOG.info("Registration request passed input validation");
     if (name.isBlank()) name = u;
 
     List<Map<String,Object>> existing = db.query(
@@ -84,7 +88,9 @@ public class AccountLifecycleService {
 
     String code = newCode();
     saveCode("REGISTER", u.toLowerCase(Locale.ROOT), u, code);
+    LOG.info("Registration record and verification code saved; handing message to SMTP provider");
     mail.sendVerificationCode(e, name, code);
+    LOG.info("Registration verification message accepted by SMTP transport");
     return Map.of("verificationRequired", true, "username", u, "email", maskEmail(e), "requestedTier", requested, "expiresMinutes", 15);
   }
 
