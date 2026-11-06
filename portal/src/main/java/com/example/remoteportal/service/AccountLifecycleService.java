@@ -71,6 +71,10 @@ public class AccountLifecycleService {
       if (enabled || !"PASSWORD".equalsIgnoreCase(provider) || (!oldEmail.isBlank() && !oldEmail.equalsIgnoreCase(e))) {
         throw new IllegalArgumentException("That username is already in use.");
       }
+      Integer pending = db.queryForObject(
+          "select count(*) from account_action_code where purpose='REGISTER' and lookup_key=?",
+          Integer.class, u.toLowerCase(Locale.ROOT));
+      if (pending == null || pending == 0) throw new IllegalArgumentException("That username is already in use.");
       db.update("update client_account set display_name=?,email=?,password_hash=?,enabled=false,email_verified=false,subscription_tier='TIER_1',requested_tier=?,auth_provider='PASSWORD' where lower(username)=lower(?)",
           name, e, hash, requested, u);
     } else {
@@ -110,7 +114,7 @@ public class AccountLifecycleService {
     String lookup = clean(account);
     if (lookup.isBlank()) throw new IllegalArgumentException("Enter your username or email address.");
     List<RecoveryTarget> targets = db.query(
-        "select username,email,auth_provider from client_account where (enabled=true or coalesce(email_verified,false)=false) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
+        "select username,email,auth_provider from client_account where (enabled=true or (coalesce(email_verified,false)=false and exists (select 1 from account_action_code ac where ac.purpose='REGISTER' and lower(ac.username)=lower(client_account.username)))) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
         (rs,row)->new RecoveryTarget(rs.getString("username"), rs.getString("email"), rs.getString("auth_provider")), lookup, lookup, lookup);
     if (targets.isEmpty()) return;
     RecoveryTarget target = targets.getFirst();
@@ -127,7 +131,7 @@ public class AccountLifecycleService {
     // An emailed reset code proves control of the address, including for pending
     // registrations. Never reactivate an admin-disabled, already verified account.
     List<RecoveryTarget> targets = db.query(
-        "select username,email,auth_provider from client_account where (enabled=true or coalesce(email_verified,false)=false) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
+        "select username,email,auth_provider from client_account where (enabled=true or (coalesce(email_verified,false)=false and exists (select 1 from account_action_code ac where ac.purpose='REGISTER' and lower(ac.username)=lower(client_account.username)))) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
         (rs,row)->new RecoveryTarget(rs.getString("username"), rs.getString("email"), rs.getString("auth_provider")), lookup, lookup, lookup);
     if (targets.isEmpty()) throw new IllegalArgumentException("Account could not be found.");
     RecoveryTarget target = targets.getFirst();
@@ -137,6 +141,7 @@ public class AccountLifecycleService {
     db.update("update client_account set password_hash=?,enabled=true,email_verified=true where lower(username)=lower(?)",
         encoder.encode(newPassword), u);
     deleteCode("PASSWORD_RESET", u.toLowerCase(Locale.ROOT));
+    deleteCode("REGISTER", u.toLowerCase(Locale.ROOT));
   }
 
   private void validateRegistration(String username, String email, String password) {
