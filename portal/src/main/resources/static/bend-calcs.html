@@ -47,8 +47,8 @@
   <h3>1 · Stock and bend editor</h3>
   <div class="inputs">
    <div class="field"><label>Units</label><select id="mbUnits" onchange="mbUnitChange(this.value)"><option value="in">Inches</option><option value="mm">Millimetres</option></select></div>
-   <div class="field"><label>Stock length</label><input id="mbStock" type="number" step="any" value="96" oninput="mbCompute()"></div>
-   <div class="field"><label>Minimum shoe spacing (manual)</label><input id="mbGap" type="number" step="any" value="6" oninput="mbCompute()"></div>
+   <div class="field"><label>Actual EMT stock (maximum 10 ft)</label><input id="mbStock" type="number" step="any" value="120" oninput="mbCompute()"></div>
+   <div class="field"><label>Minimum mark spacing (verified shoe; optional)</label><input id="mbGap" type="number" step="any" placeholder="Enter measured bender minimum" value="" oninput="mbCompute()"></div>
    <div class="field"><label>Bend operation</label><select id="mbKind" onchange="mbKindChange()"><option>Two-bend offset</option><option>Rolling offset</option><option>90° arrow mark</option><option>Single kick</option><option>Three-point saddle</option><option>Four-point saddle</option></select></div>
    <div class="field"><label>Direction / plane</label><select id="mbPlane"><option>Up</option><option>Down</option><option>Left</option><option>Right</option></select></div>
    <div class="field"><label>Angle</label><select id="mbAngle"><option>10</option><option>15</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></div>
@@ -414,7 +414,7 @@ function mbUnitChange(next){
  multiOps.forEach(o=>{o.pos*=factor;o.h*=factor;o.r*=factor;o.w*=factor});
  ['mbStart','mbRise','mbRoll','mbWidth','mbStock','mbGap'].forEach(id=>{
   const input=document.getElementById(id),v=Number(input.value);
-  if(Number.isFinite(v))input.value=(v*factor).toFixed(next==='mm'?1:3);
+  if(input.value.trim()!==''&&Number.isFinite(v))input.value=(v*factor).toFixed(next==='mm'?1:3);
  });
  unit=next;document.getElementById('unit').value=next;
  mbRender();
@@ -431,10 +431,11 @@ function mbCompute(){
  const warnings=document.getElementById('mbWarnings');
  const steps=document.getElementById('mbSteps');
  let stock,gap;
- try{stock=mbNum('mbStock');gap=mbNum('mbGap');if(stock<=0)throw Error('Enter a positive straight-pipe stock length.')}
+ try{stock=mbNum('mbStock');gap=mbNum('mbGap');if(stock<=0)throw Error('Enter a positive straight-pipe stock length.');if(stock>(unit==='mm'?3048:120)+1e-6)throw Error('CALCULATION NOT POSSIBLE: one standard 10 ft EMT stick is 3,048 mm / 120 in. Choose a stock length within that limit.')}
  catch(e){warnings.textContent=e.message;canvas.innerHTML='';steps.innerHTML='';return}
  if(!multiOps.length){canvas.innerHTML='';steps.innerHTML='';warnings.textContent='Add bend operations to see a combined plan.';return}
- const all=[],issues=[];
+ const all=[],issues=[],hardIssues=[];
+ const gapVerified=document.getElementById('mbGap').value.trim()!=='';
  let totalAngles=0;
  const ordered=multiOps.slice().sort((a,b)=>a.pos-b.pos);
  ordered.forEach((o,j)=>{
@@ -468,19 +469,26 @@ function mbCompute(){
      put(D,'D','ARROW','↻ FLIP in same plane','Level '+o.a+'°');}break;
   }
   sequence.forEach(m=>{m.order=all.length+1;all.push(m);
-    if(m.position<0)issues.push(m.group+' mark '+m.name+' is before datum.');
-    if(m.position>stock)issues.push(m.group+' mark '+m.name+' is beyond stock length.');
+    if(m.position<0)hardIssues.push(m.group+' mark '+m.name+' is before datum.');
+    if(m.position>stock)hardIssues.push('CALCULATION NOT POSSIBLE: '+m.group+' mark '+m.name+' at '+mbFormat(m.position)+' is beyond the '+mbFormat(stock)+' stock.');
     totalAngles+=o.kind==='90° arrow mark'?90:o.kind==='Three-point saddle'&&m.name!=='B'?o.a/2:o.a;
   });
  });
  const spaced=all.slice().sort((a,b)=>a.position-b.position);
  for(let i=1;i<spaced.length;i++){
   const delta=spaced[i].position-spaced[i-1].position;
-  if(delta<.0001)issues.push('Two marks occupy the same location at '+mbFormat(spaced[i].position)+'.');
-  else if(delta<gap)issues.push('Shoe spacing '+mbFormat(delta)+' is below manual minimum '+mbFormat(gap)+'.');
+  if(delta<.0001)hardIssues.push('BENDS TOO CLOSE: two marks occupy the same location at '+mbFormat(spaced[i].position)+'.');
+  else if(gapVerified&&delta<gap)hardIssues.push('BENDS TOO CLOSE: mark spacing '+mbFormat(delta)+' is below the verified tool minimum '+mbFormat(gap)+'.');
  }
  if(totalAngles>360)issues.push('Sum of individual angles exceeds 360°. Verify pull-point limitations.');
+ if(!gapVerified)issues.push('Shoe spacing NOT VERIFIED: enter your bender minimum to confirm marks are not too close.');
  if(multiOps.length>1)issues.push('Multi-bend layout requires field check for developed length, cumulative shrink and actual shoe access. No 3D collision analysis is provided.');
+ if(hardIssues.length){
+   const message=hardIssues.join(' • ');
+   warnings.textContent='CALCULATION NOT POSSIBLE on one 10 ft EMT: '+message;
+   canvas.innerHTML='';steps.innerHTML='<div class="warn">No fabrication plan issued. Change the dimensions or use a longer / separately joined installation if permitted.</div>';
+   multiReport='CALCULATION NOT POSSIBLE\n'+message;return;
+ }
  const scale=Math.max(stock,...all.map(m=>m.position),1)*1.06;
  let ticks='<div class="pipe"></div>';
  all.forEach(m=>{
