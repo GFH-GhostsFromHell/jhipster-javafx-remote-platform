@@ -32,7 +32,7 @@
             <div class="field"><label>Password</label><input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"></div>
             <div class="field"><label>Confirm password</label><input id="signupPassword2" type="password" autocomplete="new-password" minlength="8"></div>
             <button id="signupButton" class="btn" onclick="startRegistration()">Send verification code</button>
-            <div id="signupStatus" class="status"></div>
+            <div id="signupStatus" class="status" role="status" aria-live="polite"></div>
           </div>
           <div class="card">
             <h2>Choose a tier</h2>
@@ -82,7 +82,34 @@ function post(body){return{method:'POST',headers:{'Content-Type':'application/js
 function showTab(name,button){document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));document.getElementById('pane-'+name).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));if(button)button.classList.add('active');history.replaceState(null,'','#'+name);window.scrollTo({top:0,behavior:'smooth'})}
 function selectTier(t){selectedTier=t;document.querySelectorAll('.tier').forEach(x=>{const on=x.dataset.tier===t;x.classList.toggle('selected',on);x.querySelector('.badge').textContent=on?'Selected':'Choose'});const opt=(accountOptions.tiers||[]).find(x=>x.id===t);if(t==='TIER_1')status('tierCheckoutHint','Tier 1 does not require a paid checkout.');else if(opt?.checkoutConfigured)status('tierCheckoutHint','Checkout is configured for '+t.replace('_',' ')+'. It will be offered after verification.');else status('tierCheckoutHint','Checkout for '+t.replace('_',' ')+' is not configured yet; your account will remain Tier 1 until billing is connected.',false)}
 async function loadOptions(){try{accountOptions=await api('/api/public/account-options');if(!accountOptions.emailConfigured){mailNotice.style.display='block';signupButton.disabled=true;signupButton.style.opacity='.55'}(accountOptions.tiers||[]).forEach(opt=>{const card=document.querySelector(`.tier[data-tier="${opt.id}"]`);if(card){card.querySelector('small').textContent=opt.description}});selectTier(selectedTier)}catch(e){mailNotice.style.display='block';mailNotice.textContent='Account services could not be loaded.'}}
-async function startRegistration(){try{if(signupPassword.value!==signupPassword2.value)throw new Error('Passwords do not match.');const r=await api('/api/public/register/start',post({username:signupUsername.value,displayName:signupName.value,email:signupEmail.value,password:signupPassword.value,requestedTier:selectedTier}));verifyUsername.value=r.username||signupUsername.value;status('signupStatus','Verification code sent to '+(r.email||'your email')+'.');showTab('verify',document.querySelector('[data-tab=verify]'));return true}catch(e){status('signupStatus',e.message,false);if(document.getElementById('pane-verify').classList.contains('active'))status('verifyStatus',e.message,false);return false}}
+let registrationInFlight=false;
+async function startRegistration(){
+  if(registrationInFlight)return false;
+  registrationInFlight=true;
+  const button=document.getElementById('signupButton');
+  button.disabled=true;
+  button.textContent='Sending code…';
+  status('signupStatus','Contacting the server to send your verification code…');
+  try{
+    if(signupPassword.value!==signupPassword2.value)throw new Error('Passwords do not match.');
+    const r=await api('/api/public/register/start',post({username:signupUsername.value,displayName:signupName.value,email:signupEmail.value,password:signupPassword.value,requestedTier:selectedTier}));
+    verifyUsername.value=r.username||signupUsername.value;
+    const message='Verification code sent to '+(r.email||'your email')+'. Use the most recently received code; it expires in 15 minutes.';
+    status('signupStatus',message);
+    showTab('verify',document.querySelector('[data-tab=verify]'));
+    status('verifyStatus',message);
+    return true;
+  }catch(e){
+    const message=e&&e.message?e.message:'Could not send a verification code. Please try again.';
+    status('signupStatus',message,false);
+    if(document.getElementById('pane-verify').classList.contains('active'))status('verifyStatus',message,false);
+    return false;
+  }finally{
+    registrationInFlight=false;
+    button.disabled=!accountOptions.emailConfigured;
+    button.textContent='Send verification code';
+  }
+}
 async function resendRegistration(){if(!signupUsername.value||!signupEmail.value||!signupPassword.value){showTab('signup',document.querySelector('[data-tab=signup]'));status('signupStatus','Enter the same username, email, and password, then request a new code.',false);return}const sent=await startRegistration();if(sent)status('verifyStatus','A fresh code has been requested. Check your inbox and spam.')}
 async function verifyRegistration(){try{const r=await api('/api/public/register/verify',post({username:verifyUsername.value,code:verifyCode.value}));status('verifyStatus','Email verified successfully.');verifySuccess.style.display='block';const a=document.getElementById('postVerifyCheckout');if(r.checkoutUrl){a.href=r.checkoutUrl;a.style.display='inline-block'}else a.style.display='none'}catch(e){status('verifyStatus',e.message,false)}}
 async function forgotUsername(){try{const r=await api('/api/public/recovery/username',post({email:forgotEmail.value}));status('forgotStatus',r.message||'If that email matches an account, a reminder has been sent.')}catch(e){status('forgotStatus',e.message,false)}}
