@@ -42,15 +42,37 @@ if(geometryStart<0||geometryEnd<=geometryStart){
  for(const [index,ops] of shapes.entries()){
   try{
    const model=vm.runInNewContext(geometry+'\ncalculatePath()',{
-    ops,v:name=>name==='radius'?120:400,toMm:n=>n,RAD:Math.PI/180
+    ops,TEN_FOOT_EMT_MM:3048,
+    v:name=>name==='radius'?120:name==='stock'?3048:name==='minStraight'?null:400,
+    toMm:n=>n,RAD:Math.PI/180
    });
    if(model.pts.length<2||model.pts.some(point=>point.p.length!==3||point.p.some(n=>!Number.isFinite(n))))
     throw Error('Non-finite 3D coordinate');
    console.log('Bend 3D test '+(index+1)+': '+model.pts.length+' finite centerline points');
   }catch(error){console.error('Bend 3D geometry regression '+(index+1)+': '+error.message);failed=true}
  }
+ // Regression: one 10 ft EMT cannot fit a developed centreline beyond 3,048 mm.
+ // Confirm measured shoe clearance is enforced when supplied.
+ const scenarios=[
+  {name:'10 foot limit',ops:[{before:3300,angle:90,plane:0}],minStraight:null, expected:'CALCULATION NOT POSSIBLE'},
+  {name:'tool bend spacing',ops:[{before:300,angle:30,plane:0},{before:25,angle:-30,plane:0}],minStraight:150,expected:'BENDS TOO CLOSE'}
+ ];
+ for(const check of scenarios){
+  try{
+   vm.runInNewContext(geometry+'\\ncalculatePath()',{
+    ops:check.ops,TEN_FOOT_EMT_MM:3048,
+    v:name=>name==='radius'?120:name==='stock'?3048:name==='minStraight'?check.minStraight:400,
+    toMm:n=>n,RAD:Math.PI/180
+   });
+   console.error('Expected rejection not raised: '+check.name);failed=true;
+  }catch(error){
+   if(!String(error.message).includes(check.expected)){
+    console.error('Unexpected stock-check failure '+check.name+': '+error.message);failed=true;
+   }else console.log('Bend stock regression OK: '+check.name);
+  }
+ }
 }
-if(!/src="\/bend-instruction-lab\.js(?:\?[^"]*)?"/.test(labHtml)){console.error('Bend lab JS is not linked');failed=true}
+if(!/src="\\/bend-instruction-lab\\.js(?:\?[^"]*)?"/.test(labHtml)){console.error('Bend lab JS is not linked');failed=true}
 for(const key of ['kickExtra','kick90','back','roll','saddle3','saddle4','offset','segment','custom']){
  if(!labHtml.includes('value="'+key+'"')){console.error('Missing bend preset '+key);failed=true}
 }
