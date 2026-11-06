@@ -19,6 +19,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+  mail:
+    properties:
+      "[mail.smtp.connectiontimeout]": ${SMTP_CONNECTION_TIMEOUT_MS:10000}
+      "[mail.smtp.timeout]": ${SMTP_READ_TIMEOUT_MS:10000}
+      "[mail.smtp.writetimeout]": ${SMTP_WRITE_TIMEOUT_MS:10000}
 app:
   admin:
     username: ${ADMIN_USERNAME:admin}
