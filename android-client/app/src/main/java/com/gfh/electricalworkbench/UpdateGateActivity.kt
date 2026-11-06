@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -408,7 +409,7 @@ private fun UpdateGateScreen(
                                 onClick = { onDownload(current.release) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp)
+                                    .heightIn(min = 50.dp)
                             ) {
                                 Icon(Icons.Default.Download, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
@@ -420,7 +421,7 @@ private fun UpdateGateScreen(
                                 border = BorderStroke(1.dp, Color(0xFF6E8CA5)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp)
+                                    .heightIn(min = 48.dp)
                             ) {
                                 Text(
                                     "Continue with current version",

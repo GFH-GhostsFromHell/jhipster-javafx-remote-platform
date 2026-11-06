@@ -166,6 +166,10 @@ function syncQuickFields(){
   segment:['height'],custom:[]
  };
  const kind=$('kind').value, active=shown[kind]||[];
+ // Keep optional calibration out of the way unless a 90 requires a shoe deduct.
+ const needsDeduct=active.includes('deduct');
+ $('loadProfile').hidden=!needsDeduct;
+ $('profileStatus').hidden=!needsDeduct;
  ['height','deduct','angle','distance','width'].forEach(id=>{
   $(id).closest('.field').style.display=active.includes(id)?'':'none';
  });
@@ -202,11 +206,10 @@ function checkStockAndSpacing(){
  }
  const furthest=marks.length?Math.max(...marks.map(m=>m.pos)):0;
  $('stockStatus').className='stock-status pending';
- $('stockStatus').textContent='10 ft EMT CHECK · furthest plotted mark '+length(furthest)+
-  ' / available '+length(stock)+'. '+(minMarkGap===null?
-  'Shoe spacing NOT VERIFIED — enter the actual tool minimum in More options.':
-  'Checked same-datum marks against your entered '+length(minMarkGap)+' minimum.')+
-  ' Physical bender access, actual bend radius and developed length still require verification.';
+ $('stockStatus').textContent='10 ft EMT · marks within stock (furthest '+length(furthest)+' of '+length(stock)+'). '+
+  (minMarkGap===null?'Shoe clearance NOT VERIFIED — set your minimum in More options.':
+  'Same-datum marks checked against your '+length(minMarkGap)+' minimum.')+
+  ' Verify actual shoe access, radius, springback and developed length.';
 }
 
 function showQuickSummary(error){
@@ -412,7 +415,8 @@ $('quickFields').addEventListener('input',e=>{
 $('threeDDetails').addEventListener('toggle',()=>{if($('threeDDetails').open)renderModel()});
 $('editorDetails').addEventListener('toggle',()=>{if($('editorDetails').open)renderModel()});
 $('kind').onchange=()=>refresh(true);$('angle').onchange=()=>refresh(true);$('method').onchange=()=>refresh(false);
-$('critical').onchange=()=>refresh(false);$('recalc').onclick=()=>refresh(true);
+$('critical').onchange=()=>refresh(false);
+$('recalc').onclick=()=>{refresh(true);$('quickSummary').scrollIntoView({behavior:'smooth',block:'center'});};
 ['stock','minMarkGap','minStraight'].forEach(id=>$(id).addEventListener('input',()=>refresh(false)));
 $('unit').addEventListener('change',function(){
  const old=this.dataset.previous||'mm',now=this.value,change=old===now?1:now==='mm'?25.4:1/25.4;

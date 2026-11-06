@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -144,7 +145,10 @@ private fun MobileWorkbenchTheme(content: @Composable () -> Unit) {
             onSecondary = MobileText,
             onBackground = MobileText,
             onSurface = MobileText,
-            onSurfaceVariant = MobileMuted
+            onSurfaceVariant = MobileMuted,
+            outline = Color(0xFF829BAF),
+            error = Color(0xFFFF9A9A),
+            onError = MobileNavy
         ),
         content = content
     )
@@ -325,12 +329,12 @@ private fun MobileLoginScreen(
                     Text("Sign in", color = MobileText, fontSize = 25.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username") }, enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
-                    if (!error.isNullOrBlank()) Text(error, color = Color(0xFFFFCDD5), fontSize = 13.sp)
+                    if (!error.isNullOrBlank()) Text(error, color = Color(0xFFFFCDD5), fontSize = 15.sp)
                     Button(
                         onClick = { onLogin(username.trim(), password) },
                         enabled = !loggingIn && username.isNotBlank() && password.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(containerColor = MobileBlue),
-                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                     ) {
                         if (loggingIn) {
                             CircularProgressIndicator(modifier = Modifier.size(19.dp), strokeWidth = 2.dp, color = Color.White)
@@ -339,24 +343,24 @@ private fun MobileLoginScreen(
                         } else Text("Sign in to Electrical Workbench", fontWeight = FontWeight.Bold)
                     }
                     Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Create account") }
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Verify email") }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Reset password") }
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Forgot username") }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -420,7 +424,7 @@ private fun MobileShell(
         bottomBar = {
             NavigationBar(containerColor = MobileNavy2) {
                 MobileNavItem(selected == MobileTab.Home, { onSelected(MobileTab.Home) }, Icons.Default.Dashboard, "Home")
-                MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Workbench")
+                MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Tools")
                 MobileNavItem(selected == MobileTab.Safety, { onSelected(MobileTab.Safety) }, Icons.Default.ElectricBolt, "Safety")
                 MobileNavItem(selected == MobileTab.More, { onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
                 MobileNavItem(selected == MobileTab.Profile, { onSelected(MobileTab.Profile) }, Icons.Default.Person, "Profile")
@@ -462,11 +466,11 @@ private fun MobileUpdateBanner(
     ) {
         Text("Update available · v${release.version}",
             color = MobileGood, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onReview, modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onReview, modifier = Modifier.fillMaxWidth()) {
                 Text("Review update", fontSize = 12.sp)
             }
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text("Later", fontSize = 12.sp)
             }
         }
@@ -479,7 +483,7 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
         selected = selected,
         onClick = onClick,
         icon = { Icon(icon, null) },
-        label = { Text(label, fontSize = 9.sp, maxLines = 1) },
+        label = { Text(label, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         colors = NavigationBarItemDefaults.colors(
             selectedIconColor = MobileNavy,
             selectedTextColor = MobileCyan,
@@ -528,7 +532,8 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 @Composable
 private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
     val context = LocalContext.current
-    MWPage("CEC 2024 Workbench", "Guided Worksheets is the default exam-style workflow; the full section calculators and advanced pack remain available for detailed work.") {
+    MWPage("CEC 2024 Workbench", "Fast field tools first. Advanced calculations and exam worksheets are below.") {
+        MWHubCard("⚡ Fast Conduit Bender · mark in seconds", "Choose your bend, enter only its required dimensions, then read the tape marks and shoe orientation. Optional 3D preview.") { onOpenWeb("/bend-instruction-lab.html") }
         MWHubCard("Guided C of Q Worksheets", "Default guided workflow with worked steps, Why-this-answer explanations, conductor + voltage drop, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm, service demand, presets and saved solutions") { onOpenWeb("/guided-calculators.html") }
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
@@ -542,7 +547,6 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
         MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
-         MWHubCard("TRY · 3D Bend Instruction Lab", "Optional beginner wizard: exact supported marks, bender facing/flip cues, and draggable 3D kicked-90 and multi-bend preview") { onOpenWeb("/bend-instruction-lab.html") }
          MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
          MWHubCard("Field Suite · installations and projects", "Blueprint takeoff, 3D bends, motor-control logic, one-line diagrams, estimating, commissioning and camera nameplates") { onOpenWeb("/field-suite.html") }
          MWHubCard("Industrial troubleshooting knowledge base", "23 structured Epiroc-style diagnostics covering motors, VFDs, PLCs, mining vehicles, protection, HVAC and site safety") { onOpenWeb("/troubleshooting-kb.html") }
@@ -674,6 +678,11 @@ private fun MobileAuthenticatedWeb(session: MobileSession, path: String, onClose
                                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                                         true
                                     }
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    view?.let(::applyMobileWebStyle)
                                 }
                             }
                         }

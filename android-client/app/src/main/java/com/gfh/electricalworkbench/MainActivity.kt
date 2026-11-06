@@ -824,7 +824,7 @@ private fun AuthenticatedWebScreen(session: Session, path: String, onClose: () -
 
                                     override fun onPageFinished(view: WebView?, url: String?) {
                                         super.onPageFinished(view, url)
-                                        view?.let(::injectMobileWebCss)
+                                        view?.let { injectMobileWebCss(it); applyMobileWebStyle(it) }
                                     }
                                 }
                             }
