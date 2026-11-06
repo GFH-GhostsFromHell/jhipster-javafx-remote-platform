@@ -64,6 +64,7 @@ import java.net.URL
 private const val UPDATE_BASE_URL = "https://remote-javafx-portal.onrender.com"
 private const val PREFS_NAME = "electrical_workbench_updates"
 private const val PREF_PENDING_DOWNLOAD = "pending_download_id"
+internal const val UPDATE_FROM_WORKSPACE = "update_from_workspace"
 
 private val GateNavy = Color(0xFF06111F)
 private val GatePanel = Color(0xFF0D2438)
@@ -99,7 +100,7 @@ class UpdateGateActivity : ComponentActivity() {
         setContent {
             UpdateGateTheme {
                 UpdateGateScreen(
-                    onContinue = { openMainApp() },
+                    onContinue = { if (intent.getBooleanExtra(UPDATE_FROM_WORKSPACE, false)) finish() else openMainApp() },
                     onDownload = { release -> enqueueUpdate(release) }
                 )
             }
@@ -183,7 +184,7 @@ class UpdateGateActivity : ComponentActivity() {
     }
 }
 
-private data class AndroidRelease(
+internal data class AndroidRelease(
     val version: String,
     val channel: String,
     val downloadUrl: String,
@@ -445,7 +446,7 @@ private fun UpdateGateScreen(
     }
 }
 
-private object AndroidUpdateClient {
+internal object AndroidUpdateClient {
     fun check(): AndroidRelease {
         val channel = BuildConfig.UPDATE_CHANNEL
         val connection = URL("$UPDATE_BASE_URL/api/public/releases/android?channel=$channel").openConnection() as HttpURLConnection
@@ -475,7 +476,7 @@ private object AndroidUpdateClient {
     }
 }
 
-private fun compareVersions(a: String, b: String): Int {
+internal fun compareVersions(a: String, b: String): Int {
     val aa = a.split('.')
     val bb = b.split('.')
     val count = maxOf(aa.size, bb.size)
