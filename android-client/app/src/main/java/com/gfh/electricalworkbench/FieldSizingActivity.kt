@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
 import java.util.Locale
 import kotlin.math.*
 
@@ -57,8 +59,8 @@ private fun defaultPipes(t:String):List<PipeEntry> = when(t) {
     var expanded by remember { mutableStateOf(false) }
     Column {
         Text(label,style=MaterialTheme.typography.labelMedium,color=Color(0xFFB1C7DA))
-        Box {
-            OutlinedButton(onClick={expanded=true}){Text(value+" ▾")}
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth()){Text(value+" ▾")}
             DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
                 choices.forEach { choice ->
                     DropdownMenuItem(text={Text(choice)},onClick={expanded=false;change(choice)})
@@ -68,7 +70,7 @@ private fun defaultPipes(t:String):List<PipeEntry> = when(t) {
     }
 }
 @Composable private fun NumberInput(label:String,value:String,change:(String)->Unit) {
-    OutlinedTextField(value=value,onValueChange=change,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=true)
+    OutlinedTextField(value=value,onValueChange=change,label={Text(label)},modifier=Modifier.fillMaxWidth(),singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal))
 }
 @Composable private fun PullBoxMobile() {
     var layout by remember { mutableStateOf("Straight") }
