@@ -3,6 +3,8 @@ package com.example.remoteportal.web;
 import com.example.remoteportal.service.AccountLifecycleService;
 import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.TierCheckoutService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -12,6 +14,7 @@ import java.util.*;
 
 @RestController
 public class PublicAccountResource {
+  private static final Logger LOG = LoggerFactory.getLogger(PublicAccountResource.class);
   private final AccountLifecycleService accounts;
   private final ClientAccountStore clientAccounts;
   private final TierCheckoutService checkout;
@@ -40,6 +43,7 @@ public class PublicAccountResource {
     } catch (IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
     } catch (RuntimeException ex) {
+      LOG.warn("Signup verification email could not be delivered (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The verification email could not be sent. Please try again.");
     }
   }
@@ -76,6 +80,7 @@ public class PublicAccountResource {
     } catch (IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
     } catch (RuntimeException ex) {
+      LOG.warn("Username reminder email could not be delivered (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The reminder email could not be sent. Please try again.");
     }
   }
@@ -91,6 +96,7 @@ public class PublicAccountResource {
     } catch (IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
     } catch (RuntimeException ex) {
+      LOG.warn("Password reset email could not be delivered (type={} cause={})", ex.getClass().getSimpleName(), causeType(ex));
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The reset email could not be sent. Please try again.");
     }
   }
@@ -155,6 +161,12 @@ public class PublicAccountResource {
   private String safeTier(Principal principal) {
     try { return clientAccounts.tier(principal.getName()); }
     catch (Exception ex) { return "ADMIN"; }
+  }
+
+  private static String causeType(Throwable ex) {
+    Throwable cause = ex;
+    for (int i = 0; i < 5 && cause.getCause() != null; i++) cause = cause.getCause();
+    return cause.getClass().getSimpleName();
   }
 
   private void requireMail() {
