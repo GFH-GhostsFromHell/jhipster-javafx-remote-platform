@@ -9,7 +9,7 @@
 .bendfieldhelp{margin-top:12px}
 .bendfieldhelp summary{font-size:15px;font-weight:800;color:#67e8f9;cursor:pointer}
 .bendfieldhelp p{white-space:pre-line;line-height:1.65;color:#dceaf5;font-size:12px}
-.bendmarkdetail{font-size:11px;line-height:1.6;margin-top:6px;color:#a6e3f5}
+.hook-facing-badge{display:inline-flex;align-items:center;gap:6px;margin-top:7px;padding:8px 10px;border-radius:9px;border:1px solid #43cdea;background:#0b5064;color:#d9faff;font-weight:950;font-size:14px;line-height:1.3}.hook-facing-badge.unknown{border-color:#dbad60;background:#523c20;color:#ffe5b4}.hook-facing-info{font-size:11px;color:#c0d8e9;line-height:1.5;margin-top:5px}.bendmarkdetail{font-size:11px;line-height:1.6;margin-top:6px;color:#a6e3f5}
 .tick::after{content:attr(data-orient);position:absolute;top:-27px;left:-28px;color:#67e8f9;font-size:10px;white-space:nowrap;font-weight:800}
 @media(max-width:760px){.tick::after{font-size:9px;top:-25px}}
 
@@ -175,23 +175,32 @@ function calcGainCut(){
  document.getElementById('note').textContent='Use matching back-of-bend references for the scrap gain and finished dimensions. Two 90s assume the same measured gain for both bends; recalibrate if the shoe or radius changes.';
 }
 
+function hookFaceCaption(side){
+ return side==='left'?'← HOOK FACES LEFT · toward tape zero':
+        side==='right'?'HOOK FACES RIGHT → · toward far end':
+        '? VERIFY HOOK DIRECTION · shoe method needed';
+}
+function hookFaceBadge(side){
+ return '<div class="hook-facing-badge '+(side==='unknown'?'unknown':'')+'">'+hookFaceCaption(side)+'</div>';
+}
 function bendReference(currentBend,mark,index){
  const saddle=['saddle3','round'].includes(currentBend);
- if(saddle && (document.getElementById('saddleMethod')?.value.startsWith('Geometric') || ![30,45].includes(Number(document.getElementById('centerAngle')?.value)))) return [index+1,'BEND CENTRE ONLY','No physical shoe mark is verified; calibrate your bender','CALIBRATE'];
+ const unverifiedSaddle=saddle&&(document.getElementById('saddleMethod')?.value.startsWith('Geometric')||![30,45].includes(Number(document.getElementById('centerAngle')?.value)));
+ if(unverifiedSaddle)return [index+1,'BEND CENTRE ONLY','Geometry, NOT a physical shoe mark; validate the bender','? VERIFY','unknown'];
  if(saddle)return mark==='B'
-  ?[1,'CENTRE / SADDLE NOTCH','Bend centre FIRST; follow shoe centre notch','NOTCH']
-  :[mark==='A'?2:3,'ARROW','Outside return at half centre angle; flip shoe/pipe and keep the plane','↻ FLIP'];
+   ?[1,'CENTRE / SADDLE NOTCH','Centre bend FIRST · verify shoe orientation','? VERIFY','unknown']
+   :[mark==='A'?2:3,'ARROW','Outer return · hook points toward centre B (Klein-style method)',mark==='A'?'HOOK →':'← HOOK',mark==='A'?'right':'left'];
  if(['offsetFar','offsetNear','rollFar','rollNear'].includes(currentBend))
-  return [index+1,'ARROW',index===0?'First bend; hook away from second mark':'Return bend; flip bender/pipe, stay coplanar',index===0?'HOOK ←':'↻ FLIP'];
+   return [index+1,'ARROW',index===0?'First bend · hook away from B':'Return bend · flip head and roll conduit in cradle; do NOT change bend plane','← HOOK','left'];
  if(['saddle4','rect','square'].includes(currentBend))
-  return [({A:1,B:2,C:3,D:4}[mark]||index+1),'ARROW',index%2?'Return bend; flip shoe and keep plane':'Begin offset pair; check hook direction','↻ CHECK'];
+   return [({A:1,B:2,C:3,D:4}[mark]||index+1),'VERIFY SHOE MARK','Four-point layout: confirm tool placement and return direction','? VERIFY','unknown'];
  if(currentBend==='stub'||currentBend==='kick90')
-  return [1,'ARROW','90° first; hook toward short/free end','HOOK ←'];
+   return [1,'ARROW','90° stub first · hook toward short datum end','← HOOK','left'];
  if(currentBend==='back2back')
-  return [1,'ARROW then STAR','First 90 ARROW; second STAR mark is measured from BACK of first completed bend','STAR ★'];
+   return [1,'ARROW','First 90° · hook toward original stub end','← HOOK','left'];
  if(currentBend==='parallel')
-  return [index+1,'Conduit '+(index+1),'Each is a different pipe, not a bend sequence','BANK'];
- return [index+1,'SHOE / ANGLE','Mark and bend to selected angle, keeping the same plane','CHECK'];
+   return [index+1,'Conduit '+(index+1),'Separate pipes · not a physical shoe alignment mark','? VERIFY','unknown'];
+ return [index+1,'SHOE / ANGLE','Geometry only · verify physical bender reference and facing','? VERIFY','unknown'];
 }
 function decorateBendMarks(){
  const names=Array.from(document.querySelectorAll('#marks .markitem b')).map(x=>x.textContent.trim());
@@ -208,9 +217,12 @@ function decorateBendMarks(){
    const badge=card.querySelector('b');if(badge)badge.textContent=ref[0];
    const details=document.createElement('div');details.className='bendmarkdetail';
    details.textContent='Mark '+mark+' · '+ref[1]+' | '+ref[2];
-   const div=card.querySelector('div');if(div)div.appendChild(details);
+   const div=card.querySelector('div');if(div){div.appendChild(details);div.insertAdjacentHTML('beforeend',hookFaceBadge(ref[4]));}
   }
  });
+ const list=document.querySelector('#marks .marklegend');
+ if(list && current==='back2back')list.insertAdjacentHTML('beforeend','<div class="markitem"><b>2</b><div><strong>STAR · SECOND 90° (relative mark)</strong><div class="hook-facing-info">Measure the mark from the BACK of the completed first 90°, not the unbent zero. Align the shoe STAR.</div>'+hookFaceBadge('right')+'<div class="hook-facing-info">Hook toward the remaining free end on the documented Klein-style method; tight U uses a different procedure.</div></div></div>');
+ if(list && current==='kick90')list.insertAdjacentHTML('beforeend','<div class="markitem"><b>2</b><div><strong>KICK · MANUAL MARK REQUIRED</strong><div class="hook-facing-info">The geometry does not establish a physical kick reference.</div>'+hookFaceBadge('unknown')+'</div></div>');
  const help=document.getElementById('benderHelp');
  if(help)help.textContent=benderHelpText(current);
 }
@@ -245,14 +257,14 @@ function renderSteps(){
   steps=make('Measure the required rise and the reference distance from your chosen datum end; verify whether the near or far bend is the critical reference.',
   'Measure mark A and mark B from that SAME end using the calculated marks above. Recheck the mark spacing against the bend multiplier.',
   'Align your bender ARROW to mark A; make the first '+angle+'° bend, applying firm foot pressure and keeping the shoe square.',
-  'Flip the bender/conduit for the return bend, rotating the conduit in the cradle as the shoe requires while preserving the bend plane. Align ARROW with B; bend to '+angle+'°.',
+  'Flip the bender/conduit for the return bend, rotating the conduit in the cradle as the shoe requires while preserving the bend plane. Hook faces LEFT on the straight-stock datum view for this Klein-style setup. Align ARROW with B; bend to '+angle+'°.',
   'Check the two straight sections are parallel and level; test the obstacle clearance before cutting or securing.');
  }else if(current==='rollFar'||current==='rollNear'){
   const rise=v('rise'),roll=v('roll');const rot=Math.atan2(roll,rise)*180/Math.PI;
   steps=make('Measure the vertical rise and lateral roll separately. Combine them into the true offset shown above.',
   'Orient the conduit bending plane about '+num(rot)+'° from vertical to produce the required roll direction; mark your orientation on the pipe.',
   'Measure A and B from the same reference end. Use the calculated mark spacing, not the vertical rise alone.',
-  'Align ARROW at A, bend '+angle+'°. Rotate the conduit 180° along its length and bend B '+angle+'° back to parallel while preserving the rotated plane.',
+  'Align ARROW at A with the hook facing LEFT. For B use the documented flip-and-cradle-rotation setup: hook faces LEFT in the straight-stock datum view. Maintain the original inclined bend plane; bend '+angle+'° back to parallel.',
   'Test both vertical rise and horizontal roll before installing.');
  }else if(current==='saddle3'||current==='round'){
   const ca=parseFloat(document.getElementById('centerAngle')?.value)||45;
@@ -428,25 +440,25 @@ function mbCompute(){
  ordered.forEach((o,j)=>{
   const group='G'+(j+1),rad=o.a*Math.PI/180,span=o.h/Math.sin(rad);
   const sequence=[];
-  const put=(position,name,align,hook,action)=>sequence.push({position,name,align,hook,action,group});
+  const put=(position,name,align,hook,action,face='unknown')=>sequence.push({position,name,align,hook,action,face,group});
   switch(o.kind){
    case 'Two-bend offset':
-    put(o.pos,'A','ARROW','HOOK ← away from B','+'+o.a+'° '+o.plane);
-    put(o.pos+span,'B','ARROW','↻ FLIP; same plane','−'+o.a+'° return to parallel');break;
+    put(o.pos,'A','ARROW','HOOK ← away from B','+'+o.a+'° '+o.plane,'left');
+    put(o.pos+span,'B','ARROW','↻ FLIP head and cradle; HOOK ← toward datum','−'+o.a+'° return to parallel','left');break;
    case 'Rolling offset':
     {const trueRise=Math.hypot(o.h,o.r),plane=Math.atan2(o.r,o.h)*180/Math.PI;
-     put(o.pos,'A','ARROW','HOOK ← · roll plane '+plane.toFixed(1)+'° from vertical','First '+o.a+'° toward '+o.plane);
-     put(o.pos+trueRise/Math.sin(rad),'B','ARROW','↻ FLIP; preserve roll plane','Return '+o.a+'°');}break;
+     put(o.pos,'A','ARROW','HOOK ← · roll plane '+plane.toFixed(1)+'° from vertical','First '+o.a+'° toward '+o.plane,'left');
+     put(o.pos+trueRise/Math.sin(rad),'B','ARROW','↻ FLIP and HOOK ←; preserve roll plane','Return '+o.a+'°','left');}break;
    case '90° arrow mark':
-    put(o.pos,'A','ARROW','HOOK toward stub free end','90° toward '+o.plane+'; verify deduct');break;
+    put(o.pos,'A','ARROW','HOOK toward stub free end','90° toward '+o.plane+'; verify deduct','left');break;
    case 'Single kick':
     put(o.pos,'A','ARROW / SHOE REF','Confirm head hook and datum','Kick '+o.a+'° toward '+o.plane);break;
    case 'Three-point saddle':
     {const side=o.a/2,fieldMethod=[30,45].includes(o.a),multiplier=o.a===45?2.5:o.a===30?3.8:1/Math.sin(side*Math.PI/180),flank=o.h*multiplier;
      const centreRef=fieldMethod?'CENTRE / SADDLE NOTCH':'BEND CENTRE ONLY',outerRef=fieldMethod?'ARROW':'BEND CENTRE ONLY';
      put(o.pos,'B',centreRef,'Verify centre benchmark','Centre '+o.a+'° toward '+o.plane);
-     put(o.pos-flank,'A',outerRef,'↻ FLIP for outer return','Outer '+side+'° opposite '+o.plane);
-     put(o.pos+flank,'C',outerRef,'Maintain same plane','Outer '+side+'° opposite '+o.plane);
+     put(o.pos-flank,'A',outerRef,'↻ FLIP for outer return','Outer '+side+'° opposite '+o.plane,fieldMethod?'right':'unknown');
+     put(o.pos+flank,'C',outerRef,'Maintain same plane','Outer '+side+'° opposite '+o.plane,fieldMethod?'left':'unknown');
      if(!fieldMethod)issues.push('Three-point saddle: geometric bend-centre marks only, not calibrated shoe ARROW/NOTCH references.');}break;
    case 'Four-point saddle':
     {const A=o.pos,B=A+span,C=B+o.w,D=C+span;
@@ -473,17 +485,17 @@ function mbCompute(){
  let ticks='<div class="pipe"></div>';
  all.forEach(m=>{
   const left=Math.max(5,Math.min(95,5+90*m.position/scale));
-  ticks+='<div class="tick" style="left:'+left+'%" data-orient="'+(m.hook.includes('←')?'HOOK ←':'↻ SET')+'">'+
+  ticks+='<div class="tick" style="left:'+left+'%" data-orient="'+(m.face==='left'?'← HOOK':m.face==='right'?'HOOK →':'? VERIFY')+'">'+
     '<i>'+m.order+'</i></div>';
  });
  canvas.innerHTML='<div class="markbar">'+ticks+'</div><div class="note">Left = datum end. Mark positions are schematic; exact values follow below. Numbered circles show a proposed forming order.</div>';
  steps.innerHTML=all.map(m=>
   '<div class="advanced-mark"><b>'+m.order+'</b><div><strong>'+m.group+' · mark '+m.name+' · '+mbFormat(m.position)+' from datum</strong>'+
-  m.align+' | '+m.hook+'<div style="margin-top:4px">'+m.action+'</div></div></div>').join('');
+  m.align+' | '+m.hook+hookFaceBadge(m.face)+'<div style="margin-top:4px">'+m.action+'</div></div></div>').join('');
  warnings.textContent=issues.length?'CHECK LAYOUT: '+issues.join(' • '):
   'No range/spacing warnings found. Verify head radius, shoe markers and springback on a test piece.';
  multiReport='MULTI-BEND PIPE LAYOUT\nStock: '+mbFormat(stock)+'; min shoe spacing: '+mbFormat(gap)+'\n\n'+
-  all.map(m=>'BEND '+m.order+' | '+m.group+' '+m.name+' | '+mbFormat(m.position)+' | '+m.align+' | '+m.hook+' | '+m.action).join('\n')+
+  all.map(m=>'BEND '+m.order+' | '+m.group+' '+m.name+' | '+mbFormat(m.position)+' | '+m.align+' | '+hookFaceCaption(m.face)+' | '+m.hook+' | '+m.action).join('\n')+
   '\n\n'+warnings.textContent;
 }
 function mbCopy(){
