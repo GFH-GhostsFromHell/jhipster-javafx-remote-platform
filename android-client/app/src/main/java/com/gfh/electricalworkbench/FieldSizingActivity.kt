@@ -22,7 +22,7 @@ class FieldSizingActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF22D3EE),background=Color(0xFF06111F),surface=Color(0xFF10253A))) {
                 var tab by remember { mutableStateOf(intent.getStringExtra("toolTab") ?: "Pull box") }
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text("Electrical Workbench · Field Tools",style=MaterialTheme.typography.headlineSmall)
                     FieldDropdown(
                         "Choose a field tool", tab,
