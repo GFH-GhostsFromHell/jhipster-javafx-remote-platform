@@ -84,7 +84,7 @@ async function api(url,opt={}){
   let data;
   try{data=ct.includes('json')?await r.json():await r.text()}catch(e){data=null}
   if(!r.ok){
-    const safeMessage=typeof data==='object'&&data!==null?(data.message||data.detail||data.error):typeof data==='string'&&!/<[a-z][\\s>]/i.test(data)&&data.length<300?data.trim():'';
+    const safeMessage=typeof data==='object'&&data!==null?(data.message||data.detail||data.error):typeof data==='string'&&!/<[a-z][\s>]/i.test(data)&&data.length<300?data.trim():'';
     let message=safeMessage||({
       400:'Please check your details and try again.',
       409:'An account with those details already exists.',
@@ -138,7 +138,7 @@ async function startRegistration(){
     const username=signupUsername.value.trim();
     const email=signupEmail.value.trim();
     if(!/^[A-Za-z0-9._-]{3,40}$/.test(username)){const e=new Error('Choose a username with 3–40 characters: letters, numbers, periods, hyphens or underscores.');e.code='INVALID_USERNAME';throw e}
-    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){const e=new Error('Enter a valid email address, such as name@example.com.');e.code='INVALID_EMAIL';throw e}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){const e=new Error('Enter a valid email address, such as name@example.com.');e.code='INVALID_EMAIL';throw e}
     if(signupPassword.value.length<8){const e=new Error('Password must be at least 8 characters.');e.code='INVALID_PASSWORD';throw e}
     if(signupPassword.value!==signupPassword2.value){const e=new Error('Your passwords do not match. Re-enter the confirmation password.');e.code='PASSWORD_MISMATCH';throw e}
     const r=await api('/api/public/register/start',post({username:signupUsername.value,displayName:signupName.value,email:signupEmail.value,password:signupPassword.value,requestedTier:selectedTier}));
