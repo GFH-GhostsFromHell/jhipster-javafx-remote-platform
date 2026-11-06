@@ -77,7 +77,22 @@
 <script>
 let selectedTier='TIER_1',accountOptions={emailConfigured:false,tiers:[]};
 function status(id,msg,ok=true){const e=document.getElementById(id);e.textContent=msg;e.className='status '+(ok?'good':'bad')}
-async function api(url,opt={}){const r=await fetch(url,opt);const ct=r.headers.get('content-type')||'';let data=ct.includes('json')?await r.json():await r.text();if(!r.ok){let msg=typeof data==='string'?data:(data.detail||data.message||data.error||('HTTP '+r.status));if(r.status===502)msg='Email delivery failed. Check the verified Mailjet sender, SMTP API credentials and Render port 2525.';throw new Error(msg)}return data}
+async function api(url,opt={}){
+  let r;
+  try{r=await fetch(url,opt)}catch(e){throw new Error('Cannot connect to the server. Please check your connection and try again.')}
+  const ct=r.headers.get('content-type')||'';
+  let data;
+  try{data=ct.includes('json')?await r.json():await r.text()}catch(e){data=''}
+  if(!r.ok){
+    let msg=typeof data==='string'?data:(data?.detail||data?.message||data?.error||('HTTP '+r.status));
+    if(r.status===502)msg='Mailjet could not accept the verification email (502). Check Mailjet activity and verified sender settings.';
+    else if(r.status===503)msg='The app could not save this registration to its database (503). Contact support.';
+    else if(r.status>=500)msg='Registration failed on the server (HTTP '+r.status+'). Contact support.';
+    else if(r.status===400 && !msg)msg='Check the username, email, password and whether this account already exists (400).';
+    throw new Error(msg);
+  }
+  return data;
+}
 function post(body){return{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}}
 function showTab(name,button){document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));document.getElementById('pane-'+name).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));if(button)button.classList.add('active');history.replaceState(null,'','#'+name);window.scrollTo({top:0,behavior:'smooth'})}
 function selectTier(t){selectedTier=t;document.querySelectorAll('.tier').forEach(x=>{const on=x.dataset.tier===t;x.classList.toggle('selected',on);x.querySelector('.badge').textContent=on?'Selected':'Choose'});const opt=(accountOptions.tiers||[]).find(x=>x.id===t);if(t==='TIER_1')status('tierCheckoutHint','Tier 1 does not require a paid checkout.');else if(opt?.checkoutConfigured)status('tierCheckoutHint','Checkout is configured for '+t.replace('_',' ')+'. It will be offered after verification.');else status('tierCheckoutHint','Checkout for '+t.replace('_',' ')+' is not configured yet; your account will remain Tier 1 until billing is connected.',false)}
