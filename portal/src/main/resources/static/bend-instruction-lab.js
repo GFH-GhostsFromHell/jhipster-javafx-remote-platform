@@ -154,6 +154,36 @@ function getLayout(){
  marks=marks.map(item=>Object.assign({},item,{hookSide:markerHookSide(type,item.tag,isKlein)}));
  return {name,datum,warning,steps,marks};
 }
+
+function syncQuickFields(){
+ const shown={
+  stub:['height','deduct'], offset:['height','angle','distance'],
+  roll:['height','angle','distance','width'],back:['height','deduct','width'],
+  kick90:['height','deduct','angle','width'],
+  kickExtra:['height','deduct','angle','distance','width'],
+  kickBefore:['height','deduct','angle','distance'],
+  saddle3:['height','angle','distance'],saddle4:['height','angle','distance','width'],
+  segment:['height'],custom:[]
+ };
+ const active=shown[$('kind').value]||[];
+ ['height','deduct','angle','distance','width'].forEach(id=>{
+  $(id).closest('.field').style.display=active.includes(id)?'':'none';
+ });
+}
+function showQuickSummary(error){
+ const box=$('quickSummary');
+ if(error){box.innerHTML='<strong>Check your measurements</strong><span>'+html(error.message||String(error))+'</span>';return}
+ if(!layout)return;
+ const marks=layout.marks.filter(m=>m.tool!=='GEOMETRY ONLY');
+ const first=layout.steps[0];
+ const markRows=marks.length?marks.map(m=>'<div class="quick-mark">'+html(m.tag)+' · '+html(length(m.pos))+' · '+html(m.tool)+'</div>').join(''):
+  '<div class="quick-alert">No verified physical mark is available here. Confirm the shoe and required dimensions before marking conduit.</div>';
+ box.innerHTML='<strong>'+html(layout.name)+'</strong>'+markRows+
+ '<span><b>Next:</b> '+html(first.where)+' · '+html(first.reference)+'</span>'+
+ '<span><b>Hook:</b> '+html(hookCaption(first.hookSide))+'</span>'+
+ '<span><b>Action:</b> '+html(first.label)+' · '+html(first.flip)+'</span>'+
+ '<span class="quick-alert">Verify shoe marks, springback and physical dimensions before bending.</span>';
+}
 function renderMarks(){
  const $svg=$('markDrawing'),max=Math.max(v('stock')||1,...layout.marks.map(m=>m.pos+(unit()==='mm'?100:4)));
  const xx=n=>65+Math.min(1,n/max)*890;
@@ -308,9 +338,18 @@ function refresh(reset){
  try{
   layout=getLayout();
   if(reset)defaults();
-  step=0;renderMarks();renderStep();renderModel();
- }catch(e){$('markDrawing').innerHTML='';$('markCards').innerHTML='';$('markAlert').textContent='CHECK MEASUREMENTS: '+e.message;$('instruction').textContent='Correct the input fields above.'}
+  syncQuickFields();step=0;renderMarks();renderStep();showQuickSummary();renderModel();
+ }catch(e){syncQuickFields();showQuickSummary(e);$('markDrawing').innerHTML='';$('markCards').innerHTML='';$('markAlert').textContent='CHECK MEASUREMENTS: '+e.message;$('instruction').textContent='Correct the input fields above.'}
 }
+
+let quickInputTimer;
+$('quickFields').addEventListener('input',e=>{
+ if(!e.target.matches('input[type="number"]'))return;
+ clearTimeout(quickInputTimer);
+ quickInputTimer=setTimeout(()=>refresh(true),180);
+});
+$('threeDDetails').addEventListener('toggle',()=>{if($('threeDDetails').open)renderModel()});
+$('editorDetails').addEventListener('toggle',()=>{if($('editorDetails').open)renderModel()});
 $('kind').onchange=()=>refresh(true);$('angle').onchange=()=>refresh(true);$('method').onchange=()=>refresh(false);
 $('critical').onchange=()=>refresh(false);$('recalc').onclick=()=>refresh(true);
 $('unit').addEventListener('change',function(){
