@@ -41,7 +41,7 @@ if(geometryStart<0||geometryEnd<=geometryStart){
  ];
  for(const [index,ops] of shapes.entries()){
   try{
-   const model=vm.runInNewContext(geometry+'\\ncalculatePath()',{
+   const model=vm.runInNewContext(geometry+'\ncalculatePath()',{
     ops,v:name=>name==='radius'?120:400,toMm:n=>n,RAD:Math.PI/180
    });
    if(model.pts.length<2||model.pts.some(point=>point.p.length!==3||point.p.some(n=>!Number.isFinite(n))))
