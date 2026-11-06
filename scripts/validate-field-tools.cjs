@@ -59,7 +59,7 @@ if(geometryStart<0||geometryEnd<=geometryStart){
  ];
  for(const check of scenarios){
   try{
-   vm.runInNewContext(geometry+'\\ncalculatePath()',{
+   vm.runInNewContext(geometry+'\ncalculatePath()',{
     ops:check.ops,TEN_FOOT_EMT_MM:3048,
     v:name=>name==='radius'?120:name==='stock'?3048:name==='minStraight'?check.minStraight:400,
     toMm:n=>n,RAD:Math.PI/180
