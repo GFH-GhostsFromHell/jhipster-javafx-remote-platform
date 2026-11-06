@@ -49,7 +49,7 @@ final class BendMarkStripPane extends VBox {
             col("Mark",Mark::name,80),
             col("From datum",m->format(m.position()),115),
             col("Shoe mark",Mark::shoeSymbol,100),
-            col("Hook / setup",Mark::hook,230),
+            col("HOOK FACING ← / →",Mark::hook,230),
             col("Bend action",Mark::action,300)
         );
         table.setPrefHeight(195); table.setFixedCellSize(31);
@@ -77,7 +77,7 @@ final class BendMarkStripPane extends VBox {
         boolean relative=marks.stream().anyMatch(Mark::relativeReference);
         advisory.setText(relative
             ?"Diagram is schematic. A mark labelled RELATIVE is measured from an existing bend, not from the same straight-pipe datum. Confirm manufacturer reference geometry."
-            :"Numbered circles = suggested bending sequence; positions = marking locations on the STRAIGHT pipe before bending. HOOK arrows indicate setup guidance only; verify the head markings and clearances of your exact bender.");
+            :"LEFT is the original tape-zero end; RIGHT is the far end. Every mark shows a hook-facing arrow or ? VERIFY. Bender flips and 180° conduit rotation are separate steps; check your actual shoe.");
         draw();
     }
     private String format(double value) {
@@ -139,9 +139,13 @@ final class BendMarkStripPane extends VBox {
             g.fillText(subtitle,labelX,upper?43:215);
             // Show a compact shoe/hook-facing arrow just above each mark.
             String hook=mark.hook();
-            String direction=hook.contains("←")?"← HOOK":hook.contains("→")?"HOOK →":"SHOE REFERENCE";
-            g.setFill(Color.web("#0369a1"));
-            g.fillText(direction,Math.max(5,Math.min(w-115,x-38)),upper?91:168);
+            String direction=hook.contains("←")?"← HOOK":hook.contains("→")?"HOOK →":"? VERIFY";
+            boolean unknown=!(hook.contains("←")||hook.contains("→"));
+            double px=Math.max(5,Math.min(w-116,x-47)),py=upper?75:151;
+            g.setFill(Color.web(unknown?"#92400e":"#075985"));
+            g.fillRoundRect(px,py,104,24,8,8);
+            g.setFill(Color.WHITE);g.setFont(Font.font("Segoe UI Semibold",12));
+            g.fillText(direction,px+10,py+17);
         }
         if(current.isEmpty()){
             g.setFill(Color.web("#475569"));g.setFont(Font.font("Segoe UI",14));
