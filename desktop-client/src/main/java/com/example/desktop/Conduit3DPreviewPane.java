@@ -160,7 +160,7 @@ public final class Conduit3DPreviewPane extends BorderPane {
 
         ScrollPane scroll = new ScrollPane(page);
         scroll.setFitToWidth(true);
-        scroll.setPannable(true);
+        scroll.setPannable(false);
         scroll.setStyle("-fx-background-color:transparent;");
         setCenter(scroll);
         radiusField.textProperty().addListener((o,a,b) -> draw());
@@ -252,11 +252,12 @@ public final class Conduit3DPreviewPane extends BorderPane {
                 position=entry.add(arc);
                 points.add(new Point(position,i+1));
             }
-            tangent=tangent.times(Math.cos(totalAngle)).add(bendNormal.times(Math.sin(totalAngle))).unit();
-            normal=bendNormal.times(Math.cos(totalAngle)).add(
-                    points.size()==0?new Vector(0,0,0):new Vector(0,0,0)); // replaced below by retained entry direction
-            // The next local bend plane must follow the transported normal.
-            // Recompute using the entry tangent captured before rotation (see below).
+            Vector entryTangent=tangent;
+            tangent=entryTangent.times(Math.cos(totalAngle))
+                    .add(bendNormal.times(Math.sin(totalAngle))).unit();
+            // Transport the local bend-plane normal into the next bend.
+            normal=bendNormal.times(Math.cos(totalAngle))
+                    .add(entryTangent.times(-Math.sin(totalAngle))).unit();
             ends.add(points.size()-1);
         }
         int tailCount=Math.max(1,Math.min(300,(int)Math.ceil(tail/24)));
