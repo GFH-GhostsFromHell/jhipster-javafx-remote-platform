@@ -16,6 +16,17 @@ Common action labels: **Use saved measured deduct**, **Update marks + 3D**, **Pr
 
 Keep this distinction extremely obvious: **mathematical arc-entry points are not actual ARROW, STAR or saddle-centre bender-head marks**.
 
+## Hook-facing arrows on every mark (2026-11-05)
+
+- **LEFT ← means toward the original straight-stock tape-zero/datum end** and **RIGHT → means toward the other end**. These directions do not change merely because the operator walks around the workpiece.
+- Show a large `← HOOK`, `HOOK →` or `? VERIFY SHOE` at every numbered mark in the straight-stock view, per-mark cards, and active step. The hook-facing arrow is separate from the manufacturer's stamped ARROW/STAR/NOTCH alignment symbol.
+- For the documented Klein-style hand-bender method: stub-up ARROW A uses HOOK LEFT; two-bend offset A uses HOOK LEFT and B retains HOOK LEFT in the straight-stock datum view after flipping the bender and rotating the conduit in the cradle. Preserve the bend plane; rolling-offset plane tilt is set once before the first bend.
+- For back-to-back 90s, the first ARROW mark uses HOOK LEFT; the second STAR mark is **relative to the back of the formed first 90** and uses HOOK RIGHT toward the remaining free end in the documented method. Never show a guessed absolute second-stock coordinate.
+- For the verified traditional three-point saddle, outer A uses HOOK RIGHT toward centre; outer C uses HOOK LEFT toward centre; centre notch orientation is shown as `? VERIFY` unless a model-specific instruction explicitly defines the hook side. For other saddles and custom/segmented/kick marks without confirmed shoe method, prominently show `? VERIFY` rather than inventing direction.
+- In OTHER/unverified tool mode, suppress the definite arrows and show `? VERIFY SHOE` for all physical steps.
+- In all views, show bender **FLIP** and conduit **180° CRADLE ROLL** in a separate action cue; do not treat a roll as a left/right hook arrow.
+
+
 ## Core field scripts
 
 ### Single stub-up 90°
