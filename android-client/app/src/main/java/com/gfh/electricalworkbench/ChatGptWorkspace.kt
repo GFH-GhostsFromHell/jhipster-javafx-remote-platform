@@ -253,13 +253,13 @@ internal fun AskChatGptWorkspace(username: String) {
                 Text(active.name.ifBlank { active.email.ifBlank { "Connected account" } }, color = MWText, fontWeight = FontWeight.Bold)
                 if (active.email.isNotBlank()) Text(active.email, color = MWMuted, fontSize = 12.sp)
                 Text(if (active.sharingEnabled) "ChatGPT plan usage enabled" else "Identity connected · plan usage not enabled", color = if (active.sharingEnabled) MWGood else MWAmber, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { refreshModels() }, enabled = !busy && active.sharingEnabled, modifier = Modifier.weight(1f)) { Text("Refresh models") }
-                    OutlinedButton(onClick = { openExternal(context, OPENAI_MANAGE_USAGE) }, modifier = Modifier.weight(1f)) { Text("Manage usage") }
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { refreshModels() }, enabled = !busy && active.sharingEnabled, modifier = Modifier.fillMaxWidth()) { Text("Refresh models") }
+                    OutlinedButton(onClick = { openExternal(context, OPENAI_MANAGE_USAGE) }, modifier = Modifier.fillMaxWidth()) { Text("Manage usage") }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { startSignIn(false) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Reconnect") }
-                    OutlinedButton(onClick = { disconnect() }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Disconnect") }
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { startSignIn(false) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Reconnect") }
+                    OutlinedButton(onClick = { disconnect() }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
                 }
             }
         }
@@ -304,9 +304,9 @@ internal fun AskChatGptWorkspace(username: String) {
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth()
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { messages.clear(); streamingText = "" }, enabled = !busy && messages.isNotEmpty(), modifier = Modifier.weight(1f)) { Text("Clear chat") }
-                Button(onClick = { send() }, enabled = !busy && input.isNotBlank() && selectedModel.isNotBlank(), modifier = Modifier.weight(1f)) { Text(if (busy) "Working…" else "Send") }
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { messages.clear(); streamingText = "" }, enabled = !busy && messages.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("Clear chat") }
+                Button(onClick = { send() }, enabled = !busy && input.isNotBlank() && selectedModel.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Working…" else "Send") }
             }
         }
 
