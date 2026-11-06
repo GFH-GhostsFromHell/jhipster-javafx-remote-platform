@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -63,16 +64,28 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,6 +100,7 @@ import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 private const val MOBILE_PORTAL_URL = "https://remote-javafx-portal.onrender.com"
+private const val UPDATE_CHECK_INTERVAL_MS = 30L * 60L * 1000L
 private val MobileNavy = Color(0xFF06111F)
 private val MobileNavy2 = Color(0xFF0A1C2F)
 private val MobileSteel = Color(0xFF152A3D)
@@ -145,6 +159,58 @@ private fun FullMobileWorkbench() {
     var cloudStatus by remember { mutableStateOf("Checking cloud…") }
     var tab by remember { mutableStateOf(MobileTab.Home) }
     var webPath by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val updateScope = rememberCoroutineScope()
+    var availableUpdate by remember { mutableStateOf<AndroidRelease?>(null) }
+    var updateChecking by remember { mutableStateOf(false) }
+    var updateStatus by remember { mutableStateOf("Automatic update checks start after sign-in.") }
+    var lastUpdateCheckAt by remember { mutableLongStateOf(0L) }
+    var dismissedUpdateVersion by remember { mutableStateOf<String?>(null) }
+
+    fun checkUpdates(force: Boolean) {
+        if (session == null || updateChecking) return
+        val now = SystemClock.elapsedRealtime()
+        if (!force && now - lastUpdateCheckAt < UPDATE_CHECK_INTERVAL_MS) return
+        updateChecking = true
+        if (force) updateStatus = "Checking for updates…"
+        val userAtStart = session?.username
+        updateScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { AndroidUpdateClient.check() }
+            }
+            lastUpdateCheckAt = SystemClock.elapsedRealtime()
+            updateChecking = false
+            if (session?.username != userAtStart) return@launch
+            result.fold(
+                onSuccess = { release ->
+                    if (compareVersions(release.version, BuildConfig.VERSION_NAME) > 0) {
+                        availableUpdate = release
+                        updateStatus = "Version ${release.version} is available on the ${release.channel} channel."
+                    } else {
+                        availableUpdate = null
+                        updateStatus = "You're up to date · v${BuildConfig.VERSION_NAME}."
+                    }
+                },
+                onFailure = {
+                    updateStatus = "Update check unavailable. Your installed app still works; retry from Settings."
+                }
+            )
+        }
+    }
+
+    // Check after successful sign-in, at regular intervals while visible,
+    // and upon returning to the app if the last check is due.
+    val latestUpdateCheck by rememberUpdatedState(newValue = { checkUpdates(false) })
+    LaunchedEffect(session?.username, lifecycleOwner) {
+        if (session == null) return@LaunchedEffect
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                latestUpdateCheck()
+                delay(UPDATE_CHECK_INTERVAL_MS)
+            }
+        }
+    }
 
     DisposableEffect(Unit) {
         Thread {
@@ -167,6 +233,9 @@ private fun FullMobileWorkbench() {
                     val parsed = parseMobileSession(username, password, bootstrap)
                     mobileMainThread {
                         session = parsed
+                        lastUpdateCheckAt = 0L
+                        availableUpdate = null
+                        dismissedUpdateVersion = null
                         loggingIn = false
                         tab = MobileTab.Home
                     }
@@ -190,12 +259,25 @@ private fun FullMobileWorkbench() {
     MobileShell(
         session = active,
         selected = tab,
+        availableUpdate = availableUpdate,
+        updateChecking = updateChecking,
+        updateStatus = updateStatus,
+        showUpdateBanner = availableUpdate?.version != dismissedUpdateVersion,
+        onCheckUpdates = { checkUpdates(true) },
+        onReviewUpdate = {
+            context.startActivity(Intent(context, UpdateGateActivity::class.java)
+                .putExtra(UPDATE_FROM_WORKSPACE, true))
+        },
+        onDismissUpdate = { dismissedUpdateVersion = availableUpdate?.version },
         onSelected = { tab = it },
         onOpenWeb = { webPath = it },
         onLogout = {
             CookieManager.getInstance().removeAllCookies(null)
             CookieManager.getInstance().flush()
             session = null
+            availableUpdate = null
+            dismissedUpdateVersion = null
+            updateStatus = "Automatic update checks start after sign-in."
             tab = MobileTab.Home
         }
     )
@@ -306,6 +388,13 @@ private fun mobileLoginColors() = OutlinedTextFieldDefaults.colors(
 private fun MobileShell(
     session: MobileSession,
     selected: MobileTab,
+    availableUpdate: AndroidRelease?,
+    updateChecking: Boolean,
+    updateStatus: String,
+    showUpdateBanner: Boolean,
+    onCheckUpdates: () -> Unit,
+    onReviewUpdate: () -> Unit,
+    onDismissUpdate: () -> Unit,
     onSelected: (MobileTab) -> Unit,
     onOpenWeb: (String) -> Unit,
     onLogout: () -> Unit
@@ -338,14 +427,47 @@ private fun MobileShell(
             }
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when (selected) {
-                MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
-                MobileTab.Workbench -> MobileWorkbenchPage(onOpenWeb)
-                MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
-                MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
-                MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
-                MobileTab.Profile -> MobileProfile(session, onOpenWeb, onLogout)
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (availableUpdate != null && showUpdateBanner) {
+                MobileUpdateBanner(availableUpdate, onReviewUpdate, onDismissUpdate)
+            }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when (selected) {
+                    MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
+                    MobileTab.Workbench -> MobileWorkbenchPage(onOpenWeb)
+                    MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
+                    MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
+                    MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
+                    MobileTab.Profile -> MobileProfile(
+                        session, onOpenWeb, onLogout, availableUpdate,
+                        updateChecking, updateStatus, onCheckUpdates, onReviewUpdate
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MobileUpdateBanner(
+    release: AndroidRelease,
+    onReview: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .background(Color(0xFF103F4A))
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("Update available · v${release.version}",
+            color = MobileGood, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onReview, modifier = Modifier.weight(1f)) {
+                Text("Review update", fontSize = 12.sp)
+            }
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                Text("Later", fontSize = 12.sp)
             }
         }
     }
@@ -429,7 +551,16 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
 }
 
 @Composable
-private fun MobileProfile(session: MobileSession, onOpenWeb: (String) -> Unit, onLogout: () -> Unit) {
+private fun MobileProfile(
+    session: MobileSession,
+    onOpenWeb: (String) -> Unit,
+    onLogout: () -> Unit,
+    availableUpdate: AndroidRelease?,
+    checkingUpdates: Boolean,
+    updateStatus: String,
+    onCheckUpdates: () -> Unit,
+    onReviewUpdate: () -> Unit
+) {
     val context = LocalContext.current
     MWPage("Profile & Settings", "Electrical Workbench account and app session.") {
         MWCard("Account") {
@@ -439,6 +570,24 @@ private fun MobileProfile(session: MobileSession, onOpenWeb: (String) -> Unit, o
             Text("Subscription: ${session.tier.replace('_', ' ')}", color = MWText)
             Text("Sign-in method: ${session.loginProvider.ifBlank { "LOCAL" }}", color = MWText)
             Text("Cloud features: ${session.featureCount}", color = MWMuted)
+        }
+        MWCard("Android app updates") {
+            Text("Installed: v${BuildConfig.VERSION_NAME} · ${BuildConfig.UPDATE_CHANNEL} channel",
+                color = MWText, fontSize = 13.sp)
+            Text(updateStatus, color = if (availableUpdate != null) MobileGood else MWMuted,
+                fontSize = 13.sp)
+            if (availableUpdate != null) {
+                Button(onClick = onReviewUpdate, modifier = Modifier.fillMaxWidth()) {
+                    Text("Review v${availableUpdate.version} update")
+                }
+            }
+            OutlinedButton(
+                onClick = onCheckUpdates,
+                enabled = !checkingUpdates,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (checkingUpdates) "Checking…" else "Check for updates now")
+            }
         }
         Button(onClick = { onOpenWeb("/portal.html") }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Person, null)
