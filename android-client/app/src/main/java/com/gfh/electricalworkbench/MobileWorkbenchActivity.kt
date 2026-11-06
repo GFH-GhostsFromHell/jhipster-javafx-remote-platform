@@ -652,6 +652,13 @@ private fun MobileAuthenticatedWeb(session: MobileSession, path: String, onClose
                 else -> key(cookie, path) {
                     val webView = remember {
                         WebView(context).apply {
+                            // Match the portal's navy surfaces so Android never flashes
+                            // a white WebView background while pages load or scroll.
+                            setBackgroundColor(android.graphics.Color.rgb(7, 21, 35))
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                // Use each page's authored colours, not algorithmic inversion.
+                                settings.setAlgorithmicDarkeningAllowed(false)
+                            }
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
                             settings.allowFileAccess = false
