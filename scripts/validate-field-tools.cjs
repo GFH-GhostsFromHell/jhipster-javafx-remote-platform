@@ -24,7 +24,33 @@ const labIds=new Set([...labHtml.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
 const labRefs=[...labJs.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]);
 const labMissing=[...new Set(labRefs.filter(id=>!labIds.has(id)))];
 if(labMissing.length){console.error('Bend lab is missing DOM IDs: '+labMissing.join(','));failed=true}
-if(!labHtml.includes('src="/bend-instruction-lab.js"')){console.error('Bend lab JS is not linked');failed=true}
+
+// Regression check: all points must contain finite X/Y/Z coordinates. An
+// incomplete cross product made Android show only the background canvas.
+const geometryStart=labJs.indexOf('const add=(a,b)');
+const geometryEnd=labJs.indexOf("const canvas=$('tubeCanvas')");
+if(geometryStart<0||geometryEnd<=geometryStart){
+ console.error('Bend lab geometry test block could not be found');failed=true;
+}else{
+ const geometry=labJs.slice(geometryStart,geometryEnd);
+ const shapes=[
+  [{before:404,angle:90,plane:0},{before:350,angle:30,plane:90},{before:360,angle:90,plane:-90}],
+  [{before:400,angle:30,plane:0},{before:380,angle:-30,plane:0}],
+  [{before:400,angle:90,plane:0}],
+  [{before:250,angle:30,plane:0},{before:300,angle:-30,plane:0},{before:300,angle:-30,plane:0},{before:300,angle:30,plane:0}]
+ ];
+ for(const [index,ops] of shapes.entries()){
+  try{
+   const model=vm.runInNewContext(geometry+'\\ncalculatePath()',{
+    ops,v:name=>name==='radius'?120:400,toMm:n=>n,RAD:Math.PI/180
+   });
+   if(model.pts.length<2||model.pts.some(point=>point.p.length!==3||point.p.some(n=>!Number.isFinite(n))))
+    throw Error('Non-finite 3D coordinate');
+   console.log('Bend 3D test '+(index+1)+': '+model.pts.length+' finite centerline points');
+  }catch(error){console.error('Bend 3D geometry regression '+(index+1)+': '+error.message);failed=true}
+ }
+}
+if(!/src="\/bend-instruction-lab\.js(?:\?[^"]*)?"/.test(labHtml)){console.error('Bend lab JS is not linked');failed=true}
 for(const key of ['kickExtra','kick90','back','roll','saddle3','saddle4','offset','segment','custom']){
  if(!labHtml.includes('value="'+key+'"')){console.error('Missing bend preset '+key);failed=true}
 }
