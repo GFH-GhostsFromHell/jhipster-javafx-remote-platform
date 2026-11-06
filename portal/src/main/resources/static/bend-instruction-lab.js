@@ -214,7 +214,7 @@ function renderOperations(){
   const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{if(ops.length<=1)return;ops.splice(i,1);renderOperations();renderModel()};row.appendChild(remove);$('operationRows').appendChild(row);
  });
 }
-const add=(a,b)=>a.map((n,i)=>n+b[i]),times=(a,n)=>a.map(x=>x*n),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2]],norm=a=>times(a,1/Math.max(1e-8,Math.hypot(...a)));
+const add=(a,b)=>a.map((n,i)=>n+b[i]),times=(a,n)=>a.map(x=>x*n),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm=a=>times(a,1/Math.max(1e-8,Math.hypot(...a)));
 function calculatePath(){
  const radius=toMm(v('radius')),tail=v('tail');
  if(!Number.isFinite(radius)||radius<=0||tail===null||!Number.isFinite(tail)||tail<0)throw Error('Preview radius and tail must be valid.');
@@ -239,6 +239,9 @@ function calculatePath(){
   t=nextT;n=nextN;ends.push(pts.length-1);
  });
  straight(toMm(tail),ops.length+1);
+ // Prevent invalid projected positions from silently drawing an empty canvas.
+ if(pts.some(pt=>pt.p.length!==3||pt.p.some(n=>!Number.isFinite(n))))
+  throw Error('3D coordinates are invalid. Reset the bend sequence or check its dimensions.');
  return {pts,ends,radius};
 }
 const canvas=$('tubeCanvas'),ctx=canvas.getContext('2d');
@@ -248,11 +251,23 @@ function rotated(v){
  return [x,v[2]*cp-y*sp,v[2]*sp+y*cp];
 }
 function renderModel(){
- if(!ctx)return;
- try{model=calculatePath()}catch(e){model=null;$('geometryNote').textContent='3D input error: '+e.message;ctx.clearRect(0,0,canvas.width,canvas.height);return}
+ if(!ctx){$('geometryNote').textContent='3D preview unavailable: drawing canvas is not supported.';return}
+ try{model=calculatePath()}catch(e){
+  model=null;$('geometryNote').textContent='3D input error: '+e.message;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#e8f7ff';ctx.font='bold 22px system-ui';
+  ctx.fillText('3D preview unavailable',24,60);
+  ctx.font='18px system-ui';ctx.fillText('Check dimensions or reset the bend sequence.',24,100);
+  return;
+ }
  const W=canvas.width,H=canvas.height,end=mode==='partial'?model.ends[Math.min(step,model.ends.length-1)]:model.pts.length-1;
  const visible=model.pts.slice(0,end+1),camera=visible.map(o=>rotated(o.p));
  const xs=camera.map(p=>p[0]),ys=camera.map(p=>p[1]),minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+ if(![minx,maxx,miny,maxy].every(Number.isFinite)){
+  $('geometryNote').textContent='3D projection error: invalid coordinates. Reset the view or bend sequence.';
+  ctx.clearRect(0,0,W,H);
+  return;
+ }
  const midx=(minx+maxx)/2,midy=(miny+maxy)/2,size=Math.min((W-135)/Math.max(1,maxx-minx),(H-115)/Math.max(1,maxy-miny))*zoom;
  const screen=camera.map(p=>[W/2+(p[0]-midx)*size,H/2-(p[1]-midy)*size]);
  const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#071e30');bg.addColorStop(1,'#1b4966');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
