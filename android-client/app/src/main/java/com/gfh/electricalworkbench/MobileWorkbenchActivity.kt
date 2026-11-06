@@ -144,7 +144,10 @@ private fun MobileWorkbenchTheme(content: @Composable () -> Unit) {
             onSecondary = MobileText,
             onBackground = MobileText,
             onSurface = MobileText,
-            onSurfaceVariant = MobileMuted
+            onSurfaceVariant = MobileMuted,
+            outline = Color(0xFF829BAF),
+            error = Color(0xFFFF9A9A),
+            onError = MobileNavy
         ),
         content = content
     )
@@ -325,7 +328,7 @@ private fun MobileLoginScreen(
                     Text("Sign in", color = MobileText, fontSize = 25.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username") }, enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
-                    if (!error.isNullOrBlank()) Text(error, color = Color(0xFFFFCDD5), fontSize = 13.sp)
+                    if (!error.isNullOrBlank()) Text(error, color = Color(0xFFFFCDD5), fontSize = 15.sp)
                     Button(
                         onClick = { onLogin(username.trim(), password) },
                         enabled = !loggingIn && username.isNotBlank() && password.isNotBlank(),
@@ -339,24 +342,24 @@ private fun MobileLoginScreen(
                         } else Text("Sign in to Electrical Workbench", fontWeight = FontWeight.Bold)
                     }
                     Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Create account") }
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Verify email") }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Reset password") }
                         OutlinedButton(
                             onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) { Text("Forgot username") }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -420,7 +423,7 @@ private fun MobileShell(
         bottomBar = {
             NavigationBar(containerColor = MobileNavy2) {
                 MobileNavItem(selected == MobileTab.Home, { onSelected(MobileTab.Home) }, Icons.Default.Dashboard, "Home")
-                MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Workbench")
+                MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Tools")
                 MobileNavItem(selected == MobileTab.Safety, { onSelected(MobileTab.Safety) }, Icons.Default.ElectricBolt, "Safety")
                 MobileNavItem(selected == MobileTab.More, { onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
                 MobileNavItem(selected == MobileTab.Profile, { onSelected(MobileTab.Profile) }, Icons.Default.Person, "Profile")
@@ -462,11 +465,11 @@ private fun MobileUpdateBanner(
     ) {
         Text("Update available · v${release.version}",
             color = MobileGood, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onReview, modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onReview, modifier = Modifier.fillMaxWidth()) {
                 Text("Review update", fontSize = 12.sp)
             }
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text("Later", fontSize = 12.sp)
             }
         }
@@ -479,7 +482,7 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
         selected = selected,
         onClick = onClick,
         icon = { Icon(icon, null) },
-        label = { Text(label, fontSize = 9.sp, maxLines = 1) },
+        label = { Text(label, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         colors = NavigationBarItemDefaults.colors(
             selectedIconColor = MobileNavy,
             selectedTextColor = MobileCyan,
@@ -674,6 +677,11 @@ private fun MobileAuthenticatedWeb(session: MobileSession, path: String, onClose
                                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                                         true
                                     }
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    view?.let(::applyMobileWebStyle)
                                 }
                             }
                         }
