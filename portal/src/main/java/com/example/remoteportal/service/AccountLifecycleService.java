@@ -110,8 +110,8 @@ public class AccountLifecycleService {
     String lookup = clean(account);
     if (lookup.isBlank()) throw new IllegalArgumentException("Enter your username or email address.");
     List<RecoveryTarget> targets = db.query(
-        "select username,email,auth_provider from client_account where enabled=true and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by username",
-        (rs,row)->new RecoveryTarget(rs.getString("username"), rs.getString("email"), rs.getString("auth_provider")), lookup, lookup);
+        "select username,email,auth_provider from client_account where (enabled=true or coalesce(email_verified,false)=false) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
+        (rs,row)->new RecoveryTarget(rs.getString("username"), rs.getString("email"), rs.getString("auth_provider")), lookup, lookup, lookup);
     if (targets.isEmpty()) return;
     RecoveryTarget target = targets.getFirst();
     if (target.email() == null || target.email().isBlank() || "GOOGLE".equalsIgnoreCase(target.provider())) return;
@@ -121,14 +121,21 @@ public class AccountLifecycleService {
   }
 
   public void completePasswordReset(String username, String code, String newPassword) {
-    String u = clean(username);
-    if (u.isBlank()) throw new IllegalArgumentException("Username is required.");
+    String lookup = clean(username);
+    if (lookup.isBlank()) throw new IllegalArgumentException("Username or email is required.");
     if (newPassword == null || newPassword.length() < 8) throw new IllegalArgumentException("New password must be at least 8 characters.");
+    // An emailed reset code proves control of the address, including for pending
+    // registrations. Never reactivate an admin-disabled, already verified account.
+    List<RecoveryTarget> targets = db.query(
+        "select username,email,auth_provider from client_account where (enabled=true or coalesce(email_verified,false)=false) and (lower(username)=lower(?) or (email is not null and lower(email)=lower(?))) order by case when lower(username)=lower(?) then 0 else 1 end, username",
+        (rs,row)->new RecoveryTarget(rs.getString("username"), rs.getString("email"), rs.getString("auth_provider")), lookup, lookup, lookup);
+    if (targets.isEmpty()) throw new IllegalArgumentException("Account could not be found.");
+    RecoveryTarget target = targets.getFirst();
+    if ("GOOGLE".equalsIgnoreCase(target.provider())) throw new IllegalArgumentException("This account uses Google sign-in.");
+    String u = target.username();
     verifyCode("PASSWORD_RESET", u.toLowerCase(Locale.ROOT), code);
-    List<String> providers = db.query("select auth_provider from client_account where lower(username)=lower(?) and enabled=true", (rs,row)->rs.getString(1), u);
-    if (providers.isEmpty()) throw new IllegalArgumentException("Account could not be found.");
-    if ("GOOGLE".equalsIgnoreCase(providers.getFirst())) throw new IllegalArgumentException("This account uses Google sign-in.");
-    db.update("update client_account set password_hash=? where lower(username)=lower(?)", encoder.encode(newPassword), u);
+    db.update("update client_account set password_hash=?,enabled=true,email_verified=true where lower(username)=lower(?)",
+        encoder.encode(newPassword), u);
     deleteCode("PASSWORD_RESET", u.toLowerCase(Locale.ROOT));
   }
 
