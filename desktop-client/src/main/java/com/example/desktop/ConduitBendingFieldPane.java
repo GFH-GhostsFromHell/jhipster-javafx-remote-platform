@@ -84,6 +84,7 @@ public final class ConduitBendingFieldPane extends BorderPane {
         screens.getTabs().addAll(
             new Tab("Single Bend & Field Guide",scroll),
             new Tab("Advanced · Multiple Bends on One Pipe",new AdvancedConduitBendPane()),
+            new Tab("3D Conduit Preview · Rotate & Zoom",new Conduit3DPreviewPane()),
             new Tab("Gain, Cut Length & Rack Offsets",new ConduitFabricationToolsPane()),
              new Tab("Bender Calibration",new BenderCalibrationPane()),
             new Tab("Multiplier Chart & Quick Sheet",new ConduitBendReferencePane())
