@@ -155,6 +155,47 @@ private fun pullBoxMath(entries:List<PipeEntry>,type:String,u:String,od:Double):
         "\nBack→cover: "+mmString(z,u)+"\n\n"+explanations.joinToString("\n")+
         "\n\nNot determined does not mean 0. Verify physical fit and installation requirements."
 }
+@Composable private fun BendHookFacingCards(bend: String, angle: String, saddleMethod: String) {
+    val verifiedSaddle = saddleMethod.startsWith("Traditional") && (angle == "30" || angle == "45")
+    // LEFT / RIGHT are fixed to the straight-stock tape zero, not the user's walking position.
+    val cards: List<Triple<String, String, String>> = when (bend) {
+        "Offset", "Rolling offset" -> listOf(
+            Triple("MARK A · ARROW", "← HOOK FACES LEFT", "Away from mark B; toward the tape-zero end."),
+            Triple("MARK B · ARROW", "← HOOK FACES LEFT", "Klein-style floor-to-air return: flip bender and rotate conduit in cradle; preserve the original bending plane.")
+        )
+        "90° stub" -> listOf(
+            Triple("MARK A · ARROW", "← HOOK FACES LEFT", "Toward the short stub / original measurement end.")
+        )
+        "Back-to-back 90s" -> listOf(
+            Triple("MARK A · ARROW", "← HOOK FACES LEFT", "First 90°: hook toward the original stub end."),
+            Triple("MARK B · STAR (RELATIVE)", "HOOK FACES RIGHT →", "Second 90°: hook toward remaining free end. Measure B from BACK of completed first 90°, not from straight-stock zero.")
+        )
+        "Kicked 90°" -> listOf(
+            Triple("MARK A · ARROW", "← HOOK FACES LEFT", "First 90°: hook toward the stub end."),
+            Triple("KICK MARK · MANUAL", "? VERIFY HOOK DIRECTION", "Choose a physical kick mark and tool direction from the shoe and job layout, not rise alone.")
+        )
+        "Three-point saddle" -> listOf(
+            Triple("MARK B · CENTRE NOTCH · FIRST", "? VERIFY HOOK DIRECTION", "Align the actual centre notch and check the manufacturer's shoe orientation."),
+            Triple("MARK A · OUTER ARROW · SECOND", if(verifiedSaddle) "HOOK FACES RIGHT →" else "? VERIFY HOOK DIRECTION", "Outside return: toward centre mark B only for the documented Klein-style method."),
+            Triple("MARK C · OUTER ARROW · THIRD", if(verifiedSaddle) "← HOOK FACES LEFT" else "? VERIFY HOOK DIRECTION", "Outside return: toward centre mark B only for the documented Klein-style method.")
+        )
+        "Four-point saddle" -> listOf("A", "B", "C", "D").map { mark ->
+            Triple("MARK $mark · GEOMETRY ONLY", "? VERIFY HOOK DIRECTION", "Physical arrow placement and hook facing require a tool-specific four-point layout.")
+        }
+        else -> emptyList()
+    }
+    Text("HOOK FACING · EVERY BEND MARK", style = MaterialTheme.typography.titleMedium)
+    Text("LEFT ← is the original tape-zero end of straight conduit. RIGHT → is the far end. Direction is separate from flipping the tool or rolling the conduit.", style = MaterialTheme.typography.bodySmall)
+    cards.forEach { (mark, direction, note) ->
+        OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(mark, style = MaterialTheme.typography.labelLarge)
+                Text(direction, style = MaterialTheme.typography.titleLarge)
+                Text(note, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
 private val bends=listOf("Offset","Rolling offset","90° stub","Three-point saddle","Four-point saddle","Back-to-back 90s","Kicked 90°")
 @Composable private fun BenderMobile() {
     val context=LocalContext.current
@@ -207,6 +248,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
             .getOrElse{"Check inputs: "+it.message}
     },modifier=Modifier.fillMaxWidth()){Text("Calculate marks & instructions")}
     Text(result,style=MaterialTheme.typography.bodyMedium)
+    BendHookFacingCards(bend,angle,saddleMethod)
     Text("Field check: use the correct-size shoe and firm foot pressure, keep bend planes aligned, check springback and avoid conduit flattening. Test a piece before cutting to final length.",color=Color(0xFFFFD68A))
 }
 private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,dist:Double,stub:Double,takeup:Double,width:Double,centre:Double,offsetReference:String,saddleMethod:String,precision:String):String {
@@ -225,17 +267,17 @@ private fun bendMath(type:String,u:String,angle:Double,rise:Double,roll:Double,d
             (if(type=="Rolling offset")"True offset: "+f(h)+"\nRotate plane from vertical: "+String.format(Locale.CANADA,"%.1f",Math.toDegrees(atan2(roll,rise)))+"°\n" else "")+
             "Critical reference: "+offsetReference+"\nMultiplier: "+String.format(Locale.CANADA,"%.3f",mult)+"\nSpacing: "+f(spacing)+"\nEstimated geometric shrink: "+f(shrink)+
             "\nA near mark: "+f(a)+"\nB far mark: "+f(b)+"\n\n"+
-            "1. Mark the reference end, A and B.\n2. Align shoe ARROW to A; bend "+angle+"°.\n3. Rotate pipe 180° along its LENGTH. Align ARROW with B; bend the same angle opposite to first bend.\n4. Check both ends are parallel; verify rise, roll and obstacle clearance."
+            "HOOK FACING BY MARK:\nA · ARROW · ← HOOK toward tape zero.\nB · ARROW · ← HOOK after bender flip / cradle rotation (Klein method).\n\n1. Mark the reference end, A and B.\n2. Align shoe ARROW to A; bend "+angle+"°.\n3. Flip bender and rotate conduit 180° IN ITS CRADLE as the shoe specifies; align ARROW at B and keep the bend plane unchanged.\n4. Check both ends are parallel; verify rise, roll and obstacle clearance."
         }
         "90° stub","Back-to-back 90s","Kicked 90°"->{
             require(stub>takeup&&takeup>0){"Desired stub must exceed the actual shoe deduct."}
-            var steps="First arrow mark: "+f(stub-takeup)+"\n1. Measure from square reference end to arrow mark.\n2. Align bender ARROW and bend a 90° with steady foot pressure.\n3. Check finished stub and springback."
+            var steps="First arrow mark: "+f(stub-takeup)+"\nMARK A · ARROW · ← HOOK toward original datum / short end.\n1. Measure from square reference end to arrow mark.\n2. Align bender ARROW and bend a 90° with steady foot pressure.\n3. Check finished stub and springback."
             if(type=="Back-to-back 90s"){
                 require(width>0){"Back-to-back distance required."}
-                steps+="\nBack of first 90° to second STAR reference: "+f(width)+" (adjust for shoe if instructed).\n4. Measure from the back of the first completed 90°; use STAR/back-of-90 reference for second bend, not the arrow deduct.\n5. Bend in one plane, verify leg separation."
+                steps+="\nMARK B · STAR · HOOK FACES RIGHT → toward remaining free end (Klein method).\nBack of first 90° to second STAR reference: "+f(width)+" (adjust for shoe if instructed).\n4. Measure from the back of the first completed 90°; use STAR/back-of-90 reference for second bend, not the arrow deduct.\n5. Bend in one plane, verify leg separation."
             }else if(type=="Kicked 90°"){
                 require(rise>0){"Kick rise required."}
-                steps+="\nKick diagonal travel: "+f(rise*mult)+"\nProjected run: "+f(rise/tan(radians))+"\n4. Choose actual kick location along straight leg and mark according to your shoe.\n5. Make "+angle+"° kick in required plane; check rise. Location is NOT a universal second mark."
+                steps+="\nKICK MARK: ? VERIFY HOOK FACING and shoe reference; no physical kick mark calculated.\nKick diagonal travel: "+f(rise*mult)+"\nProjected run: "+f(rise/tan(radians))+"\n4. Choose actual kick location along straight leg and mark according to your shoe.\n5. Make "+angle+"° kick in required plane; check rise. Location is NOT a universal second mark."
             }
             steps
         }
