@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -92,7 +93,7 @@ class AccountEntryActivity : ComponentActivity() {
                                 containerColor = recoveryFill,
                                 contentColor = text
                             ),
-                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                         ) {
                             Text("Forgot username", fontWeight = FontWeight.Bold)
                         }
@@ -105,7 +106,7 @@ class AccountEntryActivity : ComponentActivity() {
                                 containerColor = recoveryFill,
                                 contentColor = text
                             ),
-                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                         ) {
                             Text("Reset password", fontWeight = FontWeight.Bold)
                         }
@@ -115,19 +116,19 @@ class AccountEntryActivity : ComponentActivity() {
                         Button(
                             onClick = { startActivity(Intent(this@AccountEntryActivity, MobileWorkbenchActivity::class.java)); finish() },
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                         ) { Text("Sign in", fontWeight = FontWeight.Bold) }
 
                         OutlinedButton(
                             onClick = { openAccount("signup") },
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                         ) { Text("Create account", fontWeight = FontWeight.SemiBold) }
 
                         OutlinedButton(
                             onClick = { openAccount("verify") },
                             shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                         ) { Text("Verify email code", fontWeight = FontWeight.SemiBold) }
                     }
                 }
