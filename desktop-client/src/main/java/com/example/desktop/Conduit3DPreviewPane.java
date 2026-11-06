@@ -60,6 +60,8 @@ public final class Conduit3DPreviewPane extends BorderPane {
     private final ComboBox<String> preset = new ComboBox<>();
     private final TextField radiusField = new TextField("120");
     private final TextField tailField = new TextField("350");
+    private final TextField stockField = new TextField("3048");
+    private final TextField shoeStraightField = new TextField("");
     private final VBox operations = new VBox(8);
     private final Canvas canvas = new Canvas(960, 470);
     private final Label status = new Label();
@@ -92,12 +94,16 @@ public final class Conduit3DPreviewPane extends BorderPane {
         preset.setPrefWidth(230);
         radiusField.setPrefColumnCount(7);
         tailField.setPrefColumnCount(7);
+        stockField.setPrefColumnCount(7);
+        shoeStraightField.setPrefColumnCount(7);
         Button restore = action("Load selected layout", true);
         restore.setOnAction(e -> loadPreset());
         FlowPane setup = new FlowPane(10, 10,
                 labeled("Layout preset", preset),
                 labeled("Centreline radius (mm)", radiusField),
                 labeled("Final straight / tail (mm)", tailField),
+                labeled("Straight stock ≤ 10 ft (mm)", stockField),
+                labeled("Required clear straight between arcs (mm, optional)", shoeStraightField),
                 restore);
         setup.setAlignment(Pos.CENTER_LEFT);
         page.getChildren().addAll(card("Preview dimensions", setup));
@@ -165,6 +171,8 @@ public final class Conduit3DPreviewPane extends BorderPane {
         setCenter(scroll);
         radiusField.textProperty().addListener((o,a,b) -> draw());
         tailField.textProperty().addListener((o,a,b) -> draw());
+        stockField.textProperty().addListener((o,a,b) -> draw());
+        shoeStraightField.textProperty().addListener((o,a,b) -> draw());
         loadPreset();
     }
 
@@ -225,15 +233,30 @@ public final class Conduit3DPreviewPane extends BorderPane {
     private Shape calculate() {
         double radius=readNonNegative(radiusField,"Centreline radius",true);
         double tail=readNonNegative(tailField,"Final straight length",false);
+        double stock=readNonNegative(stockField,"Straight stock length",true);
+        if(stock>3048+1e-6)
+            throw new IllegalArgumentException("CALCULATION NOT POSSIBLE: one EMT stick is 10 ft / 3,048 mm.");
+        Double clearance=null;
+        if(!shoeStraightField.getText().trim().isEmpty()){
+            clearance=readNonNegative(shoeStraightField,"Required minimum straight between bend arcs",false);
+        }
+        double developed=tail;
         Vector position=new Vector(0,0,0),tangent=new Vector(1,0,0),normal=new Vector(0,0,1);
         List<Point> points=new ArrayList<>(); List<Integer> ends=new ArrayList<>();
         points.add(new Point(position,0));
         for (int i=0;i<bends.size();i++) {
             Operation bend=bends.get(i);
+            if(i>0&&clearance!=null&&bend.before+1e-6<clearance)
+                throw new IllegalArgumentException("BENDS TOO CLOSE: B"+(i+1)+" has "+
+                    format(bend.before)+" mm between arcs; your shoe requires "+format(clearance)+" mm.");
             if(!Double.isFinite(bend.before)||bend.before<0||bend.before>100000
                 ||!Double.isFinite(bend.angle)||Math.abs(bend.angle)>180
                 ||!Double.isFinite(bend.plane)||Math.abs(bend.plane)>360)
                 throw new IllegalArgumentException("B"+(i+1)+": lead 0–100,000 mm, angle ±180°, plane ±360°.");
+            developed += bend.before + radius * Math.abs(bend.angle) * DEG;
+            if(!Double.isFinite(developed)||developed>stock+1e-6)
+                throw new IllegalArgumentException("CALCULATION NOT POSSIBLE on one 10 ft EMT: developed centreline needs "+
+                    format(developed)+" mm; stock is "+format(stock)+" mm.");
             int straightCount=Math.max(1,Math.min(300,(int)Math.ceil(bend.before/24)));
             Vector change=tangent.times(bend.before/straightCount);
             for(int k=0;k<straightCount;k++) {
@@ -260,6 +283,9 @@ public final class Conduit3DPreviewPane extends BorderPane {
                     .add(entryTangent.times(-Math.sin(totalAngle))).unit();
             ends.add(points.size()-1);
         }
+        if(developed>stock+1e-6)
+            throw new IllegalArgumentException("CALCULATION NOT POSSIBLE on one 10 ft EMT: developed centreline needs "+
+                format(developed)+" mm; stock is "+format(stock)+" mm.");
         int tailCount=Math.max(1,Math.min(300,(int)Math.ceil(tail/24)));
         Vector delta=tangent.times(tail/tailCount);
         for(int k=0;k<tailCount;k++){position=position.add(delta);points.add(new Point(position,bends.size()+1));}
@@ -320,10 +346,13 @@ public final class Conduit3DPreviewPane extends BorderPane {
             g.fillText("START",start.x+7,start.y-14);
             g.fillText(partial?"IN PROGRESS":"FINISH",finish.x+7,finish.y+23);
             status.setText("");
+            double developed=readNonNegative(tailField,"Final straight length",false);
+            for(Operation op:bends)developed+=op.before+readNonNegative(radiusField,"Radius",true)*Math.abs(op.angle)*DEG;
             geometry.setText(String.format(Locale.ROOT,
-                    "%d bends · centreline radius %.1f mm · %d points · %s. Check actual shoe and bend allowances.",
-                    bends.size(),readNonNegative(radiusField,"Radius",true),screen.size(),
-                    partial?"through bend "+(step+1):"finished conduit"));
+                    "%d bends · estimated developed centreline %.1f / %.1f mm stock · %d points · %s. %s Actual shoe radius, gain and access require field verification.",
+                    bends.size(),developed,readNonNegative(stockField,"Stock",true),screen.size(),
+                    partial?"through bend "+(step+1):"finished conduit",
+                    shoeStraightField.getText().isBlank()?"Shoe clearance NOT VERIFIED.":"Shoe gap checked."));
         } catch (RuntimeException error) {
             shape=null;
             status.setText("3D preview: "+error.getMessage());
