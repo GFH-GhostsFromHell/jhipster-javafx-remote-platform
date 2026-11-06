@@ -52,12 +52,12 @@ public class ClientAccountStore {
 
   public UserDetails loadUserByUsername(String username) {
     List<UserDetails> users = db.query(
-        "select username,password_hash,enabled from client_account where lower(username)=lower(?)",
+        "select username,password_hash,enabled from client_account where lower(username)=lower(?) or (email is not null and lower(email)=lower(?)) order by case when lower(username)=lower(?) then 0 else 1 end, username limit 1",
         (rs, row) -> User.withUsername(rs.getString("username"))
             .password(rs.getString("password_hash"))
             .roles("CLIENT")
             .disabled(!rs.getBoolean("enabled"))
-            .build(), username);
+            .build(), username, username, username);
     if (users.isEmpty()) throw new UsernameNotFoundException(username);
     return users.getFirst();
   }
