@@ -130,6 +130,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
                     currentUsername = u;
                     currentPassword = p;
                     currentBootstrap = json.readTree(body);
+                    DesktopAccountSync.configure(u,p);
                     cloudStatus.setState(CloudConnectionState.AUTHENTICATED, "Authenticated as " + u);
                     showWorkspace();
                 } catch (Exception ex) {
@@ -176,6 +177,7 @@ public final class ElectricalWorkbenchDesktopApp extends Application {
         logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");
         logout.setOnAction(e -> {
             currentUsername = null; currentPassword = null; currentBootstrap = null;
+            DesktopAccountSync.disconnect();
             showLogin(); checkCloud();
         });
         top.getChildren().addAll(brand, version, push, update, cloudWrap, logout);
