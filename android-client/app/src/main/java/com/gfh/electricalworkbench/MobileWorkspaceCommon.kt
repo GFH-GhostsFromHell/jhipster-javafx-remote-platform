@@ -42,7 +42,7 @@ internal val MWMuted = Color(0xFFB6C4D4)
 internal val MWGood = Color(0xFF5EEAD4)
 internal val MWDanger = Color(0xFFFF8A80)
 
-internal class MobileWorkspaceStore(context: Context, username: String) {
+internal class MobileWorkspaceStore(private val context: Context, username: String) {
     private val safeUser = username.ifBlank { "default" }.replace(Regex("[^A-Za-z0-9._-]"), "_")
     private val prefs = context.getSharedPreferences("electrical_workbench_$safeUser", Context.MODE_PRIVATE)
 
@@ -57,8 +57,10 @@ internal class MobileWorkspaceStore(context: Context, username: String) {
     fun append(name: String, value: JSONObject) {
         val array = JSONArray()
         records(name).forEach { array.put(it) }
+        if (value.optString("_syncId").isBlank()) value.put("_syncId", java.util.UUID.randomUUID().toString())
         array.put(value)
         prefs.edit().putString("records_$name", array.toString()).apply()
+        MobileAccountSync.schedule(context)
     }
 
     fun putString(key: String, value: String?) {
