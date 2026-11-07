@@ -80,6 +80,17 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    TroubleshootingOfflineView()
+                } label: {
+                    HomeDestination(
+                        icon: "wrench.and.screwdriver",
+                        title: "Offline troubleshooting",
+                        detail: "21 motor, PLC, VFD, mining and protection guides"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     FabricationView()
                 } label: {
                     HomeDestination(
