@@ -8,8 +8,12 @@ enum PortalEndpoint {
 
     static func url(for path: String) -> URL {
         // Never use a user-supplied remote URL for authenticated tools.
-        let cleanPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
-        return root.appendingPathComponent(cleanPath)
+        let parts = path.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
+        let relativePath = String(parts.first ?? "")
+        let cleanPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+        var components = URLComponents(url: root.appendingPathComponent(cleanPath), resolvingAgainstBaseURL: false)!
+        if parts.count == 2 { components.fragment = String(parts[1]) }
+        return components.url ?? root
     }
 
     static func isTrusted(_ url: URL) -> Bool {
