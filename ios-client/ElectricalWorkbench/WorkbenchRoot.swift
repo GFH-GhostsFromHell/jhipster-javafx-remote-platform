@@ -40,6 +40,13 @@ struct WorkbenchRoot: View {
             }
 
             NavigationStack {
+                NativeSafetyWorkspaceView()
+            }
+            .tabItem {
+                Label("Safety", systemImage: "shield.lefthalf.filled")
+            }
+
+            NavigationStack {
                 AccountCentreView(updates: updates)
             }
             .tabItem {
