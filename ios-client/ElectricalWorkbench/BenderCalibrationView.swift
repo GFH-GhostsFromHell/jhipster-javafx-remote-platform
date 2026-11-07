@@ -185,7 +185,8 @@ struct BenderCalibrationView: View {
         savedSize = tradeSize
         savedDeductMm = (deduct ?? 0) * factor
         savedGainMm = (gain ?? 0) * factor
-        notice = "Saved. The offline bender can load this measured deduct for matching conduit and shoe."
+        NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "benderProfiles")
+        notice = "Saved locally. Account sync updates matching bender profiles when online."
     }
 
     private func format(_ value: Double) -> String {
