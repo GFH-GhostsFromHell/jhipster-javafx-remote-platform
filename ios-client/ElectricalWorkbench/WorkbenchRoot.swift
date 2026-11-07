@@ -3,8 +3,20 @@ import SwiftUI
 struct WorkbenchRoot: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var updates = IOSUpdateMonitor()
+    @StateObject private var account = CloudAccountSession()
 
     var body: some View {
+        Group {
+            if account.signedIn {
+                signedInContent
+            } else {
+                CloudSignInView()
+            }
+        }
+        .environmentObject(account)
+    }
+
+    private var signedInContent: some View {
         TabView {
             NavigationStack {
                 WorkbenchHome()
@@ -50,12 +62,16 @@ struct WorkbenchRoot: View {
         .task {
             while !Task.isCancelled {
                 await updates.checkIfDue()
+                await account.refresh()
                 try? await Task.sleep(nanoseconds: 1_800_000_000_000)
             }
         }
         .onChange(of: scenePhase) { _, next in
             if next == .active {
-                Task { await updates.checkIfDue() }
+                Task {
+                    await updates.checkIfDue()
+                    await account.refresh()
+                }
             }
         }
     }
