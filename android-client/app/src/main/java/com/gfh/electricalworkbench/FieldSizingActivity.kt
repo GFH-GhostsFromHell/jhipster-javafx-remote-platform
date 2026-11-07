@@ -283,6 +283,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     Text("Pick your bend, measure the job, then read the pencil marks below.",fontSize=13.sp,color=Color(0xFFB6D4E5))
     FieldDropdown("Bend",bend,bends){bend=it}
     BendMeasureGuide(bend)
+    Text("Sample numbers are prefilled for learning — replace with actual field measurements.",color=Color(0xFFF2C87F),fontSize=12.sp)
     FieldDropdown("Input units",units,listOf("mm","in")){next->
         if(next!=units){
             val factor=if(next=="in")1/25.4 else 25.4
