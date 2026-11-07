@@ -1,7 +1,7 @@
 {
   "platform": "ios",
-  "latestVersion": "0.1.0",
+  "latestVersion": "0.2.0",
   "appStoreUrl": "",
   "minimumOS": "17.0",
-  "releaseNotes": "Electrical Workbench iOS native field tools and shared cloud calculators. App Store distribution is not configured yet."
+  "releaseNotes": "iOS native offline conduit bender, shoe calibration, fabrication/rack, pull-box sizing, 309A daily quiz, troubleshooting cases, account portal, and update checks. Not yet published to App Store."
 }
