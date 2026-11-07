@@ -1,7 +1,7 @@
 {
   "platform": "ios",
-  "latestVersion": "0.2.0",
+  "latestVersion": "0.3.0",
   "appStoreUrl": "",
   "minimumOS": "17.0",
-  "releaseNotes": "iOS native offline conduit bender, shoe calibration, fabrication/rack, pull-box sizing, 309A daily quiz, troubleshooting cases, account portal, and update checks. Not yet published to App Store."
+  "releaseNotes": "iOS 0.3.0: native cloud sign-in and server entitlements, 12 offline electrical calculators, safety workspace, native Learn/Field/Projects/Career, ChatGPT server API, enterprise seats, 309A quizzes, conduit bending and 3D portal access. Not yet distributed via App Store."
 }
