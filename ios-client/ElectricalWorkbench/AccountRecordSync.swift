@@ -432,8 +432,12 @@ final class AccountRecordSync: ObservableObject {
         var existing=read(key)
         let today="day-\(day)"
         existing.removeAll { ($0["_syncId"] as? String) == today }
-        existing.append(["id":today,"_syncId":today,"date":day,
+        // Don't create an empty competing daily record on a freshly installed device.
+        // A cleared quiz removes the local record and creates a revisioned tombstone.
+        if !answers.isEmpty {
+            existing.append(["id":today,"_syncId":today,"date":day,
                  "answers":answers,"category":"quizHistory"])
+        }
         return existing
     }
 
