@@ -115,7 +115,7 @@ internal object MobileAccountSync {
             if (existing == null) {
                 batch.put(JSONObject().put("id",id).put("revision",0).put("data",record).put("deleted",false))
             } else if (changed) {
-                if (previous == null && !record.similar(existing.optJSONObject("data"))) {
+                if (previous == null && record.toString() != (existing.optJSONObject("data")?.toString() ?: "")) {
                     conflicts.put(JSONObject().put("id",id).put("local",record).put("remote",existing)
                         .put("reason","first sync difference"))
                     conflictIDs.add(id)
