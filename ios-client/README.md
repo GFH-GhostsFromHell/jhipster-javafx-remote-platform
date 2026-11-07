@@ -1,6 +1,12 @@
-# Electrical Workbench — iOS 0.3.0
+# Electrical Workbench — iOS 0.4.0
 
 Native SwiftUI client for **iPhone and iPad (iOS 17+)**, sharing the production Electrical Workbench cloud portal with Android, desktop and web. The app compiles for iOS Simulator in GitHub Actions.
+
+## What changed in 0.4.0
+
+- Shared PostgreSQL account-record synchronization across iOS, Android, web and Windows desktop, using the authenticated account with versioned saves, deletion markers and offline retry.
+- iOS synchronizes local field and project records, safety inspections, troubleshooting cases, daily quiz progress, and saved bender calibration profiles. Sync runs when signed in, while the app is active, and after local saves; account screen provides a manual sync control and exports conflict backups.
+- The web portal provides an authenticated Saved Account Records view and export across supported record collections. See [cross-platform sync documentation](../docs/CROSS_PLATFORM_ACCOUNT_SYNC.md) for collection coverage, migration, limits and safety.
 
 ## What changed in 0.3.0
 
@@ -11,7 +17,7 @@ Native SwiftUI client for **iPhone and iPad (iOS 17+)**, sharing the production 
 - Native hosted ChatGPT user interface using the **existing Electrical Workbench portal OAuth/ChatGPT service** and its subscription permissions. Connecting to ChatGPT still requires a supported portal OAuth flow; native iOS sign-in does not automatically sign users into ChatGPT.
 - Enterprise Team membership and tier/seat counts from `/api/enterprise` and `/api/enterprise/membership`, with management actions delegated to the existing server-authorized web manager.
 
-**Feature parity is functional for these workspace categories, not yet a claim of identical native implementation or cross-device sync.** The Android app has locally persisted records; iOS native local records are independent, and neither native store currently synchronizes with the other. Real-device QA, app-store billing compliance, Apple signing and TestFlight submission still require deployment work.
+**Workspace categories and common structured records now share a cloud sync API; this is not full binary or every-setting parity.** Raw photos, some advanced calculator drafts and device-specific appearance still stay local. Real-device QA, app-store billing compliance, Apple signing and TestFlight submission remain separate release requirements.
 
 ## Feature coverage
 
@@ -64,7 +70,7 @@ To install on an actual iPhone, choose a compatible Apple developer team in Xcod
 
 The web WKWebView shares a persistent website data store and session cookies across cloud tools for the same HTTPS origin: \`https://remote-javafx-portal.onrender.com\`. Native sign-in uses the same `/api/client/bootstrap` endpoint as Android. Passwords are kept in active-session memory, **not persisted**. The app attempts to establish a matching WebKit portal cookie. Account creation and recovery remain web forms. Google/OAuth links currently open the system browser; Safari's login cookies are **not automatically shared** with the in-app WKWebView, so test third-party sign-in before treating it as a supported login method.
 
-Android's offline bender calibration and the iOS native shoe profile are **separate** local profiles. Web project data depends on the portal's web storage; local device records do not sync across platforms. Account tiers, feature overrides, and cloud authorization are verified live from the server. Native offline basic access is limited to a 24-hour verified cache; premium features are unavailable offline. A shared cloud sync/merge service for Android and iOS local records does not yet exist.
+Native bender calibrations and supported structured project/safety/quiz/field records are now synchronized through the signed-in cloud account when online. Each device still retains its own offline copy; concurrent edits are preserved for review instead of silently overwritten. Account tiers, feature overrides and cloud authorization are verified by the server. Offline basic access is limited to a 24-hour verified cache; premium features are unavailable offline. Raw photos and some device-specific preferences remain local.
 
 App Store digital-subscription/IAP rules require a compliant StoreKit purchase or an applicable Apple exception before a production App Store release exposes paid web checkout. An initial code-signed TestFlight build is **not yet published**.
 
@@ -85,7 +91,7 @@ The iOS app fetches \`/ios-release.json\` from the HTTPS portal on startup, when
 1. Verify physical iPhone and iPad display, Dynamic Type, keyboard/field scrolling, navigation, WKWebView 3D/WebGL and login.
 2. Confirm the iOS app version, a real App Store listing, production icon, screenshots, privacy policy, support URL and all App Review metadata.
 3. Set up Apple signing, App Store Connect and TestFlight distribution.
-4. Resolve StoreKit subscriptions and OAuth handoff, test native/cloud feature permissions and revocation, and add optional cross-platform synchronization of device-local records if desired.
+4. Resolve StoreKit subscriptions and OAuth handoff, test native/cloud feature permissions and revocation, and conduct live multi-device sync and conflict tests using an authorized production account.
 5. Verify real-device physical conduit bends with the exact manufacturer shoe against controlled scrap tests; review Canadian Electrical Code rules independently.
 
 This repository contains an **iOS feature-access implementation**, not a promise of complete offline native parity with every Android/Windows function or an App Store-approved commercial release.
