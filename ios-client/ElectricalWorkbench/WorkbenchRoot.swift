@@ -80,6 +80,17 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    FabricationView()
+                } label: {
+                    HomeDestination(
+                        icon: "square.stack.3d.up",
+                        title: "Conduit fabrication",
+                        detail: "Offline bend gain, cut length, and parallel rack marks"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     PracticeQuizView()
                 } label: {
                     HomeDestination(
