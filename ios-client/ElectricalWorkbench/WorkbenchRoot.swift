@@ -25,7 +25,7 @@ struct WorkbenchRoot: View {
             }
 
             NavigationStack {
-                PortalScreen(title: "Your account", path: "/")
+                AccountCentreView()
             }
             .tabItem {
                 Label("Account", systemImage: "person.crop.circle")
@@ -80,6 +80,39 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    PracticeQuizView()
+                } label: {
+                    HomeDestination(
+                        icon: "checklist",
+                        title: "Daily 309A quiz · 25 questions",
+                        detail: "Five categories, worked answers, offline study"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    BenderCalibrationView()
+                } label: {
+                    HomeDestination(
+                        icon: "slider.horizontal.3",
+                        title: "Save bender calibration",
+                        detail: "Measure your shoe deduct and gain with scrap"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    PullBoxSizingView()
+                } label: {
+                    HomeDestination(
+                        icon: "square.dashed",
+                        title: "Pull-box sizing",
+                        detail: "Straight, angle, U, mixed, and back-wall pulls"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     PortalScreen(title: "Guided CEC calculators", path: "/guided-calculators.html")
                 } label: {
                     HomeDestination(
@@ -90,7 +123,7 @@ struct WorkbenchHome: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("The quick bender works without internet. Web tools and account features need a connection. Confirm shoe data and code requirements before using field results.")
+                Text("Native bending, bender calibration, pull-box sizing and daily quizzes work offline. Cloud CEC worksheets and 3D preview require a connection. Verify job and code conditions before fabrication.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
                     .padding(.top, 4)
