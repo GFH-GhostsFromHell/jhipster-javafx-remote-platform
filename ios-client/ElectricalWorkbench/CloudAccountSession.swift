@@ -132,7 +132,7 @@ final class CloudAccountSession: ObservableObject {
         } catch {
             self.identity = nil
             self.password = nil
-            error = error.localizedDescription
+            self.error = error.localizedDescription
         }
     }
 
