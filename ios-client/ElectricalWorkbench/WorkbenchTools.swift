@@ -41,17 +41,51 @@ struct WorkbenchTools: View {
 
     var body: some View {
         List {
-            Section("Conduit bending") {
+            Section("Offline field calculators") {
+                NavigationLink {
+                    QuickBenderView()
+                } label: {
+                    Label("Conduit bending · all common bends", systemImage: "ruler")
+                }
+                NavigationLink {
+                    BenderCalibrationView()
+                } label: {
+                    Label("Bender calibration · save shoe", systemImage: "slider.horizontal.3")
+                }
+                NavigationLink {
+                    PullBoxSizingView()
+                } label: {
+                    Label("Pull-box sizing · straight / angle / U", systemImage: "square.dashed")
+                }
+                NavigationLink {
+                    PracticeQuizView()
+                } label: {
+                    Label("Daily 309A quiz · 25 questions", systemImage: "checklist")
+                }
+            }
+            Section("Conduit bending · web + 3D") {
                 links(bending)
             }
             Section("Electrical calculations") {
                 links(calculations)
             }
+            Section("Field workspaces") {
+                NavigationLink {
+                    PortalScreen(title: "Field workspaces", path: "/field-suite.html")
+                } label: {
+                    Label("Projects, quotes, takeoffs and control simulator", systemImage: "folder")
+                }
+                NavigationLink {
+                    PortalScreen(title: "Code news", path: "/news.html")
+                } label: {
+                    Label("Code news and bulletins", systemImage: "newspaper")
+                }
+            }
             Section("Cloud and help") {
                 links(resources)
             }
             Section {
-                Text("Web tools use your Electrical Workbench account and current subscription. They require an internet connection.")
+                Text("Web tools use the same portal account and subscription tier as Android and desktop. They require internet. Offline tools retain their own local data on this device.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
             }
