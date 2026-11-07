@@ -1,6 +1,17 @@
-# Electrical Workbench — iOS 0.2.0
+# Electrical Workbench — iOS 0.3.0
 
 Native SwiftUI client for **iPhone and iPad (iOS 17+)**, sharing the production Electrical Workbench cloud portal with Android, desktop and web. The app compiles for iOS Simulator in GitHub Actions.
+
+## What changed in 0.3.0
+
+- Native password account sign-in to `/api/client/bootstrap`, server-verified subscription features and role/override checks. Password stays in memory for the active app session; a password-free, 24-hour offline identity cache allows verified basic tools only. Native cloud sign-in also attempts to transfer a portal session cookie into WebKit for web tools.
+- Twelve quick native electrical calculators: transformer, motor, voltage drop, busbar, capacitor, power-factor correction, fault current, three-phase power, 4–20 mA, welders, refrigeration and PVC expansion. Code-driven factors must be entered/verified; full service/CEC worksheets still use the portal.
+- Native Safety workspace: stand-down timer, PPE comparison, approach boundary comparison, hazard reports, glove inspections, and maintenance records.
+- Native Learn, Field, Projects and Career workspaces: CEC section navigator and formulas, logic trainer, nameplates, commissioning, blueprint scaling, grounding wizard, material takeoffs, project logs, cable planning, training/hours/credential records and wage calculator.
+- Native hosted ChatGPT user interface using the **existing Electrical Workbench portal OAuth/ChatGPT service** and its subscription permissions. Connecting to ChatGPT still requires a supported portal OAuth flow; native iOS sign-in does not automatically sign users into ChatGPT.
+- Enterprise Team membership and tier/seat counts from `/api/enterprise` and `/api/enterprise/membership`, with management actions delegated to the existing server-authorized web manager.
+
+**Feature parity is functional for these workspace categories, not yet a claim of identical native implementation or cross-device sync.** The Android app has locally persisted records; iOS native local records are independent, and neither native store currently synchronizes with the other. Real-device QA, app-store billing compliance, Apple signing and TestFlight submission still require deployment work.
 
 ## Feature coverage
 
