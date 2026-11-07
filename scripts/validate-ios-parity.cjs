@@ -40,10 +40,30 @@ for (const screen of ['QuickBenderView','PullBoxSizingView','BenderCalibrationVi
     throw new Error('Missing native iOS screen link: ' + screen);
   }
 }
+const requiredNative = [
+  ['CloudAccountSession.swift', ['api/client/bootstrap', 'ELECTRICAL_CALCULATORS', 'CloudSignInView']],
+  ['OfflinePowerCalculatorsView.swift', ['case transformer', 'case motor', 'case voltageDrop', 'case capacitor', 'case powerFactor', 'case fault']],
+  ['NativeSafetyWorkspaceView.swift', ['Thunderstorm', 'PPEComparisonView', 'ApproachComparisonView', 'GloveInspectionView', 'SafetyMaintenanceView']],
+  ['NativeWorkspacesView.swift', ['NativeLearnView', 'NativeFieldToolsView', 'NativeProjectView', 'NativeCareerView']],
+  ['NativeChatGPTWorkspaceView.swift', ['/api/chatgpt/status', '/api/chatgpt/models', '/api/chatgpt/respond']],
+  ['EnterpriseTeamView.swift', ['/api/enterprise/membership', 'ENTERPRISE_TEAM_MANAGEMENT']],
+];
+for (const [file, required] of requiredNative) {
+  const code = fs.readFileSync(path.join(ios, file), 'utf8');
+  for (const symbol of required) {
+    if (!code.includes(symbol)) throw new Error(file + ' missing ' + symbol);
+  }
+}
+const androidSafety = fs.readFileSync(
+  path.join(root, 'android-client', 'app', 'src', 'main', 'java',
+            'com', 'gfh', 'electricalworkbench', 'SafetyWorkspace.kt'), 'utf8');
+for (const name of ['Thunderstorm', 'PPE', 'Approach', 'Unsafe', 'Gloves', 'Maintenance']) {
+  if (!androidSafety.includes(name)) throw new Error('Missing Android safety source ' + name);
+}
 const portal = JSON.parse(fs.readFileSync(
   path.join(root, 'portal', 'src', 'main', 'resources', 'static', 'ios-release.json'), 'utf8'));
 if (portal.platform !== 'ios' || !/^\d+\.\d+\.\d+$/.test(portal.latestVersion) ||
     (portal.appStoreUrl && !/^https:\/\/apps\.apple\.com\//.test(portal.appStoreUrl))) {
   throw new Error('Invalid iOS release manifest');
 }
-console.log('iOS parity validation passed: 25 questions across five categories, native screens linked, release manifest valid.');
+console.log('iOS parity validation passed: 25 questions across five categories, native safety/field/account/ChatGPT/enterprise links, release manifest valid.');
