@@ -74,7 +74,15 @@ final class IOSUpdateMonitor: ObservableObject {
 
 struct AccountCentreView: View {
     @EnvironmentObject private var account: CloudAccountSession
+    @ObservedObject private var sync = AccountRecordSync.shared
     @ObservedObject var updates: IOSUpdateMonitor
+
+    private var conflictBackup: String {
+        let key = "ewb.ios.sync.\(account.username).conflicts"
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let text = String(data: data, encoding: .utf8) else { return "" }
+        return text
+    }
 
     var body: some View {
         List {
@@ -132,6 +140,29 @@ struct AccountCentreView: View {
                     .foregroundStyle(WorkbenchStyle.muted)
             } header: {
                 Text("Account & subscription")
+            }
+
+            Section("Cross-device account synchronization") {
+                Label(sync.status, systemImage: sync.isSyncing ? "arrow.triangle.2.circlepath" : "checkmark.icloud")
+                    .font(.subheadline)
+                    .foregroundStyle(WorkbenchStyle.muted)
+                Button {
+                    Task { await sync.syncIfDue(account: account, force: true) }
+                } label: {
+                    Label("Synchronize saved records now", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(sync.isSyncing || account.isOffline)
+                if !conflictBackup.isEmpty {
+                    ShareLink(item: conflictBackup) {
+                        Label("Export conflicting edits for review", systemImage: "square.and.arrow.up")
+                    }
+                    Text("Conflicts remain saved locally. The app will not silently overwrite a newer revision.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                Text("Projects, safety reports, saved bender profiles, quiz history, field and training records synchronize through your private account. Offline changes upload after reconnecting. Android and Windows use the same server.")
+                    .font(.footnote)
+                    .foregroundStyle(WorkbenchStyle.muted)
             }
 
             Section("App version & updates") {
