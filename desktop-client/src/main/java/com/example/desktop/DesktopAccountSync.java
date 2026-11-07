@@ -46,7 +46,7 @@ public final class DesktopAccountSync {
     }
 
     public static void scheduleCurrent() {
-        Credentials active = session;
+        Session active = session;
         if(active!=null)schedule(active.user());
     }
 
@@ -205,7 +205,7 @@ public final class DesktopAccountSync {
         return node;
     }
     /** One legacy desktop shoe profile; other profiles remain available in the cloud list. */
-    private static void syncCalibration(Credentials credentials) throws Exception {
+    private static void syncCalibration(Session credentials) throws Exception {
         Preferences prefs=Preferences.userNodeForPackage(BenderCalibrationPane.class).node("bender-calibration");
         String name=prefs.get("profile",""),model=prefs.get("model","");
         String owner=prefs.get("_syncOwner","");
@@ -273,7 +273,7 @@ public final class DesktopAccountSync {
         }
         if(found!=null&&hash.equals(prior))return;
         ArrayNode batch=JSON.createArrayNode();
-        batch.add(proposed(id,found==null?0:found.path("revision").asLong(),payload,false));
+        batch.add(write(id,found==null?0:found.path("revision").asLong(),payload,false));
         ObjectNode request=JSON.createObjectNode();request.set("records",batch);
         JsonNode response=JSON.readTree(PORTAL.accountSyncBatch("benderProfiles",credentials.user(),credentials.password(),request.toString()));
         if(response.path("accepted").size()==1){
