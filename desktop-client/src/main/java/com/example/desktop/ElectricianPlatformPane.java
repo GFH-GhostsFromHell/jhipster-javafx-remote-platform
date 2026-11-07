@@ -339,9 +339,23 @@ Movement = run length × ΔT × expansion coefficient
     }
 
     private Node savedRecords() {
-        VBox root=page("Saved Local Records","Review the offline data file used by Projects, Field and Career features.");
-        ChoiceBox<String> collection=choice("projects","projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials"); TextArea out=output(); out.setPrefRowCount(28); Button refresh=button("Refresh");
-        Runnable load=()->{try{out.setText(json.writerWithDefaultPrettyPrinter().writeValueAsString(store.records(collection.getValue()))+"\n\nStored at: "+store.file());}catch(Exception ex){out.setText(ex.getMessage());}}; collection.setOnAction(e->load.run());refresh.setOnAction(e->load.run());load.run();root.getChildren().addAll(new HBox(8,collection,refresh),out);return root;
+        VBox root=page("Synced Account Records","Local-first records synchronize through your signed-in PostgreSQL account when online; stale edits are retained for review.");
+        ChoiceBox<String> collection=choice("projects",LocalWorkspaceStore.synchronizedCollections());
+        TextArea out=output();out.setPrefRowCount(28);
+        Label syncStatus=new Label(DesktopAccountSync.status());syncStatus.setWrapText(true);
+        Button refresh=button("Refresh local records"),syncNow=button("Sync cloud now");
+        Runnable load=()->{
+            try{
+                String records=json.writerWithDefaultPrettyPrinter().writeValueAsString(store.records(collection.getValue()));
+                String conflicts=json.writerWithDefaultPrettyPrinter().writeValueAsString(store.load().path("_sync_conflicts_"+collection.getValue()));
+                out.setText(records+"\n\nConflict backups: "+conflicts+"\n\nLocal file: "+store.file());
+                syncStatus.setText(DesktopAccountSync.status());
+            }catch(Exception ex){out.setText(ex.getMessage());}
+        };
+        collection.setOnAction(e->load.run());refresh.setOnAction(e->load.run());
+        syncNow.setOnAction(e->{DesktopAccountSync.schedule(username);syncStatus.setText("Account sync queued. Use Refresh to review the status and records.");});
+        load.run();
+        root.getChildren().addAll(new HBox(8,collection,refresh,syncNow),syncStatus,out);return root;
     }
 
     private Node cablePlanner() {
