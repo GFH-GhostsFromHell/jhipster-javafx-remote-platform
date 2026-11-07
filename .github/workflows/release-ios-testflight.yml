@@ -1,0 +1,128 @@
+name: Sign and Release iOS to TestFlight
+
+# Manual only. No signing or release occurs from regular pushes.
+on:
+  workflow_dispatch:
+    inputs:
+      upload_testflight:
+        description: Upload the signed IPA to Apple TestFlight after exporting
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  signed-iphone-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      APPSTORE_ISSUER_ID: ${{ vars.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_ID: ${{ vars.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+    defaults:
+      run:
+        working-directory: ios-client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check Apple account secrets are configured
+        env:
+          CERT: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          CERT_PASS: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for v in "$APPLE_TEAM_ID" "$APPSTORE_ISSUER_ID" "$APPSTORE_API_KEY_ID" "$APPSTORE_API_PRIVATE_KEY" "$CERT" "$CERT_PASS"; do
+            test -n "$v" || { echo "Apple signing/App Store Connect credentials have not been configured"; exit 1; }
+          done
+
+      - name: Validate iOS application
+        run: node ../scripts/validate-ios-parity.cjs
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate iOS Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Import Apple Distribution certificate
+        uses: Apple-Actions/import-codesign-certs@v7
+        with:
+          p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+
+      - name: Download provisioning profiles
+        uses: Apple-Actions/download-provisioning-profiles@v6
+        with:
+          bundle-id: ca.gfh.electricalworkbench
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+
+      - name: Set up App Store Connect API key and export options
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ewb-ios"
+          printf '%s' "$APPSTORE_API_PRIVATE_KEY" > "$RUNNER_TEMP/ewb-ios/AuthKey_$APPSTORE_API_KEY_ID.p8"
+          chmod 600 "$RUNNER_TEMP/ewb-ios/AuthKey_$APPSTORE_API_KEY_ID.p8"
+          cat > "$RUNNER_TEMP/ewb-ios/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>signingStyle</key><string>automatic</string>
+          <key>teamID</key><string>$APPLE_TEAM_ID</string>
+          <key>uploadSymbols</key><true/>
+          </dict></plist>
+          EOF
+
+      - name: Archive signed iPhone app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ElectricalWorkbench.xcodeproj \
+            -scheme ElectricalWorkbench \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ewb-ios/ElectricalWorkbench.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/ewb-ios/AuthKey_$APPSTORE_API_KEY_ID.p8" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            archive
+
+      - name: Export Apple-signed IPA
+        run: |
+          set -euo pipefail
+          mkdir -p .signed/export
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/ewb-ios/ElectricalWorkbench.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ewb-ios/ExportOptions.plist" \
+            -exportPath .signed/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/ewb-ios/AuthKey_$APPSTORE_API_KEY_ID.p8" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+          test -f .signed/export/ElectricalWorkbench.ipa
+
+      - name: Save signed IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElectricalWorkbench-iOS-Signed-IPA
+          path: ios-client/.signed/export/ElectricalWorkbench.ipa
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload to TestFlight only when requested
+        if: ${{ inputs.upload_testflight }}
+        uses: Apple-Actions/upload-testflight-build@v5
+        with:
+          app-path: ios-client/.signed/export/ElectricalWorkbench.ipa
+          issuer-id: ${{ vars.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ vars.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          wait-for-processing: 'false'

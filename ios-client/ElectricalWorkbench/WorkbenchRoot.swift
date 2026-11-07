@@ -3,8 +3,20 @@ import SwiftUI
 struct WorkbenchRoot: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var updates = IOSUpdateMonitor()
+    @StateObject private var account = CloudAccountSession()
 
     var body: some View {
+        Group {
+            if account.signedIn {
+                signedInContent
+            } else {
+                CloudSignInView()
+            }
+        }
+        .environmentObject(account)
+    }
+
+    private var signedInContent: some View {
         TabView {
             NavigationStack {
                 WorkbenchHome()
@@ -25,6 +37,13 @@ struct WorkbenchRoot: View {
             }
             .tabItem {
                 Label("Tools", systemImage: "square.grid.2x2.fill")
+            }
+
+            NavigationStack {
+                NativeSafetyWorkspaceView()
+            }
+            .tabItem {
+                Label("Safety", systemImage: "shield.lefthalf.filled")
             }
 
             NavigationStack {
@@ -50,12 +69,16 @@ struct WorkbenchRoot: View {
         .task {
             while !Task.isCancelled {
                 await updates.checkIfDue()
+                await account.refresh()
                 try? await Task.sleep(nanoseconds: 1_800_000_000_000)
             }
         }
         .onChange(of: scenePhase) { _, next in
             if next == .active {
-                Task { await updates.checkIfDue() }
+                Task {
+                    await updates.checkIfDue()
+                    await account.refresh()
+                }
             }
         }
     }
@@ -72,7 +95,7 @@ struct WorkbenchHome: View {
                     Text("Electrician tools for the field")
                         .font(.title2.bold())
                         .foregroundStyle(.white)
-                    Text("Quick measurements and bend marks on your iPhone, with the rest of your cloud tools in one place.")
+                    Text("Native bending, electrical calculators, safety, learning, projects and career tools. Cloud features share your existing Electrical Workbench account.")
                         .font(.subheadline)
                         .foregroundStyle(WorkbenchStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -160,6 +183,43 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Electrical calculators") {
+                        OfflinePowerCalculatorsView()
+                    }
+                } label: {
+                    HomeDestination(
+                        icon: "function",
+                        title: "Offline electrical calculations",
+                        detail: "Transformer, motor, voltage drop, power factor and more"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    NativeWorkspacesView()
+                } label: {
+                    HomeDestination(
+                        icon: "folder",
+                        title: "Native field workspaces",
+                        detail: "Learn, field records, projects, career hours and credentials"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    FeatureGate(feature: "ASK_CHATGPT", title: "Ask ChatGPT") {
+                        NativeChatGPTWorkspaceView()
+                    }
+                } label: {
+                    HomeDestination(
+                        icon: "bubble.left.and.text.bubble.right",
+                        title: "Ask ChatGPT",
+                        detail: "Use the verified ChatGPT portal connection"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     PortalScreen(title: "Guided CEC calculators", path: "/guided-calculators.html")
                 } label: {
                     HomeDestination(
@@ -170,7 +230,7 @@ struct WorkbenchHome: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Native bending, bender calibration, pull-box sizing and daily quizzes work offline. Cloud CEC worksheets and 3D preview require a connection. Verify job and code conditions before fabrication.")
+                Text("Signed-in offline basics use a verified 24-hour cache. Premium calculations, cloud workspaces, enterprise and ChatGPT require live authorization. Field records stay on this device; Code and manufacturer verification still apply.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
                     .padding(.top, 4)
