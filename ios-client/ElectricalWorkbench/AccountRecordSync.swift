@@ -138,7 +138,7 @@ final class AccountRecordSync: ObservableObject {
 
     private func syncBucket(_ bucket: String, user: String, account: CloudAccountSession) async throws {
         let key = storageKey(bucket,user:user)
-        var local = loadNative(bucket:bucket,user:user,key:key)
+        let local = loadNative(bucket:bucket,user:user,key:key)
         let mirror = loadMirror(user,bucket)
         let remote = try parseEntries(await account.api("/api/sync/\(bucket)"))
         let server = Dictionary(uniqueKeysWithValues: remote.map { ($0.id,$0) })
@@ -217,9 +217,10 @@ final class AccountRecordSync: ObservableObject {
             }
             var normalized = entry.data
             normalized["_syncId"] = entry.id
-            nextMirror[entry.id] = Mirror(revision:entry.revision,
-                 digest:canonical(keepLocal ? (current ?? normalized) : normalized),
-                 deleted:entry.deleted)
+            nextMirror[entry.id] = keepLocal
+                ? (mirror[entry.id] ?? Mirror(revision:entry.revision,
+                     digest:canonical(current ?? normalized),deleted:entry.deleted))
+                : Mirror(revision:entry.revision,digest:canonical(normalized),deleted:entry.deleted)
         }
         let existingIDs = Set(fresh.map { $0.id })
         for item in local {
@@ -232,6 +233,19 @@ final class AccountRecordSync: ObservableObject {
             let new = merged.map { canonical($0) }.joined(separator:"\n")
             if old != new {
                 saveNative(bucket:bucket,user:user,key:key,rows:merged)
+            }
+        }
+        // Compare against the shape persisted by this native client, not the
+        // source platform's payload, to prevent repeated false local edits.
+        let savedRows = loadNative(bucket:bucket,user:user,key:key)
+        let savedMap = Dictionary(uniqueKeysWithValues: savedRows.compactMap { row -> (String,[String:Any])? in
+            guard let id = row["_syncId"] as? String else { return nil }
+            return (id,row)
+        })
+        for (id, value) in nextMirror where !dirty.contains(id) {
+            if let normalized = savedMap[id] {
+                nextMirror[id] = Mirror(revision:value.revision,
+                    digest:canonical(normalized),deleted:value.deleted)
             }
         }
         saveMirror(user,bucket,nextMirror)
@@ -276,6 +290,22 @@ final class AccountRecordSync: ObservableObject {
             applyDailyQuiz(user:user,key:key,rows:rows)
             return
         }
+        if bucket == "troubleshootingCases" {
+            let converted = rows.map { row -> [String:Any] in
+                let sid = row["_syncId"] as? String ?? row["id"] as? String ?? UUID().uuidString
+                return [
+                    "id":id(sid).uuidString,"syncId":sid,
+                    "topic":row["topic"] as? String ?? row["title"] as? String ?? "Troubleshooting",
+                    "asset":row["asset"] as? String ?? row["equipment"] as? String ?? "",
+                    "notes":row["notes"] as? String ?? "",
+                    "completed":row["completed"] as? Int ?? 0,
+                    "total":row["total"] as? Int ?? 0,
+                    "createdAt":dateValue(row["createdAt"] ?? row["created"])
+                ]
+            }
+            write(key,rows:converted)
+            return
+        }
         var existing = read(key)
         if key.contains(".workrecords.") {
             existing.removeAll { $0["category"] as? String == bucket }
@@ -289,8 +319,7 @@ final class AccountRecordSync: ObservableObject {
                         row["employer"] as? String ?? row["equipment"] as? String ?? bucket,
                     "notes":row["notes"] as? String ?? row["deficiencies"] as? String ?? "",
                     "amount":row["amount"] as? Double ?? row["hours"] as? Double ?? 0,
-                    "created":row["created"] as? String ?? row["date"] as? String ??
-                        ISO8601DateFormatter().string(from:.now)
+                    "created":dateValue(row["created"] ?? row["date"])
                 ] as [String:Any]
                 existing.append(record)
             }
@@ -304,11 +333,23 @@ final class AccountRecordSync: ObservableObject {
                     "kind":row["kind"] as? String ?? bucket,
                     "asset":row["asset"] as? String ?? row["site"] as? String ?? "",
                     "notes":row["notes"] as? String ?? "",
-                    "date":row["date"] as? String ?? ISO8601DateFormatter().string(from:.now)
+                    "date":dateValue(row["date"])
                 ])
             }
         }
         write(key,rows:existing)
+    }
+
+    private func dateValue(_ input: Any?) -> Double {
+        if let number = input as? NSNumber { return number.doubleValue }
+        if let text = input as? String {
+            if let date = ISO8601DateFormatter().date(from:text) {
+                return date.timeIntervalSinceReferenceDate
+            }
+            let formatter=DateFormatter();formatter.dateFormat="yyyy-MM-dd"
+            if let date = formatter.date(from:text) { return date.timeIntervalSinceReferenceDate }
+        }
+        return Date().timeIntervalSinceReferenceDate
     }
 
     private func categoryForSafety(_ kind: String) -> String {
