@@ -58,6 +58,11 @@ struct WorkbenchTools: View {
                     Label("Pull-box sizing · straight / angle / U", systemImage: "square.dashed")
                 }
                 NavigationLink {
+                    FabricationView()
+                } label: {
+                    Label("Bend gain, cut length and parallel racks", systemImage: "square.stack.3d.up")
+                }
+                NavigationLink {
                     PracticeQuizView()
                 } label: {
                     Label("Daily 309A quiz · 25 questions", systemImage: "checklist")
