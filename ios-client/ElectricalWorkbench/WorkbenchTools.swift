@@ -63,6 +63,11 @@ struct WorkbenchTools: View {
                     Label("Bend gain, cut length and parallel racks", systemImage: "square.stack.3d.up")
                 }
                 NavigationLink {
+                    TroubleshootingOfflineView()
+                } label: {
+                    Label("Troubleshooting · 21 guides and work orders", systemImage: "wrench.and.screwdriver")
+                }
+                NavigationLink {
                     PracticeQuizView()
                 } label: {
                     Label("Daily 309A quiz · 25 questions", systemImage: "checklist")
