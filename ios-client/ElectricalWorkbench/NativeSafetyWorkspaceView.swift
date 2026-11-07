@@ -7,6 +7,7 @@ struct SafetyEntry: Codable, Identifiable {
     let asset: String
     let notes: String
     let date: Date
+    var syncId: String? = nil
 }
 
 @MainActor
@@ -37,6 +38,7 @@ final class SafetyLog: ObservableObject {
     private func persist() {
         if let encoded = try? JSONEncoder().encode(records) {
             UserDefaults.standard.set(encoded, forKey: key)
+            NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "safety")
         }
     }
 }
@@ -99,6 +101,9 @@ struct NativeSafetyWorkspaceView: View {
         .onAppear {
             log.configure(account.username)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .ewbAccountSyncUpdated)) { _ in
+            log.configure(account.username, force: true)
+        }
     }
 
     private var safetyDashboard: some View {
@@ -141,9 +146,9 @@ struct NativeSafetyWorkspaceView: View {
 }
 
 private extension SafetyLog {
-    func configure(_ username: String) {
+    func configure(_ username: String, force: Bool = false) {
         let newKey = "ewb.ios.safety.\(username)"
-        if key != newKey {
+        if force || key != newKey {
             key = newKey
             records = []
             if let data = UserDefaults.standard.data(forKey: key),
