@@ -230,7 +230,7 @@ struct WorkbenchHome: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Native bending, bender calibration, pull-box sizing and daily quizzes work offline. Cloud CEC worksheets and 3D preview require a connection. Verify job and code conditions before fabrication.")
+                Text("Signed-in offline basics use a verified 24-hour cache. Premium calculations, cloud workspaces, enterprise and ChatGPT require live authorization. Field records stay on this device; Code and manufacturer verification still apply.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
                     .padding(.top, 4)
