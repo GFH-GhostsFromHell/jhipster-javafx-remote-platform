@@ -84,7 +84,8 @@ function save(){
  const invalidGain=['stock','legA','legB'].some(id=>el(id).value.trim()!=='');
  if(!hasAny||invalidDeduct&&deduct===null||invalidGain&&gain===null){el('storageStatus').textContent='Complete at least one valid measurement set before saving.';el('storageStatus').className='small error';return;}
  const all=profiles();const id=activeId||'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
- const record={id,name,model,deduct,gain};ids.filter(k=>!['name','model'].includes(k)).forEach(k=>record[k]=el(k).value);
+ const existing=all.find(p=>p.id===id);
+ const record={id,_syncId:(existing&&existing._syncId)||id,name,model,deduct,gain};ids.filter(k=>!['name','model'].includes(k)).forEach(k=>record[k]=el(k).value);
  const index=all.findIndex(p=>p.id===id);if(index>=0)all[index]=record;else all.push(record);
  try{localStorage.setItem(KEY,JSON.stringify(all));localStorage.setItem(ACTIVE,JSON.stringify(record));activeId=id;refresh();if(window.EWAccountSync)EWAccountSync.run();el('storageStatus').textContent='Calibration saved locally. Account sync will update other devices when online.';el('storageStatus').className='small success';}
  catch(e){el('storageStatus').textContent='Could not save locally: '+e.message;el('storageStatus').className='small error';}
