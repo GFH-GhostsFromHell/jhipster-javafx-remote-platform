@@ -5,11 +5,14 @@ struct CloudTool: Hashable, Identifiable {
     let path: String
     let description: String
     let icon: String
+    var feature: String? = nil
 
     var id: String { path }
 }
 
 struct WorkbenchTools: View {
+    @EnvironmentObject private var account: CloudAccountSession
+
     private let bending = [
         CloudTool(name: "Advanced bend instructions", path: "/bend-instruction-lab.html",
                   description: "Marking diagrams, hook facing, and 3D", icon: "cube.transparent"),
@@ -25,6 +28,9 @@ struct WorkbenchTools: View {
                   description: "Electrical code calculation workspace", icon: "number"),
         CloudTool(name: "Advanced calculations", path: "/advanced-calculations.html",
                   description: "More complex engineering worksheets", icon: "bolt.circle"),
+        CloudTool(name: "Engineering power systems", path: "/engineering-power.html",
+                  description: "Sequence components, per-unit, short-circuit and power-system tools",
+                  icon: "bolt.horizontal.circle", feature: "ENGINEERING_POWER_SYSTEMS"),
         CloudTool(name: "Pull box sizing", path: "/pull-box-calcs.html",
                   description: "Straight, angle, and U-pull box dimensions", icon: "square.dashed"),
         CloudTool(name: "Field suite", path: "/field-suite.html",
@@ -73,6 +79,37 @@ struct WorkbenchTools: View {
                     Label("Daily 309A quiz · 25 questions", systemImage: "checklist")
                 }
             }
+            Section("Native electrician workspaces") {
+                NavigationLink {
+                    FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Electrical calculators") {
+                        OfflinePowerCalculatorsView()
+                    }
+                } label: {
+                    Label("Electrical power formulas · offline", systemImage: "function")
+                }
+                NavigationLink {
+                    NativeSafetyWorkspaceView()
+                } label: {
+                    Label("Electrical safety · inspections and records", systemImage: "shield.lefthalf.filled")
+                }
+                NavigationLink {
+                    NativeWorkspacesView()
+                } label: {
+                    Label("Learn, field, projects and career", systemImage: "folder")
+                }
+                NavigationLink {
+                    FeatureGate(feature: "ASK_CHATGPT", title: "Ask ChatGPT") {
+                        NativeChatGPTWorkspaceView()
+                    }
+                } label: {
+                    Label("Ask ChatGPT · connected account", systemImage: "bubble.left.and.text.bubble.right")
+                }
+                NavigationLink {
+                    EnterpriseTeamView()
+                } label: {
+                    Label("Enterprise seats and membership", systemImage: "person.3")
+                }
+            }
             Section("Conduit bending · web + 3D") {
                 links(bending)
             }
@@ -95,7 +132,7 @@ struct WorkbenchTools: View {
                 links(resources)
             }
             Section {
-                Text("Web tools use the same portal account and subscription tier as Android and desktop. They require internet. Offline tools retain their own local data on this device.")
+                Text("Cloud tiers and overrides are verified against the same account as Android. Some native tools have independent local records, not synchronized project history. Google/OAuth login remains browser-based.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
             }
@@ -108,7 +145,13 @@ struct WorkbenchTools: View {
     private func links(_ entries: [CloudTool]) -> some View {
         ForEach(entries) { entry in
             NavigationLink {
-                PortalScreen(title: entry.name, path: entry.path)
+                if let required = entry.feature {
+                    FeatureGate(feature: required, title: entry.name) {
+                        PortalScreen(title: entry.name, path: entry.path)
+                    }
+                } else {
+                    PortalScreen(title: entry.name, path: entry.path)
+                }
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: entry.icon)
