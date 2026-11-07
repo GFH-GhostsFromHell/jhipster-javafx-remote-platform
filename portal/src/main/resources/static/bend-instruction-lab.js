@@ -61,7 +61,7 @@ function valid(){
 function getLayout(){
  valid();const type=$('kind').value,height=v('height'),deduct=v('deduct'),angle=Number($('angle').value),distance=v('distance'),width=v('width'),extra=v('extraMark'),isKlein=$('method').value==='klein';
  let name='',warning='',datum='Tape ZERO is the LEFT end shown in the straight conduit diagram.',marks=[],steps=[];
- const mark90=deduct===null?null:height-deduct;
+ const mark90=['stub','back','kick90','kickExtra','kickBefore'].includes(type)&&deduct!==null?height-deduct:null;
  if(mark90!==null&&mark90<0)throw Error('Stub height must be greater than the measured deduct.');
  const put90=()=>{
   if(mark90!==null)marks.push(marker('A',mark90,'ARROW','Measure from the short stub end.'));
