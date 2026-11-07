@@ -250,8 +250,12 @@ struct QuickBenderView: View {
                         entry("Actual shoe deduct (\(units.rawValue))", id: "deduct", value: $deduct,
                               help: "Use your exact bender's measured or stamped deduct.")
                         if savedDeductMm > 0 {
-                            Button("Use saved deduct · " + savedName + " (" + savedSize + " " + savedMaterial + ")") {
-                                deduct = String(format: "%.3f", savedDeductMm / (units == .mm ? 1.0 : 25.4))
+                            Button {
+                                let converter = units == .mm ? 1.0 : 25.4
+                                deduct = String(format: "%.3f", savedDeductMm / converter)
+                            } label: {
+                                Text("Use measured deduct · \(savedName)")
+                                    .lineLimit(2)
                             }
                             .font(.caption.weight(.semibold))
                         }
