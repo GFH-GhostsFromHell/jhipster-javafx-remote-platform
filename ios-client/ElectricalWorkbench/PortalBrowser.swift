@@ -130,15 +130,47 @@ struct PortalWebView: UIViewRepresentable {
         // Keep forms readable without overriding the field tools' dark/light themes.
         let mobileCSS = """
         (function () {
-          var style = document.createElement('style');
-          style.textContent = '@media(max-width:620px) {' +
-              'html{-webkit-text-size-adjust:100%;}' +
-              'body{overflow-x:hidden;}' +
-              'button,input,select,textarea{max-width:100%;}' +
-              'button{min-height:44px;}' +
-              'input,select,textarea{font-size:16px!important;}' +
-              '}';
-          document.head.appendChild(style);
+          var id = 'ew-ios-readable-layout';
+          var style = document.getElementById(id);
+          if (!style) {
+            style = document.createElement('style');
+            style.id = id;
+            document.head.appendChild(style);
+          }
+          style.textContent = `
+          @media(max-width:720px) {
+            html,body {max-width:100%!important; overflow-x:hidden!important;}
+            main,section,article,.wrap,.shell,.main,.screen,.card,.field,.quick-card,.quick-summary,.mark,.cue,.viewer {
+              max-width:100%!important; min-width:0!important; overflow-wrap:anywhere!important;
+            }
+            input:not([type=checkbox]):not([type=radio]),select,textarea {
+              max-width:100%!important; min-width:0!important; min-height:44px!important; font-size:16px!important;
+            }
+            button,.btn,.bendbtn,[role=button] {
+              max-width:100%!important; min-height:44px!important; font-size:15px!important;
+              line-height:1.35!important; white-space:normal!important; overflow-wrap:anywhere!important;
+            }
+            .actions,.advanced-actions,.quick-actions,.toolbar,header nav {
+              flex-wrap:wrap!important; gap:8px!important;
+            }
+            .fields,.quick-fields,.inputs,.marklist,.cues,.ops,.workspace,.grid,.refgrid,.welder-row {
+              grid-template-columns:repeat(2,minmax(0,1fr))!important;
+            }
+            canvas,svg,img {max-width:100%!important;}
+            .field,.actions>*,.advanced-actions>*,.toolbar>* {min-width:0!important;}
+            .stepnav {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+          }
+          @media(max-width:520px) {
+            .fields,.quick-fields,.inputs,.marklist,.cues,.ops,.workspace,.grid,.refgrid,.welder-row {
+              grid-template-columns:minmax(0,1fr)!important;
+            }
+            .ops button,.quick-fields .field:first-child {grid-column:auto!important;}
+            .actions>button,.advanced-actions>button,.quick-actions>button {
+              flex:1 1 100%!important; width:100%!important;
+            }
+            .top,.backrow {flex-wrap:wrap!important;}
+            .card {padding:12px!important;}
+          }`;
         })();
         """
         config.userContentController.addUserScript(
