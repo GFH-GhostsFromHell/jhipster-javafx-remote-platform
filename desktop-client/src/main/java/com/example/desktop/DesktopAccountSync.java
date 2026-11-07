@@ -178,7 +178,9 @@ public final class DesktopAccountSync {
             }
         }
         for (var localItem:localMap.entrySet()) if(!seen.contains(localItem.getKey()))merged.add(localItem.getValue().deepCopy());
-        store.applyAccountSync(bucket,merged,nextMeta,backups);
+        if (!store.applyAccountSyncIfUnchanged(bucket,local,merged,nextMeta,backups)) {
+            status = "New local changes arrived during sync; keeping them for the next pass.";
+        }
     }
 
     private static Map<String,ObjectNode> mapRecords(ArrayNode array) {
