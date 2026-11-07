@@ -1,0 +1,8 @@
+.build/
+build/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcresult/
+.DS_Store
+ElectricalWorkbench.xcodeproj/
