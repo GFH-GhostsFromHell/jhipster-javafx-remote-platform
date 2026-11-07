@@ -73,15 +73,44 @@ final class IOSUpdateMonitor: ObservableObject {
 }
 
 struct AccountCentreView: View {
+    @EnvironmentObject private var account: CloudAccountSession
     @ObservedObject var updates: IOSUpdateMonitor
 
     var body: some View {
         List {
+            Section("Verified account") {
+                if let identity = account.identity {
+                    LabeledContent("Name", value: identity.displayName)
+                    LabeledContent("Username", value: identity.username)
+                    LabeledContent("Email", value: identity.email.isEmpty ? "Not set" : identity.email)
+                    LabeledContent("Subscription", value: identity.tier.replacingOccurrences(of: "_", with: " "))
+                    LabeledContent("Login provider", value: identity.provider)
+                    LabeledContent("Enabled cloud features", value: "\(identity.featureCount)")
+                    LabeledContent("Connection", value: account.isOffline ? "Verified offline cache" : "Signed in online")
+                    if !account.webSessionWarning.isEmpty {
+                        Text(account.webSessionWarning)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    Button {
+                        Task { await account.refresh() }
+                    } label: {
+                        Label("Refresh account and permissions", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(account.isOffline)
+                    Button(role: .destructive) {
+                        Task { await account.signOut() }
+                    } label: {
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+            }
+
             Section {
                 NavigationLink {
-                    PortalScreen(title: "Sign in", path: "/")
+                    PortalScreen(title: "Cloud portal", path: "/portal.html")
                 } label: {
-                    Label("Sign in to Electrical Workbench", systemImage: "person.crop.circle.badge.checkmark")
+                    Label("Open Electrical Workbench portal", systemImage: "cloud")
                 }
                 NavigationLink {
                     PortalScreen(title: "My account & subscription", path: "/portal.html")
@@ -93,7 +122,12 @@ struct AccountCentreView: View {
                 } label: {
                     Label("Create account / verify / reset password", systemImage: "key")
                 }
-                Text("Cloud sign-in shares cookies between the embedded workbench tools. If Google sign-in opens Safari, that browser session may not carry back to the in-app portal; use password sign-in if needed.")
+                NavigationLink {
+                    EnterpriseTeamView()
+                } label: {
+                    Label("Business membership and team dashboard", systemImage: "person.3")
+                }
+                Text("Native password login verifies server entitlements. Google/OAuth sign-in in Safari may not share its session with the app. Team assignments and web subscription changes remain server-controlled.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
             } header: {
@@ -133,7 +167,7 @@ struct AccountCentreView: View {
                 } label: {
                     Label("Troubleshooting knowledge base", systemImage: "wrench.adjustable")
                 }
-                Text("Native bender, calibration, pull-box and practice quiz work offline. Other electrical worksheets, 3D models, subscriptions and cloud data use your portal account.")
+                Text("Native bender, safety, 309A quizzes, learning, power worksheets, projects and career records work in verified offline mode. ChatGPT, enterprise, advanced engineering, 3D models and cloud subscriptions need online authorization.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
             }
