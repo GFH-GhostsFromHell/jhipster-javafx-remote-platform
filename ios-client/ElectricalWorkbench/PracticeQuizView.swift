@@ -109,6 +109,7 @@ struct PracticeQuizView: View {
                                 guard !revealed else { return }
                                 answers[question.id] = option
                                 UserDefaults.standard.set(answers, forKey: dateKey)
+                                NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "quizHistory")
                             } label: {
                                 HStack(alignment: .top, spacing: 10) {
                                     Text("\(String(UnicodeScalar(65 + option)!)).")
@@ -193,6 +194,7 @@ struct PracticeQuizView: View {
                         answers.removeAll()
                         index = 0
                         UserDefaults.standard.removeObject(forKey: dateKey)
+                        NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "quizHistory")
                     }
                     .font(.footnote)
                 }
