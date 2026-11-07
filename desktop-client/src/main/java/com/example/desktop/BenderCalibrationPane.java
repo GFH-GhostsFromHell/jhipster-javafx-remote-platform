@@ -28,7 +28,7 @@ final class BenderCalibrationPane extends ScrollPane {
         page.setPadding(new Insets(16));
         Label title = new Label("Bender Calibration · your actual shoe");
         title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;");
-        Label explanation = info("Test the same bender, conduit material and trade size on scrap. Deduct and bend gain are separate measurements; neither is assumed. This profile is stored locally on this Windows account, not in the web account.");
+        Label explanation = info("Test the same bender, conduit material and trade size on scrap. Deduct and bend gain are separate measurements; neither is assumed. This profile is stored locally and synchronized to your signed-in account when online.");
         GridPane identity = grid();
         identity.addRow(0, new Label("Profile name"),profile);
         identity.addRow(1, new Label("Make / model"),model);
@@ -97,7 +97,8 @@ final class BenderCalibrationPane extends ScrollPane {
                 PREFS.put("mark",mark.getText().trim());PREFS.put("stub",stub.getText().trim());
                 PREFS.put("stock",stock.getText().trim());PREFS.put("legA",legA.getText().trim());PREFS.put("legB",legB.getText().trim());
                 PREFS.put("deduct",deduct==null?"":deduct.toString());PREFS.put("gain",bendGain==null?"":bendGain.toString());
-                message+="\nSaved locally for "+profile.getText().trim()+".";
+                DesktopAccountSync.scheduleCurrent();
+                message+="\nSaved locally for "+profile.getText().trim()+". Sync will run when online.";
             }
             result.setText(message);
         }catch(Exception e){result.setText("Check calibration: "+e.getMessage());}

@@ -17,6 +17,7 @@ private struct DiagnosticCase: Codable, Identifiable {
     let completed: Int
     let total: Int
     let createdAt: Date
+    var syncId: String? = nil
 }
 
 private enum OfflineDiagnostics {
@@ -40,6 +41,7 @@ private enum OfflineDiagnostics {
 }
 
 struct TroubleshootingOfflineView: View {
+    @EnvironmentObject private var account: CloudAccountSession
     @State private var search = ""
     @State private var selectedID = ""
     @State private var completed: Set<Int> = []
@@ -48,7 +50,7 @@ struct TroubleshootingOfflineView: View {
     @State private var saved: [DiagnosticCase] = []
     @State private var savedMessage = ""
 
-    private let storageKey = "ewb.ios.troubleshooting.cases.v1"
+    private var storageKey: String { "ewb.ios.troubleshooting.cases.\(account.username)" }
 
     private var filtered: [DiagnosticTopic] {
         OfflineDiagnostics.topics.filter {
@@ -210,6 +212,7 @@ struct TroubleshootingOfflineView: View {
             if selectedID.isEmpty { selectedID = OfflineDiagnostics.topics.first?.id ?? "" }
             restore()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .ewbAccountSyncUpdated)) { _ in restore() }
     }
 
     private func saveCase() {
@@ -238,9 +241,20 @@ struct TroubleshootingOfflineView: View {
     private func persist() {
         guard let data = try? JSONEncoder().encode(saved) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+        NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "troubleshootingCases")
     }
 
     private func restore() {
+        // One-time migration of the original device-global case list to the first
+        // verified account. Never import it into another user's collection.
+        let legacy = "ewb.ios.troubleshooting.cases.v1"
+        let ownerKey = legacy + ".owner"
+        if UserDefaults.standard.data(forKey:storageKey) == nil,
+           let old = UserDefaults.standard.data(forKey:legacy),
+           UserDefaults.standard.string(forKey:ownerKey) == nil {
+            UserDefaults.standard.set(account.username,forKey:ownerKey)
+            UserDefaults.standard.set(old,forKey:storageKey)
+        }
         guard let data = UserDefaults.standard.data(forKey: storageKey),
               let values = try? JSONDecoder().decode([DiagnosticCase].self, from: data) else { return }
         saved = values

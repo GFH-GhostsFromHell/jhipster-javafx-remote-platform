@@ -35,6 +35,16 @@ public final class PortalClient {
         return authorizedGet("/api/client/bootstrap", username, password);
     }
 
+    /** Fetch per-account field records with server revisions. */
+    public String accountSyncList(String collection, String username, String password) throws Exception {
+        return authorizedGet("/api/sync/" + collection,username,password);
+    }
+
+    /** Submit compare-and-swap updates. Conflicts are returned, never silently overwritten. */
+    public String accountSyncBatch(String collection, String username, String password, String body) throws Exception {
+        return authorizedJson("/api/sync/" + collection + "/batch","POST",username,password,body);
+    }
+
     public String profile(String username, String password) throws Exception {
         return authorizedGet("/api/profile", username, password);
     }

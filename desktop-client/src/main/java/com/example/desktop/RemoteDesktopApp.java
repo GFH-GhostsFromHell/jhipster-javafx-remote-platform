@@ -138,6 +138,7 @@ public class RemoteDesktopApp extends Application {
                     currentUsername = u;
                     currentPassword = p;
                     currentBootstrap = json.readTree(body);
+                    DesktopAccountSync.configure(u,p);
                     cloudStatus.setState(CloudConnectionState.AUTHENTICATED, "Authenticated as " + u);
                     showMain(currentBootstrap);
                 } catch (Exception parse) {
@@ -199,6 +200,7 @@ public class RemoteDesktopApp extends Application {
             currentUsername = null;
             currentPassword = null;
             currentBootstrap = null;
+            DesktopAccountSync.disconnect();
             showLogin();
             checkCloud();
         });

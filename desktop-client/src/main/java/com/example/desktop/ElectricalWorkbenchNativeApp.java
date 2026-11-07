@@ -81,7 +81,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
                 .whenComplete((body,err)->Platform.runLater(()->{
                     login.setDisable(false); login.setText("Sign in to Electrical Workbench");
                     if(err!=null){Throwable c=unwrap(err);message.setText(message(c));cloudStatus.setState(CloudConnectionState.DEGRADED,"Sign-in failed");return;}
-                    try{currentUsername=u;currentPassword=p;currentBootstrap=json.readTree(body);cloudStatus.setState(CloudConnectionState.AUTHENTICATED,"Authenticated as "+u);showWorkspace();}
+                    try{currentUsername=u;currentPassword=p;currentBootstrap=json.readTree(body);DesktopAccountSync.configure(u,p);cloudStatus.setState(CloudConnectionState.AUTHENTICATED,"Authenticated as "+u);showWorkspace();}
                     catch(Exception ex){message.setText("The cloud returned an invalid response.");}
                 }));
         });
@@ -103,7 +103,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         Button update=new Button("Check for Updates");update.setVisible(true);update.setManaged(true);update.setStyle("-fx-background-color:#16a34a;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:8;-fx-padding:7 10;");
         update.setOnAction(e->checkForUpdates(update,true));
         HBox cloud=new HBox(cloudStatus);cloud.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-background-radius:9;-fx-padding:4 7;");
-        Button logout=new Button("Sign out");logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");logout.setOnAction(e->{currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
+        Button logout=new Button("Sign out");logout.setStyle("-fx-background-color:rgba(255,255,255,.10);-fx-text-fill:white;-fx-border-color:rgba(255,255,255,.20);-fx-border-radius:8;-fx-background-radius:8;-fx-padding:7 10;");logout.setOnAction(e->{DesktopAccountSync.disconnect();currentUsername=null;currentPassword=null;currentBootstrap=null;showLogin();checkCloud();});
         top.getChildren().addAll(brand,version,push,update,cloud,logout);root.setTop(top);checkForUpdates(update,false);
 
         VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");

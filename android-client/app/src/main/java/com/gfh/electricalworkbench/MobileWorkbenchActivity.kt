@@ -216,6 +216,18 @@ private fun FullMobileWorkbench() {
         }
     }
 
+    LaunchedEffect(session?.username, lifecycleOwner) {
+        if (session == null) return@LaunchedEffect
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                withContext(Dispatchers.IO) {
+                    runCatching { MobileAccountSync.syncAll(context.applicationContext) }
+                }
+                delay(5L * 60L * 1000L)
+            }
+        }
+    }
+
     DisposableEffect(Unit) {
         Thread {
             val ok = runCatching { MobilePortalApi.health() }.getOrDefault(false)
@@ -237,6 +249,8 @@ private fun FullMobileWorkbench() {
                     val parsed = parseMobileSession(username, password, bootstrap)
                     mobileMainThread {
                         session = parsed
+                        MobileAccountSync.configure(username, password)
+                        MobileAccountSync.schedule(context)
                         lastUpdateCheckAt = 0L
                         availableUpdate = null
                         dismissedUpdateVersion = null
@@ -278,6 +292,7 @@ private fun FullMobileWorkbench() {
         onLogout = {
             CookieManager.getInstance().removeAllCookies(null)
             CookieManager.getInstance().flush()
+            MobileAccountSync.disconnect()
             session = null
             availableUpdate = null
             dismissedUpdateVersion = null
@@ -574,6 +589,26 @@ private fun MobileProfile(
             Text("Subscription: ${session.tier.replace('_', ' ')}", color = MWText)
             Text("Sign-in method: ${session.loginProvider.ifBlank { "LOCAL" }}", color = MWText)
             Text("Cloud features: ${session.featureCount}", color = MWMuted)
+        }
+        MWCard("Account record synchronization") {
+            Text("Cloud sync: " + MobileAccountSync.status, color = MWMuted, fontSize = 13.sp)
+            Text("Projects, inspections, safety records, hours and bender profiles use the same signed-in account across devices. Offline changes remain on the phone until a successful sync.", color = MWMuted, fontSize = 12.sp)
+            OutlinedButton(onClick = { MobileAccountSync.schedule(context) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Sync saved records now")
+            }
+            OutlinedButton(onClick = {
+                val backup = MobileAccountSync.conflictExport(context, session.username)
+                val share = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_TEXT, backup)
+                }
+                context.startActivity(Intent.createChooser(share, "Export sync conflict backups"))
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Review / share sync conflict backups")
+            }
+            Button(onClick = { onOpenWeb("/field-suite.html#projects") }, modifier = Modifier.fillMaxWidth()) {
+                Text("Open shared project records")
+            }
         }
         MWCard("Android app updates") {
             Text("Installed: v${BuildConfig.VERSION_NAME} · ${BuildConfig.UPDATE_CHANNEL} channel",

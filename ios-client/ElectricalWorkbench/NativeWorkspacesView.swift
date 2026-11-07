@@ -8,15 +8,16 @@ struct FieldRecord: Codable, Identifiable {
     let notes: String
     let amount: Double
     let created: Date
+    var syncId: String? = nil
 }
 
 @MainActor
 final class NativeFieldRecordStore: ObservableObject {
     @Published private(set) var records: [FieldRecord] = []
     private var storageKey = ""
-    func configure(_ user: String) {
+    func configure(_ user: String, force: Bool = false) {
         let key = "ewb.ios.workrecords.\(user)"
-        guard storageKey != key else { return }
+        guard force || storageKey != key else { return }
         storageKey = key
         if let data = UserDefaults.standard.data(forKey: key),
            let loaded = try? JSONDecoder().decode([FieldRecord].self, from: data) {
@@ -38,6 +39,7 @@ final class NativeFieldRecordStore: ObservableObject {
     private func persist() {
         guard !storageKey.isEmpty, let data = try? JSONEncoder().encode(records) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+        NotificationCenter.default.post(name: .ewbLocalRecordChanged, object: "workrecords")
     }
     var exported: String {
         var report = "Electrical Workbench · native iOS field records\n"
@@ -116,6 +118,9 @@ struct NativeWorkspacesView: View {
         .background(WorkbenchStyle.background)
         .navigationTitle("Workspaces")
         .onAppear { store.configure(account.username) }
+        .onReceive(NotificationCenter.default.publisher(for: .ewbAccountSyncUpdated)) { _ in
+            store.configure(account.username, force: true)
+        }
     }
 }
 

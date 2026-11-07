@@ -13,6 +13,7 @@ import java.nio.file.Path;
 public final class LocalWorkspaceStore {
     private final ObjectMapper json;
     private final Path file;
+    private final String username;
 
     private static final String[] COLLECTIONS = new String[]{
         "projects","nameplates","commissioning","inspections","hours","credentials","quizHistory","materials",
@@ -23,7 +24,8 @@ public final class LocalWorkspaceStore {
 
     public LocalWorkspaceStore(ObjectMapper json, String username) {
         this.json = json;
-        String safe = username == null || username.isBlank() ? "default" : username.replaceAll("[^A-Za-z0-9._-]", "_");
+        this.username = username == null || username.isBlank() ? "default" : username;
+        String safe = this.username.replaceAll("[^A-Za-z0-9._-]", "_");
         Path dir = Path.of(System.getProperty("user.home"), ".electrical-workbench");
         this.file = dir.resolve("workspace-" + safe + ".json");
     }
@@ -41,8 +43,10 @@ public final class LocalWorkspaceStore {
     public synchronized void append(String collection, ObjectNode record) {
         ObjectNode root = load();
         ArrayNode arr = ensure(root, collection);
+        if (!record.hasNonNull("_syncId")) record.put("_syncId",java.util.UUID.randomUUID().toString());
         arr.add(record);
         save(root);
+        DesktopAccountSync.schedule(username);
     }
 
     public synchronized ArrayNode records(String collection) {
@@ -54,9 +58,39 @@ public final class LocalWorkspaceStore {
         ObjectNode root = load();
         root.set(collection, records);
         save(root);
+        DesktopAccountSync.schedule(username);
     }
 
     public Path file() { return file; }
+    public String username() { return username; }
+    public static String[] synchronizedCollections() { return COLLECTIONS.clone(); }
+
+    public synchronized ObjectNode syncMeta(String collection) {
+        JsonNode meta = load().path("_sync_meta").path(collection);
+        return meta instanceof ObjectNode node ? node.deepCopy() : json.createObjectNode();
+    }
+
+    public synchronized boolean applyAccountSyncIfUnchanged(
+        String collection, ArrayNode expected, ArrayNode records,
+        ObjectNode metadata, ArrayNode conflicts
+    ) {
+        if (!records(collection).equals(expected)) return false;
+        applyAccountSync(collection, records, metadata, conflicts);
+        return true;
+    }
+
+    public synchronized void applyAccountSync(String collection, ArrayNode records, ObjectNode metadata, ArrayNode conflicts) {
+        ObjectNode root = load();
+        root.set(collection,records);
+        ObjectNode all = root.withObject("/_sync_meta");
+        all.set(collection,metadata);
+        if (conflicts != null && !conflicts.isEmpty()) {
+            ArrayNode stored = ensure(root, "_sync_conflicts_" + collection);
+            for (JsonNode item : conflicts) stored.add(item.deepCopy());
+            while (stored.size() > 100) stored.remove(0);
+        }
+        save(root);
+    }
 
     private void save(ObjectNode root) {
         try {

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account Records & Sync · Electrical Workbench</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#071827;color:#edf7ff;font-size:15px}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:#0d2940;padding:14px max(16px,calc((100vw - 1050px)/2));border-bottom:1px solid #3b5b72}header b{color:#79e9f9;font-size:17px}
+a{color:#86eaf8}main{max-width:1050px;margin:auto;padding:22px 15px 68px}
+h1{font-size:clamp(23px,4vw,32px);margin:0 0 8px}h2{font-size:17px;margin:0}
+p,.muted{color:#b9d0dc;line-height:1.5}
+.card{background:#102b40;border:1px solid #3d5d77;border-radius:14px;padding:16px;margin-bottom:14px}
+.form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+label{display:block;color:#d2e6f2;font-size:13px;font-weight:750;margin-bottom:6px}
+select,input,button{font:inherit;border-radius:9px;padding:10px 12px;min-height:45px}
+select,input{width:100%;background:#071d30;color:white;border:1px solid #567992;min-width:0}
+button{background:#14617b;color:white;border:1px solid #54cadd;cursor:pointer;font-weight:700;max-width:100%}
+button.secondary{background:#18394d;border-color:#627f94}button:disabled{opacity:.52;cursor:default}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+#status{color:#98e6ef;font-weight:650;white-space:pre-wrap;overflow-wrap:anywhere}
+.item{border:1px solid #395972;border-radius:11px;background:#0b2236;margin:10px 0;padding:13px;min-width:0}
+.itemhead{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.item .name{font-weight:750;overflow-wrap:anywhere}
+.item .detail{font-size:12px;color:#aac6d5}
+pre{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;background:#061525;padding:12px;border-radius:8px;max-height:280px;overflow:auto}
+summary{cursor:pointer;color:#8cdae9;font-weight:650;margin-top:8px}
+.notice{border-left:4px solid #f2c279;padding:10px 13px;background:#2a3440;font-size:13px;color:#fff1d9}
+@media(max-width:580px){.form{grid-template-columns:1fr}button{flex:1 1 100%}main{padding:14px 12px}.card{padding:13px}}
+</style></head><body>
+<header><b>⚡ Electrical Workbench · Account Sync</b>
+<nav><a href="/portal.html">Dashboard</a> · <a href="/field-suite.html">Field Suite</a> · <a href="/bender-calibration.html">Bender profiles</a></nav></header>
+<main>
+<h1>Saved account records</h1>
+<p>View field information saved from Android, iPhone/iPad, Windows desktop or the web portal under the same Electrical Workbench account. This view reads the private server records; it does not alter them.</p>
+<div class="card">
+<div class="form">
+<div><label for="bucket">Record collection</label><select id="bucket"></select></div>
+<div><label for="search">Filter by name or text</label><input id="search" type="search" placeholder="Search current collection"></div>
+</div>
+<div class="actions"><button id="refresh">Refresh from account</button><button id="export" class="secondary" disabled>Export selected JSON</button><button id="all" class="secondary">Export all account collections</button><button id="conflicts" class="secondary">Export local conflict backups</button></div>
+<div id="status" role="status" aria-live="polite">Choose a record collection, then press Refresh.</div>
+</div>
+<div class="notice">Offline edits remain on the originating device until it reconnects and synchronizes. Conflicting edits are retained for review, not automatically merged. Do not rely on this page as an approved workplace record system; verify and export critical safety documentation.</div>
+<section class="card" aria-label="Account records"><h2 id="heading">Records</h2><div id="list"><p class="muted">Select a collection above.</p></div></section>
+</main>
+<script>
+(function(){
+'use strict';
+const buckets=[
+['projects','Projects'],['fieldProjects','Field Suite projects (legacy)'],
+['materials','Material takeoffs'],['nameplates','Equipment nameplates'],
+['commissioning','Commissioning & testing'],['inspections','Inspections'],
+['hours','Trade and apprenticeship hours'],['credentials','Credentials'],
+['quizHistory','Practice quiz history'],['benderProfiles','Conduit bender calibrations'],
+['troubleshootingCases','Troubleshooting cases'],['unsafeConditions','Unsafe conditions'],
+['rubberGloves','Insulating glove records'],['stormStandDowns','Lightning stand-downs'],
+['safetyAssessments','PPE / safety assessments'],['safetyMaintenance','Safety maintenance'],
+['guidedSolutions','Guided calculation solutions'],['practiceDrafts','Practice drafts'],
+['designReports','Engineering design reports'],['panelSchedules','Panel schedules'],
+['motorDesigns','Motor designs'],['transformerDesigns','Transformer designs'],
+['estimates','Quotes and estimates'],['calculatorFavorites','Calculator favourites'],
+['recentCalculations','Recent calculation history'],['customPresets','Custom presets'],
+['preferences','Saved preferences'],['fieldRecords','Field Suite records (legacy)']
+];
+const $=id=>document.getElementById(id), select=$('bucket');
+for(const [key,label] of buckets){const item=document.createElement('option');item.value=key;item.textContent=label;select.appendChild(item)}
+let records=[],busy=false;
+function message(value,error){$('status').textContent=value;$('status').style.color=error?'#ffc4ad':'#98e6ef'}
+async function query(bucket){
+ const response=await fetch('/api/sync/'+encodeURIComponent(bucket),{credentials:'same-origin',cache:'no-store'});
+ if(response.status===401||response.status===403)throw Error('Sign in to your Electrical Workbench account to view records.');
+ if(!response.ok)throw Error('Unable to load records (HTTP '+response.status+').');
+ return response.json();
+}
+function getTitle(record){
+ const data=record.data||{};
+ return String(data.name||data.title||data.asset||data.project||data.employer||data.equipment||data.topic||data.kind||data.date||record.id);
+}
+function filter(){
+ const term=$('search').value.trim().toLowerCase();
+ const list=$('list');list.replaceChildren();
+ const active=records.filter(x=>!x.deleted),matching=active.filter(x=>!term||JSON.stringify(x.data).toLowerCase().includes(term)||getTitle(x).toLowerCase().includes(term));
+ $('heading').textContent=(buckets.find(x=>x[0]===select.value)||['','Records'])[1]+' · '+matching.length+' displayed';
+ if(!matching.length){const p=document.createElement('p');p.className='muted';p.textContent='No matching active records.';list.appendChild(p)}
+ for(const record of matching.slice(0,600)){
+  const outer=document.createElement('article');outer.className='item';
+  const head=document.createElement('div');head.className='itemhead';
+  const name=document.createElement('span');name.className='name';name.textContent=getTitle(record);
+  const meta=document.createElement('span');meta.className='detail';meta.textContent='Revision '+record.revision+' · '+(record.updatedAt||'');
+  head.append(name,meta);outer.appendChild(head);
+  const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='View record fields';
+  const pre=document.createElement('pre');pre.textContent=JSON.stringify(record.data,null,2);
+  details.append(summary,pre);outer.append(details);list.appendChild(outer)
+ }
+ if(matching.length>600){const p=document.createElement('p');p.textContent='Showing first 600 matches. Export JSON to inspect all.';list.appendChild(p)}
+}
+async function refresh(){
+ if(busy)return;busy=true;$('refresh').disabled=true;message('Loading saved records…');
+ try{records=await query(select.value);$('export').disabled=false;filter();message(records.filter(x=>!x.deleted).length+' current records; '+records.filter(x=>x.deleted).length+' deleted-history markers.')}
+ catch(error){records=[];filter();$('export').disabled=true;message(error.message||'Sync service unavailable',true)}
+ finally{$('refresh').disabled=false;busy=false}
+}
+function download(filename, data){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),2500);
+}
+function conflictRecords(){
+ const result={};
+ for(const [bucket] of buckets){
+  try{
+   const key='ewb.sync.conflicts.'+bucket;
+   const parsed=JSON.parse(localStorage.getItem(key)||'[]');
+   if(Array.isArray(parsed)&&parsed.length)result[bucket]=parsed;
+  }catch(_){}
+ }
+ return result;
+}
+$('refresh').addEventListener('click',refresh);
+select.addEventListener('change',refresh);$('search').addEventListener('input',filter);
+$('export').addEventListener('click',()=>download('electrical-workbench-'+select.value+'.json',records));
+$('conflicts').addEventListener('click',()=>{
+ const conflicts=conflictRecords();
+ if(!Object.keys(conflicts).length){message('No browser-local conflict backups were found for this browser. Android, iOS and Windows keep separate native backup stores.');return}
+ download('electrical-workbench-conflicts.json',conflicts);
+});
+$('all').addEventListener('click',async()=>{
+ if(busy)return;busy=true;$('all').disabled=true;
+ const out={exportedAt:new Date().toISOString(),collections:{}};let errors=[];
+ for(const [key] of buckets){
+  try{out.collections[key]=await query(key)}
+  catch(error){errors.push(key+': '+error.message)}
+ }
+ busy=false;$('all').disabled=false;
+ if(errors.length){message('Export incomplete. '+errors.slice(0,3).join('; '),true)}
+ else{message('Exported '+Object.keys(out.collections).length+' collections. Keep the downloaded file secure.');download('electrical-workbench-account-records.json',out)}
+});
+refresh();
+})();
+</script></body></html>

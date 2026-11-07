@@ -70,6 +70,7 @@ struct WorkbenchRoot: View {
             while !Task.isCancelled {
                 await updates.checkIfDue()
                 await account.refresh()
+                await AccountRecordSync.shared.syncIfDue(account: account)
                 try? await Task.sleep(nanoseconds: 1_800_000_000_000)
             }
         }
@@ -78,8 +79,12 @@ struct WorkbenchRoot: View {
                 Task {
                     await updates.checkIfDue()
                     await account.refresh()
+                    await AccountRecordSync.shared.syncIfDue(account: account)
                 }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .ewbLocalRecordChanged)) { _ in
+            Task { await AccountRecordSync.shared.syncIfDue(account: account, force: true) }
         }
     }
 }
