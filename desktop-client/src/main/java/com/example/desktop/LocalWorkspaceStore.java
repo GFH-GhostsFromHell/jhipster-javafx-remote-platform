@@ -70,6 +70,15 @@ public final class LocalWorkspaceStore {
         return meta instanceof ObjectNode node ? node.deepCopy() : json.createObjectNode();
     }
 
+    public synchronized boolean applyAccountSyncIfUnchanged(
+        String collection, ArrayNode expected, ArrayNode records,
+        ObjectNode metadata, ArrayNode conflicts
+    ) {
+        if (!records(collection).equals(expected)) return false;
+        applyAccountSync(collection, records, metadata, conflicts);
+        return true;
+    }
+
     public synchronized void applyAccountSync(String collection, ArrayNode records, ObjectNode metadata, ArrayNode conflicts) {
         ObjectNode root = load();
         root.set(collection,records);
