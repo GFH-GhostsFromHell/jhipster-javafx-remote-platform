@@ -130,74 +130,7 @@ struct QuickBenderView: View {
                 }
 
                 section {
-                    Text("ENTER JOB DIMENSIONS")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(WorkbenchStyle.cyan)
-
-                    if [.stub, .back, .kicked90].contains(mode) {
-                        entry("Finished first stub (\(units.rawValue))", id: "stub", value: $finishedStub,
-                              help: "From the original short end using the verified shoe reference.")
-                        entry("Actual shoe deduct (\(units.rawValue))", id: "deduct", value: $deduct,
-                              help: "Use your exact bender's measured or stamped deduct.")
-                        if savedDeductMm > 0 {
-                            Button("Use saved deduct · " + savedName + " (" + savedSize + " " + savedMaterial + ")") {
-                                deduct = String(format: "%.3f", savedDeductMm / (units == .mm ? 1.0 : 25.4))
-                            }
-                            .font(.caption.weight(.semibold))
-                        }
-                        NavigationLink("Measure / edit shoe calibration") {
-                            BenderCalibrationView()
-                        }
-                        .font(.caption)
-                        if mode == .back {
-                            entry("Back-of-first-90 to second STAR (\(units.rawValue))",
-                                  id: "width", value: $width,
-                                  help: "Measure AFTER bending the first 90. Do not use original tape zero.")
-                        }
-                    }
-                    if [.offset, .rolling, .saddle3, .saddle4, .kicked90].contains(mode) {
-                        entry(mode == .kicked90 ? "Kick rise (\(units.rawValue))" : "Centreline rise (\(units.rawValue))",
-                              id: "rise", value: $rise,
-                              help: "Measure perpendicular to the original conduit run, including clearance.")
-                        if mode == .rolling {
-                            entry("Sideways roll (\(units.rawValue))", id: "roll", value: $roll,
-                                  help: "Horizontal shift, NOT diagonal distance.")
-                        }
-                        if [.offset, .rolling, .saddle4].contains(mode) {
-                            entry(mode == .saddle4 ? "Near obstacle face from tape 0 (\(units.rawValue))" : "Reference distance (\(units.rawValue))",
-                                  id: "distance", value: $distance,
-                                  help: "Measure along the original straight conduit run from tape zero.")
-                        }
-                        if mode == .saddle3 {
-                            entry("Obstruction CENTRE from tape 0 (\(units.rawValue))",
-                                  id: "centre", value: $centre,
-                                  help: "Measure to the centre, not the near edge of the obstruction.")
-                            Picker("Marking method", selection: $saddleMethod) {
-                                Text("Traditional notch + arrow").tag("Traditional")
-                                Text("Geometry only").tag("Geometry")
-                            }
-                            .pickerStyle(.menu)
-                        }
-                        if mode == .saddle4 {
-                            entry("Obstruction width (\(units.rawValue))", id: "width", value: $width,
-                                  help: "Measure along the original run, including required clearance.")
-                        }
-                        Picker(mode == .saddle3 ? "Centre bend angle" : "Angle of each bend", selection: $angle) {
-                            ForEach([10.0, 15.0, 22.5, 30.0, 45.0, 60.0], id: \.self) { a in
-                                Text("\(a.formatted())°").tag(a)
-                            }
-                        }
-                        .font(.subheadline)
-                        .pickerStyle(.menu)
-                        if [.offset, .rolling].contains(mode) {
-                            Picker("Critical bend", selection: $farCritical) {
-                                Text("Near bend").tag(false)
-                                Text("Far bend").tag(true)
-                            }
-                            .font(.subheadline)
-                            .pickerStyle(.segmented)
-                        }
-                    }
+                    bendInputFields
                 }
 
                 section {
@@ -300,6 +233,84 @@ struct QuickBenderView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder private var bendInputFields: some View {
+        Text("ENTER JOB DIMENSIONS")
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(WorkbenchStyle.cyan)
+        ninetyInputs
+        riseInputs
+    }
+
+    @ViewBuilder private var ninetyInputs: some View {
+                    if [.stub, .back, .kicked90].contains(mode) {
+                        entry("Finished first stub (\(units.rawValue))", id: "stub", value: $finishedStub,
+                              help: "From the original short end using the verified shoe reference.")
+                        entry("Actual shoe deduct (\(units.rawValue))", id: "deduct", value: $deduct,
+                              help: "Use your exact bender's measured or stamped deduct.")
+                        if savedDeductMm > 0 {
+                            Button("Use saved deduct · " + savedName + " (" + savedSize + " " + savedMaterial + ")") {
+                                deduct = String(format: "%.3f", savedDeductMm / (units == .mm ? 1.0 : 25.4))
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
+                        NavigationLink("Measure / edit shoe calibration") {
+                            BenderCalibrationView()
+                        }
+                        .font(.caption)
+                        if mode == .back {
+                            entry("Back-of-first-90 to second STAR (\(units.rawValue))",
+                                  id: "width", value: $width,
+                                  help: "Measure AFTER bending the first 90. Do not use original tape zero.")
+                        }
+                    }
+    }
+
+    @ViewBuilder private var riseInputs: some View {
+                    if [.offset, .rolling, .saddle3, .saddle4, .kicked90].contains(mode) {
+                        entry(mode == .kicked90 ? "Kick rise (\(units.rawValue))" : "Centreline rise (\(units.rawValue))",
+                              id: "rise", value: $rise,
+                              help: "Measure perpendicular to the original conduit run, including clearance.")
+                        if mode == .rolling {
+                            entry("Sideways roll (\(units.rawValue))", id: "roll", value: $roll,
+                                  help: "Horizontal shift, NOT diagonal distance.")
+                        }
+                        if [.offset, .rolling, .saddle4].contains(mode) {
+                            entry(mode == .saddle4 ? "Near obstacle face from tape 0 (\(units.rawValue))" : "Reference distance (\(units.rawValue))",
+                                  id: "distance", value: $distance,
+                                  help: "Measure along the original straight conduit run from tape zero.")
+                        }
+                        if mode == .saddle3 {
+                            entry("Obstruction CENTRE from tape 0 (\(units.rawValue))",
+                                  id: "centre", value: $centre,
+                                  help: "Measure to the centre, not the near edge of the obstruction.")
+                            Picker("Marking method", selection: $saddleMethod) {
+                                Text("Traditional notch + arrow").tag("Traditional")
+                                Text("Geometry only").tag("Geometry")
+                            }
+                            .pickerStyle(.menu)
+                        }
+                        if mode == .saddle4 {
+                            entry("Obstruction width (\(units.rawValue))", id: "width", value: $width,
+                                  help: "Measure along the original run, including required clearance.")
+                        }
+                        Picker(mode == .saddle3 ? "Centre bend angle" : "Angle of each bend", selection: $angle) {
+                            ForEach([10.0, 15.0, 22.5, 30.0, 45.0, 60.0], id: \.self) { a in
+                                Text("\(a.formatted())°").tag(a)
+                            }
+                        }
+                        .font(.subheadline)
+                        .pickerStyle(.menu)
+                        if [.offset, .rolling].contains(mode) {
+                            Picker("Critical bend", selection: $farCritical) {
+                                Text("Near bend").tag(false)
+                                Text("Far bend").tag(true)
+                            }
+                            .font(.subheadline)
+                            .pickerStyle(.segmented)
+                        }
+                    }
     }
 
     @ViewBuilder private func section<Content: View>(
