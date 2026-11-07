@@ -202,39 +202,107 @@ internal object MobileAccountSync {
             row.put("equipment",row.optString("title"))
     }
 
-    private fun syncCalibration(context: Context,user: String,secret: String) {
-        val prefs = context.getSharedPreferences("electrical_workbench_bender_calibration",Context.MODE_PRIVATE)
+    private fun syncCalibration(context: Context, user: String, secret: String) {
+        val prefs = context.getSharedPreferences("electrical_workbench_bender_calibration", Context.MODE_PRIVATE)
+        val owner = prefs.getString("_syncOwner", "").orEmpty()
+        if (owner.isNotEmpty() && owner != user) return
+
+        val remote = list("benderProfiles",user,secret)
+        val entries = (0 until remote.length()).mapNotNull { remote.optJSONObject(it) }
+            .filter { !it.optBoolean("deleted") }
         val name = prefs.getString("name","").orEmpty()
         val model = prefs.getString("model","").orEmpty()
-        if (name.isBlank() || model.isBlank()) return
+        if (name.isBlank() || model.isBlank()) {
+            val picked = entries.firstOrNull() ?: return
+            val data = picked.optJSONObject("data") ?: return
+            val id = picked.optString("id")
+            val edit = prefs.edit()
+            for (field in listOf("name","model","material","size","units","mark","stub",
+                                 "stock","first","second","deduct","gain")) {
+                val source = when (field) {
+                    "mark" -> "arrowMark"
+                    "stub" -> "actualStub"
+                    "first" -> "legA"
+                    "second" -> "legB"
+                    else -> field
+                }
+                val raw = if (data.has(source)) data.optString(source) else data.optString(field)
+                edit.putString(field,raw)
+            }
+            edit.putString("_syncId",id)
+                .putString("_syncOwner",user)
+                .putLong("_syncRevision",picked.optLong("revision"))
+                .apply()
+            val updated = JSONObject()
+            for (field in listOf("name","model","material","size","units","mark","stub",
+                                 "stock","first","second","deduct","gain")) {
+                updated.put(field,prefs.getString(field,"").orEmpty())
+            }
+            updated.put("_syncId",id)
+            prefs.edit().putString("_syncLastData",updated.toString()).apply()
+            return
+        }
+        prefs.edit().putString("_syncOwner",user).apply()
         var id = prefs.getString("_syncId","").orEmpty()
-        if (id.isBlank()) { id = newId();prefs.edit().putString("_syncId",id).apply() }
+        if (id.isBlank()) {
+            id=newId()
+            prefs.edit().putString("_syncId",id).apply()
+        }
         val values = JSONObject()
-        for (key in listOf("name","model","material","size","units","mark","stub","stock","first","second","deduct","gain")) {
-            values.put(key,prefs.getString(key,"").orEmpty())
+        for (field in listOf("name","model","material","size","units","mark","stub",
+                             "stock","first","second","deduct","gain")) {
+            values.put(field,prefs.getString(field,"").orEmpty())
         }
         values.put("_syncId",id)
-        val items = list("benderProfiles",user,secret)
-        val found = (0 until items.length()).mapNotNull { items.optJSONObject(it) }.firstOrNull { it.optString("id")==id }
-        val previousData = prefs.getString("_syncLastData","")
-        val localChanged = values.toString()!=previousData
-        if (found == null || localChanged) {
-            val expected = found?.optLong("revision") ?: 0
-            val previousVersion = prefs.getLong("_syncRevision",0)
-            if (found != null && previousVersion != expected && previousVersion > 0) {
-                status = "Bender profile edit conflict; local calibration kept"
-                return
+        values.put("id",id)
+        values.put("arrowMark",prefs.getString("mark","").orEmpty())
+        values.put("actualStub",prefs.getString("stub","").orEmpty())
+        values.put("legA",prefs.getString("first","").orEmpty())
+        values.put("legB",prefs.getString("second","").orEmpty())
+        val found = entries.firstOrNull { it.optString("id")==id }
+        val lastHash=prefs.getString("_syncLastData","").orEmpty()
+        val previousVersion=prefs.getLong("_syncRevision",0)
+        // If a verified remote revision advanced while the local shoe was untouched,
+        // import the remote data. Do not overwrite a locally edited profile.
+        if (found!=null && values.toString()==lastHash &&
+            previousVersion>0 && found.optLong("revision")!=previousVersion) {
+            val data=found.optJSONObject("data") ?: return
+            val edit=prefs.edit()
+            for (field in listOf("name","model","material","size","units","mark","stub",
+                                 "stock","first","second","deduct","gain")) {
+                val alternate=when(field){"mark"->"arrowMark";"stub"->"actualStub";
+                    "first"->"legA";"second"->"legB";else->field}
+                edit.putString(field,if(data.has(alternate))data.optString(alternate)else data.optString(field))
             }
-            val batch = JSONObject().put("records",JSONArray().put(JSONObject()
-                .put("id",id).put("revision",expected).put("data",values).put("deleted",false)))
-            val result = JSONObject(request("/api/sync/benderProfiles/batch",user,secret,batch))
-            val accepted = result.optJSONArray("accepted")
-            if (accepted != null && accepted.length()>0) {
-                prefs.edit().putLong("_syncRevision",accepted.getJSONObject(0).getLong("revision"))
-                    .putString("_syncLastData",values.toString()).apply()
+            edit.putLong("_syncRevision",found.optLong("revision")).apply()
+            val fresh=JSONObject()
+            for (field in listOf("name","model","material","size","units","mark","stub",
+                                 "stock","first","second","deduct","gain")) {
+                fresh.put(field,prefs.getString(field,"").orEmpty())
             }
-        } else {
-            prefs.edit().putLong("_syncRevision",found.optLong("revision")).apply()
+            fresh.put("_syncId",id)
+            fresh.put("id",id)
+            fresh.put("arrowMark",prefs.getString("mark","").orEmpty())
+            fresh.put("actualStub",prefs.getString("stub","").orEmpty())
+            fresh.put("legA",prefs.getString("first","").orEmpty())
+            fresh.put("legB",prefs.getString("second","").orEmpty())
+            prefs.edit().putString("_syncLastData",fresh.toString()).apply()
+            return
         }
+        if(found!=null && previousVersion>0 && found.optLong("revision")!=previousVersion) {
+            status="Bender calibration conflict: local measurements preserved for review"
+            return
+        }
+        if(found!=null && values.toString()==lastHash) return
+        val expected=found?.optLong("revision") ?: 0
+        val body=JSONObject().put("records",JSONArray().put(
+            JSONObject().put("id",id).put("revision",expected).put("data",values).put("deleted",false)))
+        val answer=JSONObject(request("/api/sync/benderProfiles/batch",user,secret,body))
+        val accepted=answer.optJSONArray("accepted")
+        if(accepted!=null&&accepted.length()>0) {
+            prefs.edit().putLong("_syncRevision",accepted.optJSONObject(0)?.optLong("revision")?:0)
+                .putString("_syncLastData",values.toString()).apply()
+        }else status="Bender calibration conflict: native shoe values retained"
     }
+
 }
