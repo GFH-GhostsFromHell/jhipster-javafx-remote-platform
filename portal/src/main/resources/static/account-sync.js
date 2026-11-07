@@ -40,11 +40,19 @@ async function syncArray(bucket,key,onApplied){
   const remote=await json('/api/sync/'+encodeURIComponent(bucket));
   const remoteMap=new Map(remote.map(r=>[r.id,r]));
   const localMap=new Map(local.map(row=>[row._syncId,row]));
-  const push=[];
+  const push=[],conflictIDs=new Set();
   for(const row of local){
     const id=row._syncId,base=previous[id],server=remoteMap.get(id),changed=!base||hash(row)!==base.data;
     if(!server){push.push({id,revision:0,data:row,deleted:false});continue}
+    if(changed&&!base){
+      if(hash(row)!==hash(server.data)){
+        conflictIDs.add(id);
+        backup(bucket,[{id,local:row,server,reason:'first-sync-difference',at:new Date().toISOString()}]);
+      }
+      continue;
+    }
     if(changed&&base&&server.revision!==base.revision){
+      conflictIDs.add(id);
       backup(bucket,[{id,local:row,server,reason:'concurrent-edit',at:new Date().toISOString()}]);continue
     }
     if(changed){push.push({id,revision:server.revision,data:row,deleted:false})}
@@ -69,7 +77,10 @@ async function syncArray(bucket,key,onApplied){
       result.conflicts.push(...response.conflicts);
     }
   }
-  if(result.conflicts.length)backup(bucket,result.conflicts.map(x=>({id:x.id,server:x,local:localMap.get(x.id),reason:'revision-conflict',at:new Date().toISOString()})));
+  if(result.conflicts.length){
+    result.conflicts.forEach(x=>conflictIDs.add(x.id));
+    backup(bucket,result.conflicts.map(x=>({id:x.id,server:x,local:localMap.get(x.id),reason:'revision-conflict',at:new Date().toISOString()})));
+  }
   const fresh=await json('/api/sync/'+encodeURIComponent(bucket));
   const finalMap=new Map();
   const changedIds=new Set(push.map(x=>x.id));
@@ -85,11 +96,15 @@ async function syncArray(bucket,key,onApplied){
   }
   for(const record of fresh){if(record.deleted)continue;if(!finalMap.has(record.id))finalMap.set(record.id,record.data)}
   const next=Array.from(finalMap.values());
-  const mirror={};for(const record of fresh)mirror[record.id]={revision:record.revision,deleted:record.deleted,data:hash(record.data)};
+  const mirror={};for(const record of fresh){
+    mirror[record.id]=conflictIDs.has(record.id)&&previous[record.id]
+      ? previous[record.id]
+      :{revision:record.revision,deleted:record.deleted,data:hash(record.data)};
+  }
   localStorage.setItem(bucketKey(bucket),JSON.stringify(mirror));
   const changed=hash(next)!==hash(original);
   if(changed){localStorage.setItem(key,JSON.stringify(next));if(onApplied)onApplied(next)}
-  const note=result.conflicts.length?'Synced with '+result.conflicts.length+' conflict(s); local backups retained.':'Synced '+fresh.filter(x=>!x.deleted).length+' records.';
+  const note=conflictIDs.size?'Synced with '+conflictIDs.size+' conflict(s); local backups retained.':'Synced '+fresh.filter(x=>!x.deleted).length+' records.';
   notify(note);
  }catch(err){notify('Offline changes kept on this device. '+(err.message||'Sync failed'))}
  finally{busy.delete(bucket);if(pending.has(bucket)){pending.delete(bucket);setTimeout(()=>syncArray(bucket,key,onApplied),1500)}}
