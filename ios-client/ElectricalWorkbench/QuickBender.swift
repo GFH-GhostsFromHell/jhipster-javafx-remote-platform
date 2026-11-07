@@ -6,6 +6,10 @@ private enum BendMode: String, CaseIterable, Identifiable {
     case offset = "Offset"
     case rolling = "Rolling"
     case stub = "90° stub"
+    case back = "Back-to-back 90s"
+    case saddle3 = "Three-point saddle"
+    case saddle4 = "Four-point saddle"
+    case kicked90 = "Kicked 90°"
     var id: String { rawValue }
 }
 
@@ -56,6 +60,13 @@ struct QuickBenderView: View {
     @State private var distance = ""
     @State private var finishedStub = ""
     @State private var deduct = ""
+    @State private var width = ""
+    @State private var centre = ""
+    @State private var saddleMethod = "Traditional"
+    @AppStorage("ewb.ios.calibration.deduct.mm") private var savedDeductMm = 0.0
+    @AppStorage("ewb.ios.calibration.name") private var savedName = ""
+    @AppStorage("ewb.ios.calibration.size") private var savedSize = ""
+    @AppStorage("ewb.ios.calibration.material") private var savedMaterial = "EMT"
     @State private var minimumGap = ""
     @State private var showOptions = false
 
@@ -119,39 +130,7 @@ struct QuickBenderView: View {
                 }
 
                 section {
-                    Text("ENTER JOB DIMENSIONS")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(WorkbenchStyle.cyan)
-
-                    if mode == .stub {
-                        entry("Finished stub height (\(units.rawValue))", id: "stub", value: $finishedStub,
-                              help: "From the short cut end; use the same reference convention as your shoe.")
-                        entry("Actual shoe deduct (\(units.rawValue))", id: "deduct", value: $deduct,
-                              help: "Read the value stamped on your exact bender or measure a test 90.")
-                    } else {
-                        entry("Centreline rise (\(units.rawValue))", id: "rise", value: $rise,
-                              help: "Perpendicular change between the old and new conduit centreline.")
-                        if mode == .rolling {
-                            entry("Sideways roll (\(units.rawValue))", id: "roll", value: $roll,
-                                  help: "Horizontal side shift, NOT the diagonal distance.")
-                        }
-                        entry("Reference distance (\(units.rawValue))", id: "distance", value: $distance,
-                              help: "Along the run, from tape zero to your selected critical-bend line.")
-                        Picker("Angle of each bend", selection: $angle) {
-                            ForEach([10.0, 15.0, 22.5, 30.0, 45.0, 60.0], id: \.self) { a in
-                                Text("\(a.formatted())°").tag(a)
-                            }
-                        }
-                        .font(.subheadline)
-                        .pickerStyle(.menu)
-
-                        Picker("Critical bend", selection: $farCritical) {
-                            Text("Near bend").tag(false)
-                            Text("Far bend").tag(true)
-                        }
-                        .font(.subheadline)
-                        .pickerStyle(.segmented)
-                    }
+                    bendInputFields
                 }
 
                 section {
@@ -181,7 +160,7 @@ struct QuickBenderView: View {
                                 Text(mark.distance.measurement(units))
                                     .font(.title2.bold().monospacedDigit())
                                     .foregroundStyle(.white)
-                                Text("Measure from tape zero, then align the verified shoe reference.")
+                                Text(mark.shoeReference.contains("GEOMETRY") ? "Planning coordinate only — DO NOT align a shoe here." : "Measure from the stated datum; verify shoe ARROW/STAR/NOTCH alignment.")
                                     .font(.caption)
                                     .foregroundStyle(WorkbenchStyle.muted)
                             }
@@ -198,7 +177,7 @@ struct QuickBenderView: View {
                         Text(plan.detail)
                             .font(.caption)
                             .foregroundStyle(WorkbenchStyle.muted)
-                        Label(plan.warning, systemImage: "checkmark.shield")
+                        Label(plan.warning, systemImage: "exclamationmark.shield")
                             .font(.caption)
                             .foregroundStyle(.orange)
                             .fixedSize(horizontal: false, vertical: true)
@@ -217,10 +196,14 @@ struct QuickBenderView: View {
                         .font(.subheadline.weight(.semibold))
                     }
                     .buttonStyle(.plain)
-                    if showOptions && mode != .stub {
+                    if showOptions && [.offset, .rolling, .saddle3, .saddle4].contains(mode) {
                         entry("Verified minimum mark spacing (\(units.rawValue))",
                               id: "gap", value: $minimumGap,
                               help: "Optional: enter the minimum spacing recommended for YOUR shoe. If unknown, clearance is not verified.")
+                    }
+                    NavigationLink { PortalScreen(title: "3D advanced bender", path: "/bend-instruction-lab.html") } label: {
+                        Label("Full 3D multi-bend and detailed shoe directions", systemImage: "cube.transparent")
+                            .font(.subheadline)
                     }
                     Text("One straight 10-ft EMT length: \(units.stock.measurement(units)). A mark beyond the stock, or two marks closer than your entered minimum, is rejected. Bend arcs, hook access and springback still require a field check.")
                         .font(.caption)
@@ -244,12 +227,94 @@ struct QuickBenderView: View {
         .onChange(of: units) { oldValue, newValue in
             guard oldValue != newValue else { return }
             let factor: Double = newValue == .mm ? 25.4 : (1 / 25.4)
-            for converted in [$rise, $roll, $distance, $finishedStub, $deduct, $minimumGap] {
+            for converted in [$rise, $roll, $distance, $finishedStub, $deduct, $minimumGap, $width, $centre] {
                 if let value = Double(converted.wrappedValue), value.isFinite {
                     converted.wrappedValue = String(format: "%.3f", value * factor)
                 }
             }
         }
+    }
+
+    @ViewBuilder private var bendInputFields: some View {
+        Text("ENTER JOB DIMENSIONS")
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(WorkbenchStyle.cyan)
+        ninetyInputs
+        riseInputs
+    }
+
+    @ViewBuilder private var ninetyInputs: some View {
+                    if [.stub, .back, .kicked90].contains(mode) {
+                        entry("Finished first stub (\(units.rawValue))", id: "stub", value: $finishedStub,
+                              help: "From the original short end using the verified shoe reference.")
+                        entry("Actual shoe deduct (\(units.rawValue))", id: "deduct", value: $deduct,
+                              help: "Use your exact bender's measured or stamped deduct.")
+                        if savedDeductMm > 0 {
+                            Button {
+                                let converter = units == .mm ? 1.0 : 25.4
+                                deduct = String(format: "%.3f", savedDeductMm / converter)
+                            } label: {
+                                Text("Use measured deduct · \(savedName)")
+                                    .lineLimit(2)
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
+                        NavigationLink("Measure / edit shoe calibration") {
+                            BenderCalibrationView()
+                        }
+                        .font(.caption)
+                        if mode == .back {
+                            entry("Back-of-first-90 to second STAR (\(units.rawValue))",
+                                  id: "width", value: $width,
+                                  help: "Measure AFTER bending the first 90. Do not use original tape zero.")
+                        }
+                    }
+    }
+
+    @ViewBuilder private var riseInputs: some View {
+                    if [.offset, .rolling, .saddle3, .saddle4, .kicked90].contains(mode) {
+                        entry(mode == .kicked90 ? "Kick rise (\(units.rawValue))" : "Centreline rise (\(units.rawValue))",
+                              id: "rise", value: $rise,
+                              help: "Measure perpendicular to the original conduit run, including clearance.")
+                        if mode == .rolling {
+                            entry("Sideways roll (\(units.rawValue))", id: "roll", value: $roll,
+                                  help: "Horizontal shift, NOT diagonal distance.")
+                        }
+                        if [.offset, .rolling, .saddle4].contains(mode) {
+                            entry(mode == .saddle4 ? "Near obstacle face from tape 0 (\(units.rawValue))" : "Reference distance (\(units.rawValue))",
+                                  id: "distance", value: $distance,
+                                  help: "Measure along the original straight conduit run from tape zero.")
+                        }
+                        if mode == .saddle3 {
+                            entry("Obstruction CENTRE from tape 0 (\(units.rawValue))",
+                                  id: "centre", value: $centre,
+                                  help: "Measure to the centre, not the near edge of the obstruction.")
+                            Picker("Marking method", selection: $saddleMethod) {
+                                Text("Traditional notch + arrow").tag("Traditional")
+                                Text("Geometry only").tag("Geometry")
+                            }
+                            .pickerStyle(.menu)
+                        }
+                        if mode == .saddle4 {
+                            entry("Obstruction width (\(units.rawValue))", id: "width", value: $width,
+                                  help: "Measure along the original run, including required clearance.")
+                        }
+                        Picker(mode == .saddle3 ? "Centre bend angle" : "Angle of each bend", selection: $angle) {
+                            ForEach([10.0, 15.0, 22.5, 30.0, 45.0, 60.0], id: \.self) { a in
+                                Text("\(a.formatted())°").tag(a)
+                            }
+                        }
+                        .font(.subheadline)
+                        .pickerStyle(.menu)
+                        if [.offset, .rolling].contains(mode) {
+                            Picker("Critical bend", selection: $farCritical) {
+                                Text("Near bend").tag(false)
+                                Text("Far bend").tag(true)
+                            }
+                            .font(.subheadline)
+                            .pickerStyle(.segmented)
+                        }
+                    }
     }
 
     @ViewBuilder private func section<Content: View>(
@@ -297,7 +362,9 @@ struct QuickBenderView: View {
 
     private var datum: String {
         switch mode {
-        case .stub: "TAPE 0 = the short end of the finished 90°."
+        case .stub, .back, .kicked90: "TAPE 0 = the original short end of the first 90°."
+        case .saddle3: "TAPE 0 → CENTRE of the obstruction."
+        case .saddle4: "TAPE 0 → NEAR FACE of the obstruction."
         case .offset, .rolling: "TAPE 0 = one square end of the straight conduit."
         }
     }
@@ -316,6 +383,22 @@ struct QuickBenderView: View {
             return ["Measure the run distance from tape zero to the reference line.",
                     "Measure rise UP and sideways roll separately — not the diagonal.",
                     "The app combines them into the true offset; bend in the required rolled plane."]
+        case .back:
+            return ["Measure first finished stub and actual deduct from the short end.",
+                    "Bend the first 90 at its ARROW, then measure FROM ITS BACK for the second STAR.",
+                    "The second mark has a different reference, not the original tape end."]
+        case .saddle3:
+            return ["Measure from tape zero to the CENTRE of the obstruction.",
+                    "Measure the perpendicular clearance rise.",
+                    "Traditional centre NOTCH and outer ARROWS are shoe-method-specific."]
+        case .saddle4:
+            return ["Measure distance to the NEAR obstacle face, obstruction WIDTH, and clearance RISE.",
+                    "Four bend centres are geometric layout points, not verified shoe alignment marks.",
+                    "Use the 3D advanced bender and calibrate your shoe before fabrication."]
+        case .kicked90:
+            return ["Measure first finished stub from the short end and use actual deduct.",
+                    "Measure kick rise perpendicular to the first bent run.",
+                    "Kick rise alone cannot locate a physical kick mark; choose a measured kick datum."]
         }
     }
 
@@ -324,17 +407,26 @@ struct QuickBenderView: View {
         case .stub: "An L-shaped conduit; tape zero is at the end of the short upright stub."
         case .offset: "Two equal bends lift the conduit from the starting line to a higher parallel line."
         case .rolling: "A two-bend offset with vertical rise and sideways horizontal roll."
+        case .back: "Two opposing 90-degree bends; the second is marked from the back of the first."
+        case .saddle3: "Three bend saddle over an obstacle, with its centre above the obstacle."
+        case .saddle4: "Four bends lift a conduit over a wide obstacle and return it to the original plane."
+        case .kicked90: "A 90-degree stub followed by a separate kick; the kick needs a distinct datum."
         }
     }
 
     private var planState: PlanState {
-        let needed = mode == .stub
-            ? [finishedStub, deduct]
-            : (mode == .rolling ? [rise, roll, distance] : [rise, distance])
+        let needed: [String]
+        switch mode {
+        case .stub: needed = [finishedStub, deduct]
+        case .back: needed = [finishedStub, deduct, width]
+        case .kicked90: needed = [finishedStub, deduct, rise]
+        case .offset: needed = [rise, distance]
+        case .rolling: needed = [rise, roll, distance]
+        case .saddle3: needed = [rise, centre]
+        case .saddle4: needed = [rise, distance, width]
+        }
         guard needed.allSatisfy({ !$0.trimmingCharacters(in: .whitespaces).isEmpty }) else {
-            return .waiting(mode == .stub
-                            ? "Enter finished stub height and your bender's verified deduct."
-                            : "Enter rise and reference distance\(mode == .rolling ? " plus sideways roll" : "").")
+            return .waiting("Enter the measured job dimensions above. Results update as you type.")
         }
         do {
             return .ready(try calculatePlan())
@@ -355,7 +447,7 @@ struct QuickBenderView: View {
     private func calculatePlan() throws -> BendPlan {
         let stock = units.stock
         let shoeWarning = "Marks fit within 10 ft. Confirm shoe radius, hook clearance and springback on your actual bender."
-        if mode == .stub {
+        if [.stub, .back, .kicked90].contains(mode) {
             let required = try positive(finishedStub, label: "finished stub height")
             let takeup = try positive(deduct, label: "measured shoe deduct")
             guard required > takeup else {
@@ -365,10 +457,68 @@ struct QuickBenderView: View {
             guard mark <= stock && required <= stock else {
                 throw FieldError.invalid("CALCULATION NOT POSSIBLE on one 10-ft EMT length.")
             }
+            var extra = "Finished stub − verified deduct = ARROW distance. Check the finished dimension after bending."
+            if mode == .back {
+                let separation = try positive(width, label: "back-to-back spacing")
+                guard separation <= stock else {
+                    throw FieldError.invalid("Second 90 spacing exceeds one 10-ft piece.")
+                }
+                extra += "\nSECOND 90 · STAR: measure " + separation.measurement(units) +
+                    " from BACK of the first FINISHED 90, not the original tape zero. Hook faces remaining free end for matching shoes."
+            }
+            if mode == .kicked90 {
+                let height = try positive(rise, label: "kick rise")
+                let run = height / tan(angle * .pi / 180)
+                guard run.isFinite && run <= stock else {
+                    throw FieldError.invalid("Kick geometry cannot fit within the available 10-ft stock.")
+                }
+                extra += "\nKick projected travel " + run.measurement(units) +
+                    " at " + String(format: "%.1f", angle) +
+                    "°. This is NOT a physical kick mark. Locate it from a separate measured reference."
+            }
             return BendPlan(marks: [PencilMark(id: "A", distance: mark, shoeReference: "ARROW")],
-                            spacing: nil, shrink: nil,
-                            detail: "Finished stub − verified deduct = ARROW distance. Check the finished dimension after bending.",
-                            warning: shoeWarning)
+                            spacing: nil, shrink: nil, detail: extra,
+                            warning: mode == .stub ? shoeWarning :
+                                "Additional bends are NOT fully stock/clearance verified. Confirm developed length and shoe geometry.")
+        }
+
+        if mode == .saddle3 {
+            let height = try positive(rise, label: "obstacle clearance rise")
+            let obstacle = try positive(centre, label: "obstruction centre distance")
+            let sideAngle = angle / 2
+            let traditional = saddleMethod == "Traditional" && (angle == 30 || angle == 45)
+            let spacing = height * (traditional ? (angle == 45 ? 2.5 : 3.8) : 1 / sin(sideAngle * .pi / 180))
+            let shift = height * tan(sideAngle * .pi / 360)
+            let b = obstacle + shift
+            let points = [b-spacing, b, b+spacing]
+            try validateMarks(points, stock: stock)
+            return BendPlan(
+                marks: zip(["A","B","C"],points).map {
+                    PencilMark(id: $0.0, distance: $0.1,
+                               shoeReference: traditional ? ($0.0 == "B" ? "CHECK NOTCH" : "CHECK ARROW") : "GEOMETRY ONLY")
+                },
+                spacing: spacing, shrink: 2 * shift,
+                detail: "Centre bend " + angle.formatted() + "°, two outer bends " + sideAngle.formatted() +
+                    "°. Traditional 2.5/3.8 multipliers assume manufacturer-compatible notch/arrow references.",
+                warning: traditional
+                    ? "Verify the exact bender supports the traditional notch/arrow method; minimum shoe clearance and physical arcs are not proven."
+                    : "GEOMETRIC bend centres ONLY — not approved physical ARROW/NOTCH marks.")
+        }
+
+        if mode == .saddle4 {
+            let height = try positive(rise, label: "obstacle rise")
+            let near = try positive(distance, label: "near obstacle face")
+            let wide = try positive(width, label: "obstruction width")
+            let s = height / sin(angle * .pi / 180)
+            let shrink = height * tan(angle * .pi / 360)
+            let b = near + shrink
+            let coords = [b-s,b,b+wide,b+wide+s]
+            try validateMarks(coords, stock: stock)
+            return BendPlan(
+                marks: zip(["A","B","C","D"],coords).map { PencilMark(id: $0.0, distance: $0.1, shoeReference: "GEOMETRY ONLY") },
+                spacing: s, shrink: 2 * shrink,
+                detail: "Four bend-centre planning positions; the layout is two opposing offsets around the obstruction.",
+                warning: "DO NOT use these geometric bend centres as physical bender marks; use verified shoe references and check the bend arcs.")
         }
 
         let up = try positive(rise, label: "centreline rise")
@@ -380,16 +530,7 @@ struct QuickBenderView: View {
         let shrink = trueOffset * tan(radians / 2)
         let markA = farCritical ? along + shrink - spacing : along + shrink
         let markB = markA + spacing
-        guard [markA, markB, spacing, shrink].allSatisfy({ $0.isFinite }),
-              markA >= 0, markB <= stock else {
-            throw FieldError.invalid("CALCULATION NOT POSSIBLE: marks fall outside one 10-ft EMT length. Change the layout, angle, or stock.")
-        }
-        if !minimumGap.trimmingCharacters(in: .whitespaces).isEmpty {
-            let minGap = try positive(minimumGap, label: "minimum shoe spacing")
-            guard spacing >= minGap else {
-                throw FieldError.invalid("BENDS TOO CLOSE: this spacing is less than your bender's verified minimum.")
-            }
-        }
+        try validateMarks([markA, markB], stock: stock)
         let detail = farCritical
             ? "Far critical: B = reference distance + shrink; A = B − spacing."
             : "Near critical: A = reference distance + shrink; B = A + spacing."
@@ -399,6 +540,19 @@ struct QuickBenderView: View {
         return BendPlan(marks: [PencilMark(id: "A", distance: markA, shoeReference: "CHECK ARROW"),
                                 PencilMark(id: "B", distance: markB, shoeReference: "CHECK ARROW")],
                         spacing: spacing, shrink: shrink, detail: detail, warning: clearance)
+    }
+
+    private func validateMarks(_ marks: [Double], stock: Double) throws {
+        guard marks.allSatisfy({ $0.isFinite && $0 >= 0 && $0 <= stock }) else {
+            throw FieldError.invalid("CALCULATION NOT POSSIBLE: a plotted mark exceeds the 10-ft stock.")
+        }
+        if !minimumGap.trimmingCharacters(in: .whitespaces).isEmpty {
+            let gap = try positive(minimumGap, label: "minimum shoe spacing")
+            let sorted = marks.sorted()
+            for idx in 1..<sorted.count where sorted[idx] - sorted[idx-1] < gap {
+                throw FieldError.invalid("BENDS TOO CLOSE: marks are closer than the verified shoe spacing.")
+            }
+        }
     }
 }
 
@@ -411,7 +565,7 @@ private struct BendSketch: View {
             let height = geometry.size.height
             Canvas { context, _ in
                 var line = Path()
-                if mode == .stub {
+                if [.stub, .back, .kicked90].contains(mode) {
                     line.move(to: CGPoint(x: width * 0.27, y: 12))
                     line.addLine(to: CGPoint(x: width * 0.27, y: height * 0.74))
                     line.addLine(to: CGPoint(x: width - 14, y: height * 0.74))
@@ -427,10 +581,10 @@ private struct BendSketch: View {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("TAPE 0")
-                    Text(mode == .stub ? "Short end" : "Reference end")
+                    Text([BendMode.stub, .back, .kicked90].contains(mode) ? "Short end" : "Reference end")
                 }
                 Spacer()
-                Text(mode == .stub ? "Finished 90°" : (mode == .rolling ? "Rise ↑ + roll ↔" : "Rise ↑"))
+                Text([BendMode.stub, .back, .kicked90].contains(mode) ? "First 90°" : (mode == .rolling ? "Rise ↑ + roll ↔" : "Rise ↑"))
             }
             .font(.caption2.bold())
             .foregroundStyle(.white)

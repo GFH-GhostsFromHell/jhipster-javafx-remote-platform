@@ -5,11 +5,13 @@ on:
     branches: [main, development/functionality]
     paths:
       - 'ios-client/**'
+      - 'scripts/validate-ios-parity.cjs'
       - '.github/workflows/build-ios-client.yml'
   pull_request:
     branches: [main]
     paths:
       - 'ios-client/**'
+      - 'scripts/validate-ios-parity.cjs'
       - '.github/workflows/build-ios-client.yml'
   workflow_dispatch:
 
@@ -30,6 +32,8 @@ jobs:
       - name: Select Xcode
         run: |
           xcodebuild -version
+      - name: Validate iOS study bank and release manifest
+        run: node ../scripts/validate-ios-parity.cjs
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project

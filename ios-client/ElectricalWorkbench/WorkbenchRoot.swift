@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct WorkbenchRoot: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var updates = IOSUpdateMonitor()
+
     var body: some View {
         TabView {
             NavigationStack {
@@ -25,7 +28,7 @@ struct WorkbenchRoot: View {
             }
 
             NavigationStack {
-                PortalScreen(title: "Your account", path: "/")
+                AccountCentreView(updates: updates)
             }
             .tabItem {
                 Label("Account", systemImage: "person.crop.circle")
@@ -33,6 +36,28 @@ struct WorkbenchRoot: View {
         }
         .toolbarBackground(WorkbenchStyle.background, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .safeAreaInset(edge: .top) {
+            if let url = updates.availableURL {
+                Link(destination: url) {
+                    Label("New iOS version available · Open App Store", systemImage: "arrow.down.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(9)
+                        .background(WorkbenchStyle.surface)
+                }
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                await updates.checkIfDue()
+                try? await Task.sleep(nanoseconds: 1_800_000_000_000)
+            }
+        }
+        .onChange(of: scenePhase) { _, next in
+            if next == .active {
+                Task { await updates.checkIfDue() }
+            }
+        }
     }
 }
 
@@ -80,6 +105,61 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    TroubleshootingOfflineView()
+                } label: {
+                    HomeDestination(
+                        icon: "wrench.and.screwdriver",
+                        title: "Offline troubleshooting",
+                        detail: "21 motor, PLC, VFD, mining and protection guides"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    FabricationView()
+                } label: {
+                    HomeDestination(
+                        icon: "square.stack.3d.up",
+                        title: "Conduit fabrication",
+                        detail: "Offline bend gain, cut length, and parallel rack marks"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    PracticeQuizView()
+                } label: {
+                    HomeDestination(
+                        icon: "checklist",
+                        title: "Daily 309A quiz · 25 questions",
+                        detail: "Five categories, worked answers, offline study"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    BenderCalibrationView()
+                } label: {
+                    HomeDestination(
+                        icon: "slider.horizontal.3",
+                        title: "Save bender calibration",
+                        detail: "Measure your shoe deduct and gain with scrap"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    PullBoxSizingView()
+                } label: {
+                    HomeDestination(
+                        icon: "square.dashed",
+                        title: "Pull-box sizing",
+                        detail: "Straight, angle, U, mixed, and back-wall pulls"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     PortalScreen(title: "Guided CEC calculators", path: "/guided-calculators.html")
                 } label: {
                     HomeDestination(
@@ -90,7 +170,7 @@ struct WorkbenchHome: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("The quick bender works without internet. Web tools and account features need a connection. Confirm shoe data and code requirements before using field results.")
+                Text("Native bending, bender calibration, pull-box sizing and daily quizzes work offline. Cloud CEC worksheets and 3D preview require a connection. Verify job and code conditions before fabrication.")
                     .font(.footnote)
                     .foregroundStyle(WorkbenchStyle.muted)
                     .padding(.top, 4)

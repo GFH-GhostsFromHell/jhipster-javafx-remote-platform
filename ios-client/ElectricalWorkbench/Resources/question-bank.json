@@ -1,0 +1,327 @@
+[
+  {
+    "category": "A — Common Occupational Skills",
+    "question": "A hydraulic press operates at 15,000 psi with a piston area of 2 in². What force is produced?",
+    "options": [
+      "7,500 lb",
+      "15,000 lb",
+      "30,000 lb",
+      "45,000 lb"
+    ],
+    "correctIndex": 2,
+    "explanation": "Force = pressure × area = 15,000 × 2 = 30,000 lb.",
+    "reference": "Trade math / hydraulic force"
+  },
+  {
+    "category": "A — Common Occupational Skills",
+    "question": "A 400:5 CT has 2.5 A on the secondary. What primary current is flowing?",
+    "options": [
+      "100 A",
+      "150 A",
+      "200 A",
+      "400 A"
+    ],
+    "correctIndex": 2,
+    "explanation": "The CT ratio is 80:1. 2.5 A × 80 = 200 A.",
+    "reference": "CT ratio calculation"
+  },
+  {
+    "category": "A — Common Occupational Skills",
+    "question": "What is the usual ladder setup ratio for a straight/extension ladder?",
+    "options": [
+      "1:2",
+      "1:3",
+      "1:4",
+      "1:6"
+    ],
+    "correctIndex": 2,
+    "explanation": "A common safe setup is about 1 unit out for every 4 units of vertical height.",
+    "reference": "Occupational safety"
+  },
+  {
+    "category": "A — Common Occupational Skills",
+    "question": "A VFD uses a 4–20 mA speed command for 0–1800 rpm. What signal represents 1200 rpm?",
+    "options": [
+      "10.7 mA",
+      "12.0 mA",
+      "14.7 mA",
+      "16.0 mA"
+    ],
+    "correctIndex": 2,
+    "explanation": "1200/1800 = 0.6667. 0.6667 × 16 mA = 10.67 mA above live zero; +4 mA = 14.67 mA.",
+    "reference": "Controls / 4–20 mA scaling"
+  },
+  {
+    "category": "A — Common Occupational Skills",
+    "question": "Which document should be checked before using electrical equipment in a way that may differ from normal installation practice?",
+    "options": [
+      "Only the panel schedule",
+      "Manufacturer instructions and equipment markings",
+      "Only the single-line diagram",
+      "Only the purchase order"
+    ],
+    "correctIndex": 1,
+    "explanation": "Approval, markings, ratings and manufacturer instructions are part of determining suitable use.",
+    "reference": "General installation practice"
+  },
+  {
+    "category": "B — Generating, Distribution and Service Systems",
+    "question": "A 3-phase 75 kVA transformer has a 600 V primary. Approximately what is the primary full-load current?",
+    "options": [
+      "48 A",
+      "72 A",
+      "96 A",
+      "125 A"
+    ],
+    "correctIndex": 1,
+    "explanation": "I = 75,000 /(√3 × 600) ≈ 72.2 A.",
+    "reference": "Transformer calculation"
+  },
+  {
+    "category": "B — Generating, Distribution and Service Systems",
+    "question": "For a 3-phase load, which factor appears in the line-current power relationship?",
+    "options": [
+      "0.5",
+      "0.707",
+      "0.866 / √3 relationship",
+      "2.0"
+    ],
+    "correctIndex": 2,
+    "explanation": "Three-phase calculations use √3; 0.866 is √3/2 and commonly appears in rearranged trade formulas.",
+    "reference": "Three-phase calculations"
+  },
+  {
+    "category": "B — Generating, Distribution and Service Systems",
+    "question": "Which service-calculation section would you use for a hospital occupancy in the app?",
+    "options": [
+      "Residential",
+      "Apartment",
+      "Hospital",
+      "Welder"
+    ],
+    "correctIndex": 2,
+    "explanation": "Hospital demand calculations are treated separately from dwelling and other occupancy calculations.",
+    "reference": "CEC 2024 Section 8 study workflow"
+  },
+  {
+    "category": "B — Generating, Distribution and Service Systems",
+    "question": "A transformer has 3% impedance. Ignoring upstream impedance, the approximate secondary fault current at its terminals is full-load current multiplied by what?",
+    "options": [
+      "3",
+      "10",
+      "33.3",
+      "100"
+    ],
+    "correctIndex": 2,
+    "explanation": "Available fault current ≈ FLA / Zpu = FLA / 0.03 ≈ 33.3 × FLA.",
+    "reference": "Transformer impedance / fault current"
+  },
+  {
+    "category": "B — Generating, Distribution and Service Systems",
+    "question": "In an open-delta bank made from two equal transformers, the bank kVA is approximately what percentage of the original closed-delta bank rating?",
+    "options": [
+      "50%",
+      "57.7%",
+      "66.7%",
+      "86.6%"
+    ],
+    "correctIndex": 1,
+    "explanation": "Open-delta capacity is approximately 57.7% of the equivalent closed-delta bank capacity.",
+    "reference": "Transformer banks"
+  },
+  {
+    "category": "C — Wiring Systems",
+    "question": "A 24 V fire-alarm circuit has a 3.9 kΩ end-of-line resistor. What current flows?",
+    "options": [
+      "0.0006 A",
+      "0.0062 A",
+      "0.062 A",
+      "6.2 A"
+    ],
+    "correctIndex": 1,
+    "explanation": "I = 24/3900 ≈ 0.00615 A, or about 6.15 mA.",
+    "reference": "Ohm's law / EOL circuit"
+  },
+  {
+    "category": "C — Wiring Systems",
+    "question": "Which table family is commonly used for raceway fill dimensions in CEC study problems?",
+    "options": [
+      "Table 2 only",
+      "Table 9 series",
+      "Table 44 only",
+      "Table 65 only"
+    ],
+    "correctIndex": 1,
+    "explanation": "The Table 9 series is used for raceway dimensions/fill-related work depending on raceway type.",
+    "reference": "CEC 2024 Table 9 series"
+  },
+  {
+    "category": "C — Wiring Systems",
+    "question": "A 347/600 V lighting circuit neutral was not counted as a current-carrying conductor in the specific balanced linear-load example discussed in the study bank. What should you do on a real installation?",
+    "options": [
+      "Always ignore every neutral",
+      "Always count every neutral",
+      "Apply the actual CEC neutral/current-carrying-conductor rule for the load",
+      "Remove the neutral"
+    ],
+    "correctIndex": 2,
+    "explanation": "Neutral treatment depends on the circuit and load characteristics; verify the actual rule rather than applying a blanket shortcut.",
+    "reference": "CEC conductor grouping study note"
+  },
+  {
+    "category": "C — Wiring Systems",
+    "question": "When calculating a two-bend offset, the distance between marks is the offset height multiplied by what?",
+    "options": [
+      "Bend multiplier",
+      "Conductor K factor",
+      "Power factor",
+      "Transformer ratio"
+    ],
+    "correctIndex": 0,
+    "explanation": "Offset spacing = desired offset × the multiplier for the chosen bend angle.",
+    "reference": "Conduit bending"
+  },
+  {
+    "category": "C — Wiring Systems",
+    "question": "What is the purpose of an expansion fitting in a long PVC raceway run?",
+    "options": [
+      "Increase conductor ampacity",
+      "Accommodate thermal movement",
+      "Reduce fault current",
+      "Increase box fill"
+    ],
+    "correctIndex": 1,
+    "explanation": "PVC changes length with temperature; expansion fittings accommodate that movement where required.",
+    "reference": "PVC raceway installation"
+  },
+  {
+    "category": "D — Motors and Control Systems",
+    "question": "To reverse a 3-phase induction motor, what is normally done?",
+    "options": [
+      "Reverse all three leads",
+      "Swap any two phase leads",
+      "Swap neutral and bond",
+      "Increase overload setting"
+    ],
+    "correctIndex": 1,
+    "explanation": "Swapping any two phase conductors reverses phase sequence and motor direction.",
+    "reference": "Motor controls"
+  },
+  {
+    "category": "D — Motors and Control Systems",
+    "question": "A wye-delta starter applies approximately what percentage of direct-on-line starting voltage to each winding during wye starting?",
+    "options": [
+      "33%",
+      "50%",
+      "58%",
+      "100%"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each winding sees about 1/√3 = 57.7% of line voltage during wye starting.",
+    "reference": "Motor starting"
+  },
+  {
+    "category": "D — Motors and Control Systems",
+    "question": "Which control method is generally best for adjustable motor speed when a suitable AC motor is used?",
+    "options": [
+      "Fixed resistor",
+      "VFD",
+      "Fuse size change",
+      "Swap two leads repeatedly"
+    ],
+    "correctIndex": 1,
+    "explanation": "A variable-frequency drive provides controlled frequency/voltage for adjustable AC motor speed.",
+    "reference": "VFD application"
+  },
+  {
+    "category": "D — Motors and Control Systems",
+    "question": "In a standard 3-wire motor control circuit, what happens when the STOP pushbutton opens the control circuit?",
+    "options": [
+      "Motor speeds up",
+      "Motor stops",
+      "Motor reverses",
+      "Overload is bypassed"
+    ],
+    "correctIndex": 1,
+    "explanation": "Opening the normally closed stop path de-energizes the starter coil and stops the motor.",
+    "reference": "3-wire control"
+  },
+  {
+    "category": "D — Motors and Control Systems",
+    "question": "A shunt DC motor generally has what speed characteristic compared with a series DC motor?",
+    "options": [
+      "More nearly constant speed",
+      "Always zero starting torque",
+      "No commutator",
+      "Cannot be speed controlled"
+    ],
+    "correctIndex": 0,
+    "explanation": "Shunt motors are known for relatively constant speed; series motors have high starting torque and larger speed variation.",
+    "reference": "DC machines"
+  },
+  {
+    "category": "E — Signalling and Communication Systems",
+    "question": "What is the approximate current through a 3.9 kΩ EOL resistor on a 24 V signalling circuit?",
+    "options": [
+      "0.6 mA",
+      "6.2 mA",
+      "62 mA",
+      "620 mA"
+    ],
+    "correctIndex": 1,
+    "explanation": "24/3900 ≈ 0.00615 A = 6.15 mA.",
+    "reference": "Fire alarm / signalling"
+  },
+  {
+    "category": "E — Signalling and Communication Systems",
+    "question": "A Class A fire-alarm circuit differs from a Class B circuit primarily because Class A wiring is arranged to provide what?",
+    "options": [
+      "Higher voltage only",
+      "A return path / improved survivability after a single open",
+      "No end-of-line supervision",
+      "No fault monitoring"
+    ],
+    "correctIndex": 1,
+    "explanation": "Class A topology returns to the source/control unit so a single open does not necessarily remove all devices beyond the break.",
+    "reference": "Fire alarm circuit topology"
+  },
+  {
+    "category": "E — Signalling and Communication Systems",
+    "question": "When optical fibre and electrical Class 2 conductors share pathways or spaces, what should be checked?",
+    "options": [
+      "Only fibre colour",
+      "CEC separation and cable-rating requirements",
+      "Only conductor ampacity",
+      "Motor overload size"
+    ],
+    "correctIndex": 1,
+    "explanation": "Communications/fibre and power/control conductors have separation and suitability requirements that must be verified.",
+    "reference": "CEC communications / Class 2 study"
+  },
+  {
+    "category": "E — Signalling and Communication Systems",
+    "question": "For fire-alarm output circuits such as NACs, the final conductor and fuse limits should be based on what?",
+    "options": [
+      "Any convenient fuse size",
+      "Listed control-unit/power-supply ratings plus Code requirements",
+      "Only the building service size",
+      "Only conductor colour"
+    ],
+    "correctIndex": 1,
+    "explanation": "Listed equipment ratings and manufacturer instructions are critical for signalling outputs in addition to Code requirements.",
+    "reference": "Fire alarm equipment"
+  },
+  {
+    "category": "E — Signalling and Communication Systems",
+    "question": "What does an end-of-line device primarily help a supervised signalling circuit detect?",
+    "options": [
+      "Motor direction",
+      "Open-circuit wiring faults",
+      "Transformer polarity only",
+      "Power factor"
+    ],
+    "correctIndex": 1,
+    "explanation": "The EOL device allows the control equipment to supervise field wiring continuity and detect opens/fault conditions.",
+    "reference": "Supervised signalling circuits"
+  }
+]
