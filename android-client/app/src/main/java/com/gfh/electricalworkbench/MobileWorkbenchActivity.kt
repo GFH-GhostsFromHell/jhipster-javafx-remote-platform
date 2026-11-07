@@ -596,6 +596,16 @@ private fun MobileProfile(
             OutlinedButton(onClick = { MobileAccountSync.schedule(context) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Sync saved records now")
             }
+            OutlinedButton(onClick = {
+                val backup = MobileAccountSync.conflictExport(context, session.username)
+                val share = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_TEXT, backup)
+                }
+                context.startActivity(Intent.createChooser(share, "Export sync conflict backups"))
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text("Review / share sync conflict backups")
+            }
             Button(onClick = { onOpenWeb("/field-suite.html#projects") }, modifier = Modifier.fillMaxWidth()) {
                 Text("Open shared project records")
             }
