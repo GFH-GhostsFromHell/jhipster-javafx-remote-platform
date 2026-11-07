@@ -35,7 +35,7 @@ for (const q of bank) {
 }
 const rootUI = fs.readFileSync(path.join(ios, 'WorkbenchRoot.swift'), 'utf8');
 const navigation = fs.readFileSync(path.join(ios, 'WorkbenchTools.swift'), 'utf8');
-for (const screen of ['QuickBenderView','PullBoxSizingView','BenderCalibrationView','PracticeQuizView']) {
+for (const screen of ['QuickBenderView','PullBoxSizingView','BenderCalibrationView','PracticeQuizView','FabricationView']) {
   if (!rootUI.includes(screen) && !navigation.includes(screen)) {
     throw new Error('Missing native iOS screen link: ' + screen);
   }
