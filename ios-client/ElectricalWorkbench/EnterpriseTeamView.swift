@@ -129,7 +129,7 @@ struct EnterpriseTeamView: View {
             let data = try await account.api("/api/enterprise/membership")
             membership = try JSONDecoder().decode(EnterpriseMembership.self, from: data)
         } catch {
-            error = "Business membership could not be verified: " + error.localizedDescription
+            self.error = "Business membership could not be verified: " + error.localizedDescription
         }
         guard account.feature("ENTERPRISE_TEAM_MANAGEMENT") else { return }
         do {
