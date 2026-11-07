@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct WorkbenchRoot: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var updates = IOSUpdateMonitor()
+
     var body: some View {
         TabView {
             NavigationStack {
@@ -25,7 +28,7 @@ struct WorkbenchRoot: View {
             }
 
             NavigationStack {
-                AccountCentreView()
+                AccountCentreView(updates: updates)
             }
             .tabItem {
                 Label("Account", systemImage: "person.crop.circle")
@@ -33,6 +36,28 @@ struct WorkbenchRoot: View {
         }
         .toolbarBackground(WorkbenchStyle.background, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .safeAreaInset(edge: .top) {
+            if let url = updates.availableURL {
+                Link(destination: url) {
+                    Label("New iOS version available · Open App Store", systemImage: "arrow.down.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(9)
+                        .background(WorkbenchStyle.surface)
+                }
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                await updates.checkIfDue()
+                try? await Task.sleep(nanoseconds: 1_800_000_000_000)
+            }
+        }
+        .onChange(of: scenePhase) { _, next in
+            if next == .active {
+                Task { await updates.checkIfDue() }
+            }
+        }
     }
 }
 
