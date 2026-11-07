@@ -8,6 +8,7 @@ on:
     paths:
       - 'portal/**'
       - 'scripts/validate-field-tools.cjs'
+      - 'scripts/validate-account-sync.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
     paths:
       - 'portal/**'
       - 'scripts/validate-field-tools.cjs'
+      - 'scripts/validate-account-sync.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
 
@@ -30,6 +32,8 @@ jobs:
         uses: actions/checkout@v5
       - name: Validate static field tools and troubleshooting KB
         run: node scripts/validate-field-tools.cjs
+      - name: Validate account sync and offline conflict handling
+        run: node scripts/validate-account-sync.cjs
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
