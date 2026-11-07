@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 const PREFIX='ewb.sync.v1.';
-let busy=false, pending=false;
+const busy=new Set(), pending=new Set();
 const messageHandlers=[];
 function notify(message){messageHandlers.forEach(fn=>{try{fn(message)}catch(_){}})}
 function uuid(){return 'w'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_.:-]/g,'')}
@@ -24,8 +24,8 @@ function backup(bucket,rows){try{
  localStorage.setItem(key,JSON.stringify(combined))
 }catch(_){}}
 async function syncArray(bucket,key,onApplied){
- if(busy){pending=true;return}
- busy=true;
+ if(busy.has(bucket)){pending.add(bucket);return}
+ busy.add(bucket);
  try{
   const original=parse(key);
   const previous=(()=>{try{return JSON.parse(localStorage.getItem(bucketKey(bucket))||'{}')}catch(_){return {}}})();
@@ -92,7 +92,7 @@ async function syncArray(bucket,key,onApplied){
   const note=result.conflicts.length?'Synced with '+result.conflicts.length+' conflict(s); local backups retained.':'Synced '+fresh.filter(x=>!x.deleted).length+' records.';
   notify(note);
  }catch(err){notify('Offline changes kept on this device. '+(err.message||'Sync failed'))}
- finally{busy=false;if(pending){pending=false;setTimeout(()=>syncArray(bucket,key,onApplied),1500)}}
+ finally{busy.delete(bucket);if(pending.has(bucket)){pending.delete(bucket);setTimeout(()=>syncArray(bucket,key,onApplied),1500)}}
 }
 const jobs=[];
 function register(bucket,key,onApplied){
