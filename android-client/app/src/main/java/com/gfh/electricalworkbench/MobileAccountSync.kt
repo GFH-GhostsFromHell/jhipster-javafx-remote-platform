@@ -38,6 +38,18 @@ internal object MobileAccountSync {
         status = "Sync disconnected"
     }
 
+    fun conflictExport(context: Context, user: String): String {
+        val safe = user.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val prefs = context.getSharedPreferences("electrical_workbench_" + safe, Context.MODE_PRIVATE)
+        val result = JSONObject().put("account", user)
+        for (bucket in buckets) {
+            val raw = prefs.getString("sync_conflicts_" + bucket, "[]").orEmpty()
+            val items = runCatching { JSONArray(raw) }.getOrDefault(JSONArray())
+            if (items.length() > 0) result.put(bucket, items)
+        }
+        return result.toString(2)
+    }
+
     fun schedule(context: Context) {
         if (username == null) return
         Thread {
