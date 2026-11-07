@@ -239,6 +239,14 @@ final class AccountRecordSync: ObservableObject {
             merged.append(item)
         }
 
+        // SwiftUI may save a new local record while network calls are suspended.
+        // Never replace those more recent edits with the older merge snapshot.
+        let currentLocal = loadNative(bucket:bucket,user:user,key:key)
+        if currentLocal.map({ canonical($0) }).joined(separator:"\n") !=
+            local.map({ canonical($0) }).joined(separator:"\n") {
+            status = "Local changes arrived during sync; preserving them for the next pass."
+            return
+        }
         if JSONSerialization.isValidJSONObject(merged) {
             let old = local.map { canonical($0) }.joined(separator:"\n")
             let new = merged.map { canonical($0) }.joined(separator:"\n")
