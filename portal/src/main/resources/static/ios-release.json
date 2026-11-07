@@ -1,0 +1,7 @@
+{
+  "platform": "ios",
+  "latestVersion": "0.1.0",
+  "appStoreUrl": "",
+  "minimumOS": "17.0",
+  "releaseNotes": "Electrical Workbench iOS native field tools and shared cloud calculators. App Store distribution is not configured yet."
+}
