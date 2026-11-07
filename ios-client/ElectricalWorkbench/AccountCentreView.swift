@@ -17,13 +17,13 @@ final class IOSUpdateMonitor: ObservableObject {
     private var lastCheck = Date.distantPast
 
     func checkIfDue(force: Bool = false) async {
-        if checking || (!force && Date().timeIntervalSince(lastCheck) < 24 * 3600) {
+        if checking || (!force && Date().timeIntervalSince(lastCheck) < 30 * 60) {
             return
         }
         checking = true
         lastCheck = Date()
         defer { checking = false }
-        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.0"
         guard let endpoint = URL(string: "https://remote-javafx-portal.onrender.com/ios-release.json") else {
             message = "No release feed configured."
             return
@@ -73,8 +73,7 @@ final class IOSUpdateMonitor: ObservableObject {
 }
 
 struct AccountCentreView: View {
-    @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var updates = IOSUpdateMonitor()
+    @ObservedObject var updates: IOSUpdateMonitor
 
     var body: some View {
         List {
@@ -143,10 +142,5 @@ struct AccountCentreView: View {
         .background(WorkbenchStyle.background)
         .navigationTitle("Account")
         .task { await updates.checkIfDue() }
-        .onChange(of: scenePhase) { _, next in
-            if next == .active {
-                Task { await updates.checkIfDue() }
-            }
-        }
     }
 }
