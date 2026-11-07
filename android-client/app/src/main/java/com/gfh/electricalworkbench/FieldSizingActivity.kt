@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.KeyboardType
 import java.util.Locale
 import kotlin.math.*
@@ -195,6 +196,69 @@ private fun pullBoxMath(entries:List<PipeEntry>,type:String,u:String,od:Double):
         }
     }
 }
+
+/** Compact, offline measurement instructions. A job dimension is NOT a bender mark. */
+@Composable private fun BendMeasureGuide(type:String) {
+    val (datum,steps)=when(type) {
+        "Offset" -> "0 ─────────→ critical reference line" to listOf(
+            "From one square conduit end (tape 0), measure to your chosen critical-bend reference line.",
+            "Rise ↑ = perpendicular change from starting to final conduit CENTRELINE, with clearance.",
+            "Enter each bend angle. The app calculates both ARROW tape marks from the same end."
+        )
+        "Rolling offset" -> "0 ─────────→ reference line" to listOf(
+            "From tape zero, measure along the run to your reference line.",
+            "Rise ↑ = vertical shift. Roll ↔ = SIDEWAYS shift. Measure these separately, not diagonally.",
+            "The calculator combines rise and roll into the true offset before setting ARROW marks."
+        )
+        "90° stub" -> "TAPE 0 = end that becomes the short stub" to listOf(
+            "Measure the required FINISHED stub height from the short end.",
+            "Read the real take-up/deduct on your shoe, or use your saved test-bend calibration.",
+            "Pencil ARROW mark = finished stub height − actual deduct. Align your shoe ARROW there."
+        )
+        "Back-to-back 90s" -> "FIRST: short end → 90. SECOND: BACK of bend → STAR" to listOf(
+            "Measure the first finished 90 stub from its short end and subtract your shoe deduct.",
+            "Bend the first 90. Only then measure the second spacing from the BACK of that bend.",
+            "Use the STAR/back-of-90 reference for the second 90 — never the original end datum."
+        )
+        "Three-point saddle" -> "0 ─────────→ CENTRE of obstacle" to listOf(
+            "Measure along the straight run from tape 0 to the obstruction CENTRE.",
+            "Height ↑ = required centreline lift over the obstruction, including clearance.",
+            "Verify your exact shoe supports centre NOTCH and two outer ARROW marks."
+        )
+        "Four-point saddle" -> "0 ─────────→ NEAR FACE of obstacle" to listOf(
+            "Measure tape 0 to the near face; then measure the obstacle WIDTH along the run.",
+            "Measure the perpendicular clearance rise above the starting centreline.",
+            "This is geometric planning; do not use unverified preview points as shoe marks."
+        )
+        "Kicked 90°" -> "0 → first 90 | kick point needs a second job reference" to listOf(
+            "Measure the first finished stub and use your exact 90° deduct.",
+            "Measure required kick rise ↑ and choose the kick angle.",
+            "Rise alone does NOT establish the kick pencil mark. Lay it out from a measured datum."
+        )
+        else -> "Choose a bend and measure from a known datum." to listOf(
+            "Use a consistent tape-zero end for the job layout.",
+            "Measure perpendicular rises separately from distances along the run.",
+            "Confirm the shoe's physical ARROW/STAR/NOTCH alignment before bending."
+        )
+    }
+    OutlinedCard(modifier=Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(11.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            Text("HOW TO MEASURE • BEFORE YOU MARK",color=Color(0xFF91EEE4),fontSize=13.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(datum,color=Color(0xFFF1F5F9),fontSize=14.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+            steps.forEachIndexed { index, item ->
+                Text("${index+1}. $item",color=Color(0xFFD5E6F2),fontSize=13.sp,lineHeight=18.sp)
+            }
+            Text("Job measurements ≠ physical shoe marks; sketch not to scale.",color=Color(0xFFF2C87F),fontSize=12.sp)
+        }
+    }
+}
+@Composable private fun BendMeasureField(label:String,detail:String,value:String,change:(String)->Unit) {
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+        NumberInput(label,value,change)
+        Text(detail,color=Color(0xFFB6D4E5),fontSize=12.sp,lineHeight=16.sp)
+    }
+}
+
 private val bends=listOf("Offset","Rolling offset","90° stub","Three-point saddle","Four-point saddle","Back-to-back 90s","Kicked 90°")
 @Composable private fun BenderMobile() {
     val context=LocalContext.current
@@ -215,9 +279,10 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     var precision by remember { mutableStateOf("1 mm") }
     var showMoreOptions by remember { mutableStateOf(false) }
     var showOrientationDetails by remember { mutableStateOf(false) }
-    Text("Conduit bending · quick marks",style=MaterialTheme.typography.titleLarge)
-    Text("Uses geometric centreline dimensions. Always confirm shoe deduct, arrow/star/saddle-notch alignment and springback.")
+    Text("Conduit bending · quick marks",fontSize=19.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+    Text("Pick your bend, measure the job, then read the pencil marks below.",fontSize=13.sp,color=Color(0xFFB6D4E5))
     FieldDropdown("Bend",bend,bends){bend=it}
+    BendMeasureGuide(bend)
     FieldDropdown("Input units",units,listOf("mm","in")){next->
         if(next!=units){
             val factor=if(next=="in")1/25.4 else 25.4
@@ -228,20 +293,28 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     }
     if(bend!="90° stub"&&bend!="Back-to-back 90s")FieldDropdown("Bend angle",angle,listOf("10","15","22.5","30","45","60")){angle=it}
     if(bend=="Three-point saddle")FieldDropdown("Saddle marking method",saddleMethod,listOf("Traditional notch & outer arrow","Geometric bend centres ONLY")){saddleMethod=it}
-    if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle","Kicked 90°"))NumberInput("Rise/height ("+units+")",rise){rise=it}
-    if(bend=="Rolling offset")NumberInput("Horizontal roll ("+units+")",roll){roll=it}
-    if(bend in listOf("Offset","Rolling offset","Four-point saddle"))NumberInput("Reference / obstacle distance ("+units+")",distance){distance=it}
+    if(bend in listOf("Offset","Rolling offset","Three-point saddle","Four-point saddle","Kicked 90°"))
+        BendMeasureField("Rise / lift ("+units+")",
+            if(bend=="Kicked 90°") "Required kick rise, measured perpendicular to the existing run."
+            else "Required CENTRELINE rise, measured perpendicular to the original run.",rise){rise=it}
+    if(bend=="Rolling offset") BendMeasureField("Sideways roll ("+units+")","Horizontal sideways shift; do not enter the diagonal.",roll){roll=it}
+    if(bend in listOf("Offset","Rolling offset","Four-point saddle"))
+        BendMeasureField("Distance from tape 0 ("+units+")",
+            if(bend=="Four-point saddle") "Along the run to the NEAR FACE of the obstacle."
+            else "Along the run to your chosen critical-bend reference line.",distance){distance=it}
     if(bend in listOf("90° stub","Back-to-back 90s","Kicked 90°")){
-        NumberInput("Desired stub ("+units+")",stub){stub=it}
-        NumberInput("Take-up / deduct from your bender ("+units+")",takeup){takeup=it}
+        BendMeasureField("Finished 90 stub ("+units+")","From the short end to the finished back-of-90 reference.",stub){stub=it}
+        BendMeasureField("Your shoe deduct ("+units+")","Read from the shoe or measure with a scrap 90; do not assume a default.",takeup){takeup=it}
          OutlinedButton(onClick={
              val saved=LocalBenderCalibration.measured(context,"deduct",units)
              if(saved==null) result="No saved shoe deduct. Open Bender Calibration, measure a 90° test stub and save it."
              else {takeup=String.format(Locale.ROOT,"%.4f",saved);result="Loaded "+LocalBenderCalibration.description(context)+". Confirm this is the same physical bender and conduit."}
          },modifier=Modifier.fillMaxWidth()) { Text("Use saved bender calibration") }
     }
-    if(bend=="Three-point saddle")NumberInput("Obstruction centre from datum ("+units+")",centre){centre=it}
-    if(bend in listOf("Four-point saddle","Back-to-back 90s"))NumberInput("Obstacle width / back-to-back distance ("+units+")",width){width=it}
+    if(bend=="Three-point saddle") BendMeasureField("Obstacle CENTRE from tape 0 ("+units+")","Measure along the straight run to the obstruction centre.",centre){centre=it}
+    if(bend in listOf("Four-point saddle","Back-to-back 90s"))
+        BendMeasureField(if(bend=="Back-to-back 90s")"Back-to-back distance ("+units+")" else "Obstacle width ("+units+")",
+            if(bend=="Back-to-back 90s")"After first 90: measure from BACK of finished bend to second STAR." else "Measure along the conduit run, including intended clearances.",width){width=it}
     Text("10 ft EMT stock limit: "+if(units=="mm")"3,048 mm" else "120 in",color=Color(0xFF91E5D5))
     OutlinedButton(onClick = { showMoreOptions = !showMoreOptions }, modifier = Modifier.fillMaxWidth()) {
         Text(if (showMoreOptions) "Hide additional settings ▲" else "More options · precision, references & shoe spacing ▼")
@@ -268,7 +341,7 @@ private val bends=listOf("Offset","Rolling offset","90° stub","Three-point sadd
     OutlinedCard(modifier=Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text("FIELD RESULT",style=MaterialTheme.typography.labelLarge,color=Color(0xFF93EEEC))
-            Text(result,style=MaterialTheme.typography.bodyMedium)
+            Text(result,fontSize=13.sp,lineHeight=19.sp)
         }
     }
     OutlinedButton(onClick = { showOrientationDetails = !showOrientationDetails },modifier=Modifier.fillMaxWidth()) {
