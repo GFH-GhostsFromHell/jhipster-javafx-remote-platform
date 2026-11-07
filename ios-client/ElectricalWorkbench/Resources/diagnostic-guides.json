@@ -1,0 +1,212 @@
+[
+  {
+    "category": "Motors",
+    "title": "Three-phase motor does not start",
+    "faultChecks": [
+      "Check supply/phase-loss and starter trip status.",
+      "Trace STOP, E-stop, overload NC, permissives and coil command.",
+      "With isolation confirmed, check winding/insulation and mechanical jam by approved methods."
+    ],
+    "decision": "Coil command absent → controls; contactor operates but no torque → power path, motor or load."
+  },
+  {
+    "category": "Motors",
+    "title": "Contactor chatters",
+    "faultChecks": [
+      "Check control supply versus coil-rated voltage.",
+      "Inspect loose terminals, worn auxiliary seal-in contacts and contactor wear.",
+      "Review PLC commands and interlocks for cycling."
+    ],
+    "decision": "Unstable coil voltage → wiring/control source; healthy voltage with chatter → contactor mechanics."
+  },
+  {
+    "category": "Motors",
+    "title": "Single-phasing / imbalance",
+    "faultChecks": [
+      "Review protection and overload events.",
+      "Confirm phase-to-phase supply/load measurements only by authorized methods.",
+      "Inspect fuses, contacts, leads and motor after isolation."
+    ],
+    "decision": "Supply missing a phase → upstream; supply normal but load missing → starter/cable."
+  },
+  {
+    "category": "Controls",
+    "title": "START/STOP seal-in will not latch",
+    "faultChecks": [
+      "Trace series NC stop, overload and process permissives.",
+      "Verify NO auxiliary seal-in path and coil voltage.",
+      "Inspect reset logic and 2-wire versus 3-wire design."
+    ],
+    "decision": "Runs only while START held → inspect seal-in contact or PLC latch rung."
+  },
+  {
+    "category": "Controls",
+    "title": "Forward/reverse motor issue",
+    "faultChecks": [
+      "Inspect mutual mechanical and electrical interlocks under isolation.",
+      "Trace selected coil and opposite NC auxiliary contact.",
+      "Confirm safe direction, feedback and stopping sequence."
+    ],
+    "decision": "Both coils requested → take out of service; never bypass interlocks."
+  },
+  {
+    "category": "Controls",
+    "title": "ON-delay / OFF-delay replaced incorrectly",
+    "faultChecks": [
+      "Write a timing chart from input transition through output state.",
+      "Confirm TON versus TOF, timebase and NO/NC terminal meanings.",
+      "Test timing and fail-safe operation using approved procedure."
+    ],
+    "decision": "TON delays energization; TOF delays de-energization."
+  },
+  {
+    "category": "PLC",
+    "title": "PLC input ON, output OFF",
+    "faultChecks": [
+      "Observe rung from input through every permissive and interlock.",
+      "Find the first false instruction and its physical source.",
+      "If output rung true, inspect output module power and field wiring."
+    ],
+    "decision": "Rung false → logic/conditions; rung true, no terminal voltage → output stage. Do not force safety I/O."
+  },
+  {
+    "category": "PLC",
+    "title": "4–20 mA instrumentation fault",
+    "faultChecks": [
+      "Review loop supply, AI card mode and configured sensor range.",
+      "Compare transmitter local indication to loop current and raw PLC value.",
+      "Check open loop, polarity, shields and scaling: (mA − 4)/16 × span + minimum."
+    ],
+    "decision": "Correct current, wrong display → scaling; near 0 mA → open loop/supply."
+  },
+  {
+    "category": "VFD",
+    "title": "VFD overcurrent",
+    "faultChecks": [
+      "Record fault stage: start/accel/steady load/decel.",
+      "Inspect ramps, nameplate settings and mechanical binding.",
+      "OEM-isolate drive before any cable or motor insulation test."
+    ],
+    "decision": "Start trip → output/cable/motor; loaded trip → torque, process, acceleration."
+  },
+  {
+    "category": "VFD",
+    "title": "VFD DC-bus overvoltage",
+    "faultChecks": [
+      "Record whether alarm occurs during deceleration.",
+      "Review input voltage, ramp, regenerative load and braking design.",
+      "OEM-qualified inspection of resistor/chopper and DC bus only."
+    ],
+    "decision": "Deceleration trip → regenerative energy; never access charged DC bus."
+  },
+  {
+    "category": "VFD",
+    "title": "VFD reversed motor direction",
+    "faultChecks": [
+      "Check commanded direction and drive input assignment.",
+      "Confirm safe equipment conditions for a test jog.",
+      "Correct motor phasing only with isolation and OEM authorization."
+    ],
+    "decision": "Wrong command → control logic; correct command/wrong rotation → approved motor lead phasing."
+  },
+  {
+    "category": "Mining",
+    "title": "Battery-electric mining vehicle HV enable",
+    "faultChecks": [
+      "Stop, secure machine, and log BMS/traction/thermal alarms.",
+      "Review LV auxiliary supply and safe external permissive diagnostics.",
+      "Refer HV isolation, precharge, contactor and battery checks to OEM/site HV-qualified personnel."
+    ],
+    "decision": "Isolation/precharge fault → no bypass; escalate to authorized HV team."
+  },
+  {
+    "category": "Mining",
+    "title": "Mine sump pump trips",
+    "faultChecks": [
+      "Check level switches, overload/VFD status and discharge obstruction.",
+      "Inspect electrical cable/motor after site isolation and moisture precautions.",
+      "Evaluate mechanical blockage, dry-run and controller sequence."
+    ],
+    "decision": "No command → level/PLC; high current → hydraulic load or motor."
+  },
+  {
+    "category": "Mining",
+    "title": "Conveyor E-stop or pull-cord trip",
+    "faultChecks": [
+      "Review exact safety trip and startup sequencing alarms.",
+      "Inspect pull-cords, belt drift, zero-speed and chute switches.",
+      "Check motor/drive and mechanics only after isolation."
+    ],
+    "decision": "Never bridge safety chain. Correct and verify complete stop/restart sequence."
+  },
+  {
+    "category": "Mining",
+    "title": "Ventilation fan interlock",
+    "faultChecks": [
+      "Coordinate with mine control; establish approved ventilation state.",
+      "Trace airflow/gas/damper/door safety permissives.",
+      "Investigate starter, VFD and motor after ruling out safety inhibit."
+    ],
+    "decision": "Life-safety permissive missing → do not bypass; escalate."
+  },
+  {
+    "category": "Protection",
+    "title": "Feeder relay trip",
+    "faultChecks": [
+      "Record relay element and sequence of events.",
+      "Read one-line, coordination settings and affected equipment.",
+      "Use switching authorization for downstream fault assessment."
+    ],
+    "decision": "No repeated reclose of unknown fault; investigate phase/ground/overload target."
+  },
+  {
+    "category": "Protection",
+    "title": "SEL/GE relay or RTU loses SCADA",
+    "faultChecks": [
+      "Separate local protection health from remote telemetry.",
+      "Review power, network switch, link, permitted connectivity and alarms.",
+      "Check DNP/RTU point mapping, communications and timestamp under change control."
+    ],
+    "decision": "Local data correct/network down → link; link good/points bad → mapping/protocol."
+  },
+  {
+    "category": "HVAC",
+    "title": "Furnace or makeup-air unit lockout",
+    "faultChecks": [
+      "Map call, fan, airflow proof, purge, ignition and flame proving sequence.",
+      "Record stage and lockout reason; inspect BAS enable and limits.",
+      "Refer combustion/gas train work to properly qualified service personnel."
+    ],
+    "decision": "Never jump flame or pressure safeties; use OEM sequence."
+  },
+  {
+    "category": "Distribution",
+    "title": "Transformer overheating",
+    "faultChecks": [
+      "Compare actual load and temperatures with nameplate and trend.",
+      "Review cooling, ventilation, harmonics and phase imbalance.",
+      "Qualified inspection of winding/insulation/connection concerns under isolation."
+    ],
+    "decision": "Protection trip or dielectric issue → do not re-energize without investigation."
+  },
+  {
+    "category": "Distribution",
+    "title": "Voltage low only under load",
+    "faultChecks": [
+      "Compare supply and load-end condition at matched load under authorized method.",
+      "Review feeder conductor/length and load current.",
+      "Inspect high-resistance connections and phase imbalance after isolation."
+    ],
+    "decision": "Normal no-load voltage, low loaded voltage → resistance, undersized run or source capacity."
+  },
+  {
+    "category": "Life safety",
+    "title": "Fire alarm circuit trouble",
+    "faultChecks": [
+      "Identify panel trouble and impacted circuits.",
+      "Use authorized impairment and fire-watch controls.",
+      "Inspect field wiring supervision, EOL location and device configuration using listed procedures."
+    ],
+    "decision": "Never leave protections disabled; restore and acceptance-test."
+  }
+]
