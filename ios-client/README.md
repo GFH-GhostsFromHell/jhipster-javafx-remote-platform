@@ -28,14 +28,14 @@ Native SwiftUI client for **iPhone and iPad (iOS 17+)**, sharing the production 
 | Pull-box sizing | Straight / angle / U / mixed / back-wall | Full CEC pull-box worksheet |
 | 309A study quizzes | 25 offline questions, 5 per task category, local progress | Other study features only where available on portal |
 | Troubleshooting | 21 offline topics; local cases & sharing | Web knowledge base |
-| CEC 2024 calculators | — | Existing server-side and guided calculators |
-| Quotes, projects, drawing takeoffs, control simulation | — | Existing Field Suite |
+| CEC 2024 calculators | 12 native engineering and formula worksheets | Full server-side CEC, service demand and guided worksheets |
+| Quotes, projects, drawing takeoffs, control simulation | Native project log, material takeoffs, basic blueprint scale and simplified control trainer | Full hosted Field Suite |
 | 3D multi-bend conduit preview | — | Existing interactive web/3D experience |
-| User management and subscription tiers | — | Existing cloud account / admin portal |
+| User management and subscription tiers | Native verified profile, feature permissions, sign-out, business membership readout | Existing admin and team manager |
 | Account verification and password reset | — | Existing account web screen |
 | App update checking | Checks release feed at launch, foreground and every 30 min while active | Opens App Store **only after** a real store URL is configured |
 
-The web tools enforce their existing server-side entitlement rules. The native offline field tools are usable without signing in; they are **not yet restricted by a native iOS entitlement cache**. Do not claim paid-tier/native access enforcement is identical to Android.
+Cloud tools use the current server-side feature/override map. Native iOS now requires a verified account; offline basic tools require a password-free, recently verified identity cache (24-hour limit). Premium tools fail closed while offline. Native and cloud gating must still be validated on real devices and against revoked credentials.
 
 ### Safety and accuracy
 
@@ -49,12 +49,12 @@ The web tools enforce their existing server-side entitlement rules. The native o
 
 Requires a Mac with current Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
-\`\`\`sh
+```sh
 brew install xcodegen
 cd ios-client
 xcodegen generate
 open ElectricalWorkbench.xcodeproj
-\`\`\`
+```
 
 Select the **ElectricalWorkbench** target and iPhone/iPad simulator. The [Build iOS Client](../.github/workflows/build-ios-client.yml) GitHub workflow builds and uploads an **unsigned Simulator app ZIP** after every relevant PR/push. This artifact **cannot be installed directly on an ordinary iPhone**.
 
@@ -62,11 +62,19 @@ To install on an actual iPhone, choose a compatible Apple developer team in Xcod
 
 ## Accounts and subscriptions
 
-The web WKWebView shares a persistent website data store and session cookies across cloud tools for the same HTTPS origin: \`https://remote-javafx-portal.onrender.com\`. Password sign-in, web account creation and password recovery use the portal pages; password/credentials are **not** stored in the native iOS app. Google/OAuth links currently open the system browser; Safari's login cookies are **not automatically shared** with the in-app WKWebView, so test third-party sign-in before treating it as a supported login method.
+The web WKWebView shares a persistent website data store and session cookies across cloud tools for the same HTTPS origin: \`https://remote-javafx-portal.onrender.com\`. Native sign-in uses the same `/api/client/bootstrap` endpoint as Android. Passwords are kept in active-session memory, **not persisted**. The app attempts to establish a matching WebKit portal cookie. Account creation and recovery remain web forms. Google/OAuth links currently open the system browser; Safari's login cookies are **not automatically shared** with the in-app WKWebView, so test third-party sign-in before treating it as a supported login method.
 
-Android's offline bender calibration and the iOS native shoe profile are **separate** local profiles. Web project data depends on the portal's web storage; local device records do not sync across platforms. Account tiers and cloud feature authorization are enforced on the server for cloud tools. Native offline tools are not yet entitlement-gated.
+Android's offline bender calibration and the iOS native shoe profile are **separate** local profiles. Web project data depends on the portal's web storage; local device records do not sync across platforms. Account tiers, feature overrides, and cloud authorization are verified live from the server. Native offline basic access is limited to a 24-hour verified cache; premium features are unavailable offline. A shared cloud sync/merge service for Android and iOS local records does not yet exist.
 
 App Store digital-subscription/IAP rules require a compliant StoreKit purchase or an applicable Apple exception before a production App Store release exposes paid web checkout. An initial code-signed TestFlight build is **not yet published**.
+
+## Optional Apple-signed IPA / TestFlight workflow
+
+The manually dispatched [Sign and Release iOS to TestFlight](../.github/workflows/release-ios-testflight.yml) workflow can package a signed iPhone IPA and optionally submit it to Apple's TestFlight upload service. It is **not runnable** until the repository owner configures Apple Developer credentials and an App Store Connect record for bundle ID `ca.gfh.electricalworkbench`.
+
+GitHub Actions **variables**: `APPLE_TEAM_ID`, `APPSTORE_ISSUER_ID`, `APPSTORE_API_KEY_ID`. **Secrets**: `APPSTORE_API_PRIVATE_KEY` (full `.p8` contents), `APPSTORE_CERTIFICATES_FILE_BASE64` (Apple Distribution `.p12` base64), `APPSTORE_CERTIFICATES_PASSWORD`. Do not commit private keys or signing files to Git. The workflow is manual only; `upload_testflight=false` creates an IPA artifact without uploading to Apple. Set `upload_testflight=true` deliberately when ready and App Store Connect's TestFlight information is configured.
+
+A signed IPA is not the same as App Store approval. Real-device test, app icon, subscription/IAP compliance, privacy policy, App Store metadata, Apple review, and OAuth callback validation are still required.
 
 ## Update flow
 
@@ -77,7 +85,7 @@ The iOS app fetches \`/ios-release.json\` from the HTTPS portal on startup, when
 1. Verify physical iPhone and iPad display, Dynamic Type, keyboard/field scrolling, navigation, WKWebView 3D/WebGL and login.
 2. Confirm the iOS app version, a real App Store listing, production icon, screenshots, privacy policy, support URL and all App Review metadata.
 3. Set up Apple signing, App Store Connect and TestFlight distribution.
-4. Resolve StoreKit subscriptions, OAuth handoff, subscription parity for native offline tools, and any missing native-specific Android features.
+4. Resolve StoreKit subscriptions and OAuth handoff, test native/cloud feature permissions and revocation, and add optional cross-platform synchronization of device-local records if desired.
 5. Verify real-device physical conduit bends with the exact manufacturer shoe against controlled scrap tests; review Canadian Electrical Code rules independently.
 
 This repository contains an **iOS feature-access implementation**, not a promise of complete offline native parity with every Android/Windows function or an App Store-approved commercial release.
