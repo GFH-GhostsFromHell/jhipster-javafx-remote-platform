@@ -430,4 +430,5 @@ final class AccountRecordSync: ObservableObject {
 }
 extension Notification.Name {
     static let ewbAccountSyncUpdated = Notification.Name("ewb.account.sync.updated")
+    static let ewbLocalRecordChanged = Notification.Name("ewb.local.record.changed")
 }
