@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-private struct SafetyEntry: Codable, Identifiable {
+struct SafetyEntry: Codable, Identifiable {
     let id: UUID
     let kind: String
     let asset: String
