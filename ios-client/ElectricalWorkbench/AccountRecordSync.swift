@@ -144,6 +144,7 @@ final class AccountRecordSync: ObservableObject {
         let server = Dictionary(uniqueKeysWithValues: remote.map { ($0.id,$0) })
         var queued: [[String: Any]] = []
         var dirty = Set<String>()
+        var conflicting = Set<String>()
         let localMap = Dictionary(uniqueKeysWithValues: local.compactMap { item -> (String,[String:Any])? in
             guard let id = item["_syncId"] as? String else { return nil }
             return (id,item)
@@ -153,11 +154,19 @@ final class AccountRecordSync: ObservableObject {
             guard let id = item["_syncId"] as? String else { continue }
             let changed = mirror[id] == nil || mirror[id]?.digest != canonical(item)
             guard changed else { continue }
+            if let current = server[id], mirror[id] == nil,
+               canonical(item) != canonical(current.data) {
+                backup(user,bucket,["id":id,"local":item,"remote":current.data,
+                                    "reason":"First-sync difference"])
+                conflicting.insert(id)
+                continue
+            }
             if let current = server[id], let base = mirror[id],
                current.revision != base.revision {
                 backup(user,bucket,["id":id,"local":item,"remote":current.data,
                                     "reason":"Concurrent edit"])
                 dirty.insert(id)
+                conflicting.insert(id)
                 continue
             }
             if server[id] == nil || mirror[id] != nil {
@@ -174,6 +183,7 @@ final class AccountRecordSync: ObservableObject {
             if current.revision != prior.revision {
                 backup(user,bucket,["id":id,"remote":current.data,
                                     "reason":"Record deleted locally but changed on another device"])
+                conflicting.insert(id)
                 continue
             }
             queued.append(["id":id,"revision":current.revision,
@@ -190,7 +200,10 @@ final class AccountRecordSync: ObservableObject {
                let failures = object["conflicts"] as? [[String:Any]] {
                 for failure in failures {
                     backup(user,bucket, failure)
-                    if let id = failure["id"] as? String { dirty.insert(id) }
+                    if let id = failure["id"] as? String {
+                        dirty.insert(id)
+                        conflicting.insert(id)
+                    }
                 }
             }
         }
@@ -204,9 +217,7 @@ final class AccountRecordSync: ObservableObject {
         var nextMirror: [String:Mirror] = [:]
         for entry in fresh {
             let current = localByID[entry.id]
-            let changedLocally = current != nil && mirror[entry.id] != nil &&
-                mirror[entry.id]?.digest != canonical(current!)
-            let keepLocal = dirty.contains(entry.id) && changedLocally
+            let keepLocal = conflicting.contains(entry.id) && current != nil
             if !entry.deleted {
                 var payload = keepLocal ? (current ?? entry.data) : entry.data
                 payload["_syncId"] = entry.id
@@ -242,7 +253,7 @@ final class AccountRecordSync: ObservableObject {
             guard let id = row["_syncId"] as? String else { return nil }
             return (id,row)
         })
-        for (id, value) in nextMirror where !dirty.contains(id) {
+        for (id, value) in nextMirror where !conflicting.contains(id) {
             if let normalized = savedMap[id] {
                 nextMirror[id] = Mirror(revision:value.revision,
                     digest:canonical(normalized),deleted:value.deleted)
@@ -379,7 +390,10 @@ final class AccountRecordSync: ObservableObject {
             "deduct":defaults.double(forKey:"ewb.ios.calibration.deduct.mm"),
             "gain":defaults.double(forKey:"ewb.ios.calibration.gain.mm")
         ]
-        return [item]
+        var all=read(key)
+        all.removeAll { ($0["_syncId"] as? String) == savedID }
+        all.append(item)
+        return all
     }
 
     private func applyCalibration(user:String,key:String,rows:[[String:Any]]) {
@@ -415,8 +429,12 @@ final class AccountRecordSync: ObservableObject {
         let formatter = DateFormatter();formatter.dateFormat="yyyy-MM-dd"
         let day=formatter.string(from:.now)
         let answers=UserDefaults.standard.dictionary(forKey:"ewb.ios.quiz.\(day)") as? [String:Int] ?? [:]
-        return [["id":"day-\(day)","_syncId":"day-\(day)","date":day,
-                 "answers":answers,"category":"quizHistory"]]
+        var existing=read(key)
+        let today="day-\(day)"
+        existing.removeAll { ($0["_syncId"] as? String) == today }
+        existing.append(["id":today,"_syncId":today,"date":day,
+                 "answers":answers,"category":"quizHistory"])
+        return existing
     }
 
     private func applyDailyQuiz(user:String,key:String,rows:[[String:Any]]) {
