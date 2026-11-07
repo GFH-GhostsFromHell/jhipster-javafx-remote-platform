@@ -98,8 +98,9 @@ final class CloudAccountSession: ObservableObject {
     func feature(_ name: String) -> Bool {
         guard let identity else { return false }
         if isOffline {
-            // Fail closed for premium features when they cannot be revalidated.
-            return false
+            // Permit recently verified basic/offline tools; premium features fail closed.
+            let basic: Set<String> = ["ELECTRICAL_CALCULATORS", "RESIDENTIAL_REFERENCE", "DASHBOARD", "REPORTS"]
+            return basic.contains(name) && identity.features[name] == true
         }
         return identity.features[name] == true
     }
