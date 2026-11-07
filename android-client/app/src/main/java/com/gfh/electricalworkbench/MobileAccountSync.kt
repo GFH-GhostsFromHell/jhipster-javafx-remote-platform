@@ -102,7 +102,8 @@ internal object MobileAccountSync {
     private fun syncBucket(bucket: String, prefs: android.content.SharedPreferences, user: String, secret: String) {
         val localKey = "records_$bucket"
         val mirrorKey = "sync_meta_$bucket"
-        val rows = runCatching { JSONArray(prefs.getString(localKey,"[]")) }.getOrDefault(JSONArray())
+        val originalSerialized = prefs.getString(localKey, "[]").orEmpty()
+        val rows = runCatching { JSONArray(originalSerialized) }.getOrDefault(JSONArray())
         val local = linkedMapOf<String,JSONObject>()
         for (index in 0 until rows.length()) {
             val obj = rows.optJSONObject(index) ?: continue
@@ -199,6 +200,12 @@ internal object MobileAccountSync {
             for (i in 0 until conflicts.length()) prior.put(conflicts.get(i))
             prefs.edit().putString("sync_conflicts_$bucket",prior.toString()).apply()
             status = "Sync conflict(s) in $bucket; local backups retained"
+        }
+        // The UI may have appended a new record during the network round trip.
+        // Never replace those unsent edits with an older remote snapshot.
+        if (prefs.getString(localKey, "[]") != originalSerialized) {
+            status = "New local edits detected; sync will retry without overwriting them."
+            return
         }
         val saved = JSONArray()
         merged.values.forEach { saved.put(it) }
