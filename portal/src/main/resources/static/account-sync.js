@@ -95,6 +95,13 @@ async function syncArray(bucket,key,onApplied){
     }
   }
   for(const record of fresh){if(record.deleted)continue;if(!finalMap.has(record.id))finalMap.set(record.id,record.data)}
+  // A new local save may happen while HTTP requests are in flight. Never replace
+  // data that changed after this sync began; queue another sync instead.
+  if(hash(parse(key))!==hash(original)){
+    pending.add(bucket);
+    notify('New local changes detected during sync; preserving and retrying.');
+    return;
+  }
   const next=Array.from(finalMap.values());
   const mirror={};for(const record of fresh){
     mirror[record.id]=conflictIDs.has(record.id)&&previous[record.id]
