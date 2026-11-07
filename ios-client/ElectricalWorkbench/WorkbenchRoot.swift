@@ -95,7 +95,7 @@ struct WorkbenchHome: View {
                     Text("Electrician tools for the field")
                         .font(.title2.bold())
                         .foregroundStyle(.white)
-                    Text("Quick measurements and bend marks on your iPhone, with the rest of your cloud tools in one place.")
+                    Text("Native bending, electrical calculators, safety, learning, projects and career tools. Cloud features share your existing Electrical Workbench account.")
                         .font(.subheadline)
                         .foregroundStyle(WorkbenchStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
