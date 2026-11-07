@@ -80,7 +80,7 @@ svg.diagram{width:100%;max-width:950px;background:#f1f7f9;border-radius:9px;over
 <section class="view" id="view-quote"><div class="card"><h2>Electrical quotation worksheet</h2><div class="grid"><div class="field"><label for="quoteCustomer">Customer / project title</label><input id="quoteCustomer" placeholder="Customer / job"></div><div class="field"><label for="quoteRate">Labour rate (CAD/hour)</label><input id="quoteRate" type="number" min="0" value="85"></div></div>
 <div class="grid threecol"><div class="field"><label for="quoteMarkup">Material markup (%)</label><input id="quoteMarkup" type="number" min="0" value="20"></div><div class="field"><label for="quoteTax">Applicable sales tax (%)</label><input id="quoteTax" type="number" min="0" value="13"></div><div class="field"><label for="quoteContingency">Contingency (%)</label><input id="quoteContingency" type="number" min="0" value="5"></div></div>
 <div class="scroll"><table><thead><tr><th>Material / service</th><th>Qty</th><th>Unit cost</th><th>Labour hours</th><th></th></tr></thead><tbody id="quoteRows"></tbody></table></div><div class="actions"><button class="primary" id="addQuoteRow">+ Add line item</button><button id="saveQuote">Save quote to project</button><button id="exportQuote">Export quote CSV</button><button id="printQuote">Print / save PDF</button></div><div class="result" id="quoteTotals"></div><p class="note">Default rate, markup and 13% tax are editable planning inputs, not quotes for a given supplier or tax advice. Verify permit, travel, equipment rental, insurance, terms and taxable treatment.</p></div></section>
-<section class="view" id="view-projects"><div class="card"><h2>Projects and calculation history</h2><p>Locally store reference notes, takeoffs, test results, diagrams, and quotation snapshots. The current version does <b>not</b> sync data across browsers, Android, or Windows accounts.</p>
+<section class="view" id="view-projects"><div class="card"><h2>Projects and calculation history</h2><p>Save project notes, takeoffs, test results, diagrams and quotations locally first. Account synchronization uploads records when signed in and online; conflicts are preserved for review.</p>
 <div class="grid"><div class="field"><label for="projectName">Project name</label><input id="projectName" placeholder="e.g. Site B - Pump Upgrade"></div><div class="field"><label for="projectNotes">Project site / notes</label><input id="projectNotes" placeholder="Site / electrical system"></div></div>
 <div class="actions"><button class="primary" id="createProject">Create / update project</button><button id="exportProjects">Export all projects JSON</button><button id="importProjectsButton">Import projects JSON</button><input id="importProjectsFile" type="file" accept="application/json" style="display:none"><button class="danger" id="deleteProject">Delete selected project</button></div>
 <div class="card" style="margin-top:14px"><h3>Save an existing calculator result to this project</h3><p class="note">Paste a verified output from a CEC worksheet or calculation. This stores a reference copy; it does not independently verify the calculation.</p>
@@ -99,6 +99,7 @@ svg.diagram{width:100%;max-width:950px;background:#f1f7f9;border-radius:9px;over
 <label for="photoNotes">Verified nameplate notes</label><textarea id="photoNotes" placeholder="Frequency, phase, service factor, duty, temperature rating, drawing ref, checks"></textarea>
 <div class="actions"><button class="primary" id="saveNameplate">Save verified data to project</button><a href="/calculators.html">Open electrical calculators</a></div><p class="note">Photo preview is temporary and is not uploaded or saved to local project history. Only verified text fields are saved. Never use AI extraction alone for protection or conductor sizing.</p><div id="photoStatus" class="result"></div></div></section>
 </main>
+<script src="/account-sync.js?v=20261107-v1"></script>
 <script>
 (function(){
 'use strict';
@@ -110,7 +111,7 @@ function positive(x){return Number.isFinite(x)&&x>0}
 function fmt(x,n){return Number.isFinite(x)?x.toFixed(n===undefined?2:n):'—'}
 function money(x){return Number.isFinite(x)?x.toLocaleString('en-CA',{style:'currency',currency:'CAD'}):'—'}
 function getProjects(){try{var a=JSON.parse(localStorage.getItem(STORAGE)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
-function putProjects(a){try{localStorage.setItem(STORAGE,JSON.stringify(a));return true}catch(e){alert('Could not save locally; browser storage may be full or disabled. Export your records.');return false}}
+function putProjects(a){try{localStorage.setItem(STORAGE,JSON.stringify(a));setTimeout(function(){window.EWAccountSync&&EWAccountSync.run()},0);return true}catch(e){alert('Could not save locally; browser storage may be full or disabled. Export your records.');return false}}
 function selected(){return $('projectChoice').value}
 function projectById(id){return getProjects().find(function(p){return p.id===id})}
 function updateProjectUI(){
@@ -312,6 +313,10 @@ $('saveNameplate').onclick=function(){
  if(saveRecord('Nameplate',data.tag,data.type+' · '+data.voltage+' · '+data.power,data))$('photoStatus').textContent='Verified text data saved; photo is not retained.';
 };
 updateProjectUI();show(location.hash.slice(1)||'home');
+if(window.EWAccountSync){
+ EWAccountSync.onStatus(function(message){$('connection').textContent=message});
+ EWAccountSync.register('fieldProjects',STORAGE,function(){updateProjectUI()});
+}
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('/field-tools-sw.js').catch(function(){})}
 })();
 </script></body></html>
