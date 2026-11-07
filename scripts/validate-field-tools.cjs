@@ -20,6 +20,18 @@ for(const name of files){
 const labHtml=fs.readFileSync(path.join(root,'bend-instruction-lab.html'),'utf8');
 const labJs=fs.readFileSync(path.join(root,'bend-instruction-lab.js'),'utf8');
 new vm.Script(labJs,{filename:'bend-instruction-lab.js'});
+const measureJs=fs.readFileSync(path.join(root,'bend-measure-help.js'),'utf8');
+new vm.Script(measureJs,{filename:'bend-measure-help.js'});
+if(!labHtml.includes('src="/bend-measure-help.js')) {
+ console.error('Bend measurement guide is not loaded');failed=true;
+}
+for(const id of ['kind','measureGuide','measureIntro','measureSteps','measureSketch','measureCaution','quickFields']){
+ if(!labHtml.includes('id="'+id+'"')){console.error('Missing measurement control: '+id);failed=true}
+}
+for(const kind of ['offset','roll','stub','back','saddle3','saddle4','kick90','kickBefore','kickExtra']){
+ if(!measureJs.includes(kind+':')){console.error('Missing measurement instructions: '+kind);failed=true}
+}
+
 const labIds=new Set([...labHtml.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
 const labRefs=[...labJs.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]);
 const labMissing=[...new Set(labRefs.filter(id=>!labIds.has(id)))];
