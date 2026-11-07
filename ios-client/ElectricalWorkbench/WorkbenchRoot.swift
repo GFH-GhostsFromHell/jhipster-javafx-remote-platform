@@ -183,6 +183,43 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Electrical calculators") {
+                        OfflinePowerCalculatorsView()
+                    }
+                } label: {
+                    HomeDestination(
+                        icon: "function",
+                        title: "Offline electrical calculations",
+                        detail: "Transformer, motor, voltage drop, power factor and more"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    NativeWorkspacesView()
+                } label: {
+                    HomeDestination(
+                        icon: "folder",
+                        title: "Native field workspaces",
+                        detail: "Learn, field records, projects, career hours and credentials"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    FeatureGate(feature: "ASK_CHATGPT", title: "Ask ChatGPT") {
+                        NativeChatGPTWorkspaceView()
+                    }
+                } label: {
+                    HomeDestination(
+                        icon: "bubble.left.and.text.bubble.right",
+                        title: "Ask ChatGPT",
+                        detail: "Use the verified ChatGPT portal connection"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     PortalScreen(title: "Guided CEC calculators", path: "/guided-calculators.html")
                 } label: {
                     HomeDestination(
