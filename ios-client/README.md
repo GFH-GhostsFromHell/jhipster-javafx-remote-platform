@@ -1,33 +1,72 @@
-# Electrical Workbench — iOS (iPhone + iPad)
+# Electrical Workbench — iOS 0.2.0
 
-A native SwiftUI client for the Electrical Workbench platform, paired with the existing HTTPS portal and web calculators. The iOS app includes an **offline quick conduit bender** (offset, rolling offset, and verified-deduct 90-degree stub), measurement-first guidance, a native tool launcher, and a WebKit client for advanced calculations, 3D bend previews, account management, and shared subscription-gated web features.
+Native SwiftUI client for **iPhone and iPad (iOS 17+)**, sharing the production Electrical Workbench cloud portal with Android, desktop and web. The app compiles for iOS Simulator in GitHub Actions.
+
+## Feature coverage
+
+| Function | iOS offline (native) | iOS online (same portal as other apps) |
+|---|---|---|
+| Offset and rolling offset | Yes: tape marks, 10-ft stock, angle and shrink | Advanced bending worksheet |
+| 90° stub-up | Yes: verified shoe deduct / calibration | Visual & 3D bender |
+| Back-to-back 90° | First ARROW mark + explicit second STAR datum | Full step-by-step instructions |
+| Three-point saddle | Traditional references or **geometry-only** with warnings | Visual bend lab |
+| Four-point saddle | Geometric layout, **not verified shoe marks** | Advanced bender / 3D |
+| Kicked 90° | First verified 90 and kick geometry, **not a guessed kick mark** | Advanced bender / 3D |
+| Shoe calibration | Yes: measured deduct and gain stored on device | Web calibration stored in web profile |
+| Bend gain, precut length, parallel rack | Yes | Full fabrication worksheets |
+| Pull-box sizing | Straight / angle / U / mixed / back-wall | Full CEC pull-box worksheet |
+| 309A study quizzes | 25 offline questions, 5 per task category, local progress | Other study features only where available on portal |
+| Troubleshooting | 21 offline topics; local cases & sharing | Web knowledge base |
+| CEC 2024 calculators | — | Existing server-side and guided calculators |
+| Quotes, projects, drawing takeoffs, control simulation | — | Existing Field Suite |
+| 3D multi-bend conduit preview | — | Existing interactive web/3D experience |
+| User management and subscription tiers | — | Existing cloud account / admin portal |
+| Account verification and password reset | — | Existing account web screen |
+| App update checking | Checks release feed at launch, foreground and every 30 min while active | Opens App Store **only after** a real store URL is configured |
+
+The web tools enforce their existing server-side entitlement rules. The native offline field tools are usable without signing in; they are **not yet restricted by a native iOS entitlement cache**. Do not claim paid-tier/native access enforcement is identical to Android.
+
+### Safety and accuracy
+
+- All physical bend instructions need the exact shoe's manufacturer references, measured deduct/gain, sufficient clearances and confirmation of springback.
+- A pencil mark can lie inside a 10-ft EMT length even when the total developed multi-bend geometry or the physical bending shoe requires more room. Stock and shoe-access validation on complex bends still require field confirmation.
+- The four-point saddle's native A/B/C/D values are geometric points and **must not be used directly as ARROW/NOTCH bender marks** without an appropriate shoe method.
+- Kick rise by itself does not provide a reliable physical kick position.
+- The app includes original study guidance, not licensed CSA code tables or an official Red Seal exam.
 
 ## Build
 
-Requires a Mac with Xcode 15.3 or newer (use current stable Xcode), and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+Requires a Mac with current Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
-```sh
+\`\`\`sh
 brew install xcodegen
 cd ios-client
 xcodegen generate
 open ElectricalWorkbench.xcodeproj
-```
+\`\`\`
 
-Choose the **ElectricalWorkbench** scheme and a simulator, or set your Apple developer team and a unique bundle identifier under Signing & Capabilities to run on a real iPhone. GitHub Actions builds the **unsigned Simulator .app** on macOS when iOS files change. Download the artifact from the workflow's **Actions** page; it is **not** installable on an ordinary iPhone.
+Select the **ElectricalWorkbench** target and iPhone/iPad simulator. The [Build iOS Client](../.github/workflows/build-ios-client.yml) GitHub workflow builds and uploads an **unsigned Simulator app ZIP** after every relevant PR/push. This artifact **cannot be installed directly on an ordinary iPhone**.
 
-## Cloud integration
+To install on an actual iPhone, choose a compatible Apple developer team in Xcode and configure a unique bundle ID, provisioning and signing for the device. Production distribution requires Apple Developer Program enrolment, App Store Connect, signing, provisioning, TestFlight and Apple review.
 
-- Existing web service: `https://remote-javafx-portal.onrender.com`
-- Account sign-in and email registration use the existing portal pages; WebKit keeps the same cookie store for embedded tools.
-- Cloud calculators, the advanced conduit lab with rotatable 3D preview, and paid-feature authorization remain server-controlled.
-- The native quick bender works without a connection but **does not synchronize a measured shoe calibration** with Android; enter your verified deduct.
-- A full native parity port of every Android calculator, deep-link OAuth support, in-app billing, and production subscriptions are future work.
+## Accounts and subscriptions
 
-## Before an App Store or TestFlight release
+The web WKWebView shares a persistent website data store and session cookies across cloud tools for the same HTTPS origin: \`https://remote-javafx-portal.onrender.com\`. Password sign-in, web account creation and password recovery use the portal pages; password/credentials are **not** stored in the native iOS app. Google/OAuth links currently open the system browser; Safari's login cookies are **not automatically shared** with the in-app WKWebView, so test third-party sign-in before treating it as a supported login method.
 
-1. Enrol in the Apple Developer Program, select an Apple Development/Distribution team, and configure app signing, provisioning, and App Store Connect. Unsigned CI artifacts are simulator-only.
-2. Add a production app icon, privacy policy, and App Store metadata. Check Apple's current review requirements (including **4.2** minimum native functionality and **3.1** digital subscription / In-App Purchase rules); this client has a native field calculator and navigation but App Review approval is not guaranteed.
-3. Verify Google/OAuth and Apple Sign In flows if offered: third-party Google login may not work inside WKWebView. The username/password portal sign-in is the supported first path. Complete StoreKit subscriptions or an applicable Apple billing exception before exposing web checkout inside an App Store binary.
-4. Test on physical iPhone/iPad for text scaling, soft-keyboard overlap, on-device authentication, 3D WebGL performance, tool-specific bend marks, offline states, and existing-account permissions.
+Android's offline bender calibration and the iOS native shoe profile are **separate** local profiles. Web project data depends on the portal's web storage; local device records do not sync across platforms. Account tiers and cloud feature authorization are enforced on the server for cloud tools. Native offline tools are not yet entitlement-gated.
 
-The build workflow intentionally does not upload or publish anything to App Store Connect without a developer-owned signing configuration.
+App Store digital-subscription/IAP rules require a compliant StoreKit purchase or an applicable Apple exception before a production App Store release exposes paid web checkout. An initial code-signed TestFlight build is **not yet published**.
+
+## Update flow
+
+The iOS app fetches \`/ios-release.json\` from the HTTPS portal on startup, when foregrounded and every 30 minutes while active. When a newer version has a trusted \`https://apps.apple.com/\` URL, users can open that App Store listing. It **does not** silently install an iOS update; the App Store/TestFlight performs installation. Until the app is published, the release manifest deliberately contains no store URL.
+
+## Release checklist
+
+1. Verify physical iPhone and iPad display, Dynamic Type, keyboard/field scrolling, navigation, WKWebView 3D/WebGL and login.
+2. Confirm the iOS app version, a real App Store listing, production icon, screenshots, privacy policy, support URL and all App Review metadata.
+3. Set up Apple signing, App Store Connect and TestFlight distribution.
+4. Resolve StoreKit subscriptions, OAuth handoff, subscription parity for native offline tools, and any missing native-specific Android features.
+5. Verify real-device physical conduit bends with the exact manufacturer shoe against controlled scrap tests; review Canadian Electrical Code rules independently.
+
+This repository contains an **iOS feature-access implementation**, not a promise of complete offline native parity with every Android/Windows function or an App Store-approved commercial release.
