@@ -315,7 +315,17 @@ $('saveNameplate').onclick=function(){
 updateProjectUI();show(location.hash.slice(1)||'home');
 if(window.EWAccountSync){
  EWAccountSync.onStatus(function(message){$('connection').textContent=message});
- EWAccountSync.register('fieldProjects',STORAGE,function(){updateProjectUI()});
+ EWAccountSync.register('projects',STORAGE,function(rows){
+   const safe=rows.map(function(p){
+     return Object.assign({},p,{
+       id:p.id||p._syncId,
+       name:p.name||p.title||p.project||'Imported project',
+       records:Array.isArray(p.records)?p.records:[]
+     });
+   });
+   localStorage.setItem(STORAGE,JSON.stringify(safe));
+   updateProjectUI();
+ });
 }
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('/field-tools-sw.js').catch(function(){})}
 })();
