@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.prefs.Preferences;
 
 /**
  * Password never written to disk. Offline saves remain in LocalWorkspaceStore.
@@ -44,6 +45,11 @@ public final class DesktopAccountSync {
         status = "Signed out · offline records retained";
     }
 
+    public static void scheduleCurrent() {
+        Credentials active = session;
+        if(active!=null)schedule(active.user());
+    }
+
     public static void schedule(String username) {
         Session active = session;
         if (active == null || !active.user().equals(username)) return;
@@ -65,6 +71,10 @@ public final class DesktopAccountSync {
                     failed++;
                     status = "Sync incomplete · local records retained ("+collection+"): "+ex.getMessage();
                 }
+            }
+            if (session==active) {
+                try { syncCalibration(active); updated++; }
+                catch(Exception ex){failed++;status="Bender sync retry needed: "+ex.getMessage();}
             }
             if (failed==0) status = "Synced "+updated+" account collections";
         } finally {
@@ -194,6 +204,84 @@ public final class DesktopAccountSync {
         if(remote!=null)node.set("remote",remote.deepCopy());
         return node;
     }
+    /** One legacy desktop shoe profile; other profiles remain available in the cloud list. */
+    private static void syncCalibration(Credentials credentials) throws Exception {
+        Preferences prefs=Preferences.userNodeForPackage(BenderCalibrationPane.class).node("bender-calibration");
+        String name=prefs.get("profile",""),model=prefs.get("model","");
+        String owner=prefs.get("_syncOwner","");
+        if(!owner.isEmpty()&&!owner.equals(credentials.user()))return;
+        ArrayNode remote=(ArrayNode)JSON.readTree(PORTAL.accountSyncList("benderProfiles",credentials.user(),credentials.password()));
+        String id=prefs.get("_syncId","");
+        if(name.isBlank()||model.isBlank()){
+            if(remote.isEmpty())return;
+            JsonNode first=remote.get(0);
+            if(first.path("deleted").asBoolean())return;
+            ObjectNode data=first.path("data") instanceof ObjectNode o?o:null;
+            if(data==null)return;
+            prefs.put("_syncOwner",credentials.user());
+            prefs.put("_syncId",first.path("id").asText());
+            prefs.putLong("_syncRevision",first.path("revision").asLong());
+            prefs.put("profile",data.path("name").asText(""));
+            prefs.put("model",data.path("model").asText(""));
+            prefs.put("material",data.path("material").asText("EMT"));
+            prefs.put("size",data.path("size").asText(""));
+            String units=data.path("units").asText("mm");
+            prefs.put("units",units.equals("in")?"Inches":"Millimetres");
+            for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain")){
+                String from=switch(field){case "mark"->"arrowMark";case "stub"->"actualStub";default->field;};
+                prefs.put(field,data.path(from).asText(data.path(field).asText("")));
+            }
+            return;
+        }
+        prefs.put("_syncOwner",credentials.user());
+        if(id.isBlank()){id=UUID.randomUUID().toString();prefs.put("_syncId",id);}
+        ObjectNode payload=JSON.createObjectNode();
+        payload.put("id",id);payload.put("_syncId",id);
+        payload.put("name",name);payload.put("model",model);
+        payload.put("material",prefs.get("material","EMT"));
+        payload.put("size",prefs.get("size",""));
+        payload.put("units",prefs.get("units","Millimetres").equals("Inches")?"in":"mm");
+        for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain")){
+            payload.put(field,prefs.get(field,""));
+        }
+        payload.put("arrowMark",prefs.get("mark",""));
+        payload.put("actualStub",prefs.get("stub",""));
+        ObjectNode found=null;
+        for(JsonNode row:remote)if(row.path("id").asText().equals(id)&&row instanceof ObjectNode obj){found=obj;break;}
+        String hash=payload.toString();
+        String prior=prefs.get("_syncDigest","");
+        long priorVersion=prefs.getLong("_syncRevision",0);
+        if(found!=null&&hash.equals(prior)&&found.path("revision").asLong()!=priorVersion){
+            // No local edits; accept newer profile from another device in the next UI session.
+            ObjectNode remoteData=found.path("data") instanceof ObjectNode o?o:null;
+            if(remoteData!=null){
+                for(String field:List.of("name","model","material","size","units","mark","stub","stock","legA","legB","deduct","gain")){
+                    String from=switch(field){case "name"->"name";case "mark"->"arrowMark";case "stub"->"actualStub";default->field;};
+                    String value=remoteData.path(from).asText(remoteData.path(field).asText(""));
+                    String localKey=field.equals("name")?"profile":field;
+                    if(field.equals("units"))value=value.equals("in")?"Inches":"Millimetres";
+                    prefs.put(localKey,value);
+                }
+                prefs.put("_syncDigest",remoteData.toString());
+                prefs.putLong("_syncRevision",found.path("revision").asLong());
+            }
+            return;
+        }
+        if(found!=null&&priorVersion>0&&found.path("revision").asLong()!=priorVersion){
+            status="Bender calibration has concurrent changes; local copy preserved.";
+            return;
+        }
+        if(found!=null&&hash.equals(prior))return;
+        ArrayNode batch=JSON.createArrayNode();
+        batch.add(proposed(id,found==null?0:found.path("revision").asLong(),payload,false));
+        ObjectNode request=JSON.createObjectNode();request.set("records",batch);
+        JsonNode response=JSON.readTree(PORTAL.accountSyncBatch("benderProfiles",credentials.user(),credentials.password(),request.toString()));
+        if(response.path("accepted").size()==1){
+            prefs.put("_syncDigest",hash);
+            prefs.putLong("_syncRevision",response.path("accepted").get(0).path("revision").asLong());
+        }else status="Bender calibration conflict; local values preserved.";
+    }
+
     private static void normalize(String bucket,ObjectNode data) {
         if("hours".equals(bucket)&&!data.has("hours")&&data.has("amount"))
             data.set("hours",data.path("amount").deepCopy());
