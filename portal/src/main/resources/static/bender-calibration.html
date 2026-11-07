@@ -26,7 +26,7 @@ strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;b
 <div><label for="material">Conduit material</label><select id="material"><option>EMT</option><option>IMC</option><option>RMC</option><option>PVC</option><option>Other</option></select></div>
 <div><label for="size">Trade size</label><select id="size"><option>1/2</option><option>3/4</option><option>1</option><option>1-1/4</option><option>1-1/2</option><option>2</option><option>Other</option></select></div>
 <div><label for="units">Measurement units</label><select id="units"><option value="in">Inches</option><option value="mm">Millimetres</option></select></div>
-</div><div class="actions"><button id="new">New profile</button><button class="primary" id="save">Save & make active</button><button class="danger" id="delete">Delete selected profile</button></div><p class="small" id="storageStatus">Profiles are saved only on this device/browser. They do not automatically sync to other devices.</p></section>
+</div><div class="actions"><button id="new">New profile</button><button class="primary" id="save">Save & make active</button><button class="danger" id="delete">Delete selected profile</button></div><p class="small" id="storageStatus">Saved locally first. When signed in, profiles sync to your Electrical Workbench account. Conflicting edits are backed up for review.</p></section>
 <section class="card"><h2>2 · Calibrate stub-up deduct</h2>
 <p>Make a 90° test stub. Measure the actual finished stub and the original arrow mark distance from the same square stock end and specified reference surfaces.</p>
 <div class="fields">
@@ -49,6 +49,7 @@ strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;b
 <p class="small">After saving, open the Stub-up, Kicked 90°, Back-to-back 90°, or Bend Gain tool and select <b>Use saved calibration</b>. Calibration belongs to the recorded bender/size/material only. Check springback, radius, minimum stub, bends between pull points and manufacturer instructions on the job.</p>
 </section>
 </div></main>
+<script src="/account-sync.js?v=20261107-v1"></script>
 <script>
 (function(){
 'use strict';
@@ -85,15 +86,22 @@ function save(){
  const all=profiles();const id=activeId||'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
  const record={id,name,model,deduct,gain};ids.filter(k=>!['name','model'].includes(k)).forEach(k=>record[k]=el(k).value);
  const index=all.findIndex(p=>p.id===id);if(index>=0)all[index]=record;else all.push(record);
- try{localStorage.setItem(KEY,JSON.stringify(all));localStorage.setItem(ACTIVE,JSON.stringify(record));activeId=id;refresh();el('storageStatus').textContent='Calibration saved and selected for this browser. Return to a bending calculator and press Use saved calibration.';el('storageStatus').className='small success';}
+ try{localStorage.setItem(KEY,JSON.stringify(all));localStorage.setItem(ACTIVE,JSON.stringify(record));activeId=id;refresh();if(window.EWAccountSync)EWAccountSync.run();el('storageStatus').textContent='Calibration saved locally. Account sync will update other devices when online.';el('storageStatus').className='small success';}
  catch(e){el('storageStatus').textContent='Could not save locally: '+e.message;el('storageStatus').className='small error';}
 }
-function remove(){if(!activeId)return;const kept=profiles().filter(p=>p.id!==activeId);try{localStorage.setItem(KEY,JSON.stringify(kept));localStorage.removeItem(ACTIVE);changeProfile('');el('storageStatus').textContent='Selected calibration deleted from this browser.';}catch(e){el('storageStatus').textContent='Delete failed: '+e.message;}}
+function remove(){if(!activeId)return;const kept=profiles().filter(p=>p.id!==activeId);try{localStorage.setItem(KEY,JSON.stringify(kept));localStorage.removeItem(ACTIVE);changeProfile('');if(window.EWAccountSync)EWAccountSync.run();el('storageStatus').textContent='Calibration deleted locally; account sync will update when online.';}catch(e){el('storageStatus').textContent='Delete failed: '+e.message;}}
 el('saved').addEventListener('change',e=>changeProfile(e.target.value));
 el('new').addEventListener('click',()=>changeProfile(''));
 el('save').addEventListener('click',save);el('delete').addEventListener('click',remove);
 el('calculate').addEventListener('click',compute);
 for(const id of ids)el(id).addEventListener('input',compute);
 changeProfile('');const all=profiles();try{const p=JSON.parse(localStorage.getItem(ACTIVE)||'null');if(p&&all.some(x=>x.id===p.id))changeProfile(p.id);}catch(_){}
+if(window.EWAccountSync){
+ EWAccountSync.onStatus(function(message){el('storageStatus').textContent=message});
+ EWAccountSync.register('benderProfiles',KEY,function(){
+    const selected=profiles().find(x=>x.id===activeId);
+    refresh();if(selected)changeProfile(activeId);
+ });
+}
 })();
 </script></body></html>
