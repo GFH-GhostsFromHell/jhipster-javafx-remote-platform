@@ -107,6 +107,7 @@ internal object MobileAccountSync {
         }
         val batch = JSONArray()
         val conflicts = JSONArray()
+        val conflictIDs = mutableSetOf<String>()
         for ((id,record) in local) {
             val previous = before.optJSONObject(id)
             val existing = server[id]
@@ -114,7 +115,12 @@ internal object MobileAccountSync {
             if (existing == null) {
                 batch.put(JSONObject().put("id",id).put("revision",0).put("data",record).put("deleted",false))
             } else if (changed) {
-                if (previous != null && previous.optLong("revision") != existing.optLong("revision")) {
+                if (previous == null && !record.similar(existing.optJSONObject("data"))) {
+                    conflicts.put(JSONObject().put("id",id).put("local",record).put("remote",existing)
+                        .put("reason","first sync difference"))
+                    conflictIDs.add(id)
+                } else if (previous != null && previous.optLong("revision") != existing.optLong("revision")) {
+                    conflictIDs.add(id)
                     conflicts.put(JSONObject().put("id",id).put("local",record).put("remote",existing))
                 } else {
                     batch.put(JSONObject().put("id",id).put("revision",existing.optLong("revision")).put("data",record).put("deleted",false))
@@ -133,6 +139,7 @@ internal object MobileAccountSync {
                     .put("data",existing.optJSONObject("data") ?: JSONObject()).put("deleted",true))
             } else if (!existing.optBoolean("deleted")) {
                 conflicts.put(JSONObject().put("id",id).put("remote",existing).put("reason","deleted while modified remotely"))
+                conflictIDs.add(id)
             }
         }
         if (batch.length()>0) {
@@ -142,7 +149,10 @@ internal object MobileAccountSync {
                 for (i in start until minOf(start+200,batch.length())) slice.put(batch.get(i))
                 val result = JSONObject(request("/api/sync/$bucket/batch",user,secret,JSONObject().put("records",slice)))
                 val failures = result.optJSONArray("conflicts") ?: JSONArray()
-                for (i in 0 until failures.length()) conflicts.put(failures.get(i))
+                for (i in 0 until failures.length()) {
+                    failures.optJSONObject(i)?.optString("id")?.let { conflictIDs.add(it) }
+                    conflicts.put(failures.get(i))
+                }
                 start += 200
             }
         }
@@ -156,15 +166,21 @@ internal object MobileAccountSync {
             val payload = record.optJSONObject("data") ?: JSONObject()
             val existingLocal = local[id]
             val previous = before.optJSONObject(id)
-            val modifiedLocally = previous != null && existingLocal != null && previous.optString("data") != existingLocal.toString()
+            val modifiedLocally = conflictIDs.contains(id) ||
+                (previous != null && existingLocal != null && previous.optString("data") != existingLocal.toString())
             if (record.optBoolean("deleted")) {
                 if (!modifiedLocally) merged.remove(id)
             } else if (!modifiedLocally) {
                 payload.put("_syncId",id)
+                normalizeBucket(bucket,payload)
                 merged[id] = payload
             }
-            mirror.put(id,JSONObject().put("revision",record.optLong("revision"))
-                .put("data",payload.toString()).put("deleted",record.optBoolean("deleted")))
+            mirror.put(id,if (conflictIDs.contains(id)) {
+                previous ?: JSONObject().put("revision",0).put("data","").put("deleted",false)
+            } else {
+                JSONObject().put("revision",record.optLong("revision"))
+                    .put("data",payload.toString()).put("deleted",record.optBoolean("deleted"))
+            })
         }
         if (conflicts.length()>0) {
             val prior = runCatching { JSONArray(prefs.getString("sync_conflicts_$bucket","[]")) }.getOrDefault(JSONArray())
@@ -175,6 +191,15 @@ internal object MobileAccountSync {
         val saved = JSONArray()
         merged.values.forEach { saved.put(it) }
         prefs.edit().putString(localKey,saved.toString()).putString(mirrorKey,mirror.toString()).apply()
+    }
+
+    private fun normalizeBucket(bucket: String, row: JSONObject) {
+        if (bucket == "hours" && !row.has("hours") && row.has("amount"))
+            row.put("hours",row.optDouble("amount",0.0))
+        if (bucket in listOf("projects","credentials") && !row.has("name") && row.has("title"))
+            row.put("name",row.optString("title"))
+        if (bucket == "nameplates" && !row.has("equipment") && row.has("title"))
+            row.put("equipment",row.optString("title"))
     }
 
     private fun syncCalibration(context: Context,user: String,secret: String) {
