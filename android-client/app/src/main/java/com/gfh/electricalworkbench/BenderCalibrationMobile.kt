@@ -57,7 +57,7 @@ internal fun BenderCalibrationMobile() {
         firstValue + secondValue >= stockValue) firstValue + secondValue - stockValue else null
 
     Text("Bender Calibration · offline", style = MaterialTheme.typography.titleLarge)
-    Text("Use a scrap piece from the exact shoe, trade size, and conduit type. Values stay on this device; they do not sync with web profiles.")
+    Text("Use a scrap piece from the exact shoe, trade size, and conduit type. Saved measurements remain available offline and sync to your account when signed in.")
     OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Profile name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
     OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("Make / model") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
     OutlinedTextField(value = material, onValueChange = { material = it }, label = { Text("Conduit material (EMT, IMC, RMC...)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -89,7 +89,8 @@ internal fun BenderCalibrationMobile() {
                 "first" to first, "second" to second,
                 "deduct" to (deduct?.toString() ?: ""), "gain" to (gain?.toString() ?: "")
             ))
-            result = "Calibration saved on this phone: " + name + ". In Conduit bender or Gain & racks, tap Use saved calibration."
+            MobileAccountSync.schedule(context)
+            result = "Calibration saved locally: " + name + ". Account sync runs when online. In Conduit bender or Gain & racks, tap Use saved calibration."
         }
     }, modifier = Modifier.fillMaxWidth()) { Text("Save and use this bender calibration") }
     Text(result)
