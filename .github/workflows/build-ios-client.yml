@@ -1,0 +1,63 @@
+name: Build iOS Client
+
+on:
+  push:
+    branches: [main, development/functionality]
+    paths:
+      - 'ios-client/**'
+      - '.github/workflows/build-ios-client.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ios-client/**'
+      - '.github/workflows/build-ios-client.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-simulator:
+    name: Compile iPhone and iPad app
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios-client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Select Xcode
+        run: |
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+      - name: Compile unsigned iOS Simulator app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ElectricalWorkbench.xcodeproj \
+            -scheme ElectricalWorkbench \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee .build-log.txt
+      - name: Zip Simulator app
+        run: |
+          ditto -c -k --keepParent \
+            .build/Build/Products/Debug-iphonesimulator/ElectricalWorkbench.app \
+            .build/ElectricalWorkbench-iOS-Simulator.zip
+      - name: Upload Simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElectricalWorkbench-iOS-Simulator
+          path: ios-client/.build/ElectricalWorkbench-iOS-Simulator.zip
+          retention-days: 14
+          if-no-files-found: error
+
+# A simulator artifact is not a signed iPhone IPA.
+# Device/TestFlight distribution requires Apple Developer signing and App Store Connect.

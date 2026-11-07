@@ -1,0 +1,39 @@
+name: ElectricalWorkbench
+options:
+  bundleIdPrefix: ca.gfh
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+targets:
+  ElectricalWorkbench:
+    type: application
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: ElectricalWorkbench
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ca.gfh.electricalworkbench
+        PRODUCT_NAME: ElectricalWorkbench
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Electrical Workbench
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SWIFT_EMIT_LOC_STRINGS: YES
+        SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_STYLE: Automatic
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+schemes:
+  ElectricalWorkbench:
+    build:
+      targets:
+        ElectricalWorkbench: all
+    run:
+      config: Debug
+    archive:
+      config: Release
