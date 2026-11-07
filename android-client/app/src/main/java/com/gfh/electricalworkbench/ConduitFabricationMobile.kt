@@ -4,11 +4,15 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.KeyboardType
 import java.util.Locale
 import kotlin.math.*
 
@@ -74,7 +78,8 @@ private fun fabMark(x: Double, units: String, precision: String): String {
 }
 @Composable private fun FabInput(title: String, current: String, change: (String) -> Unit) {
     OutlinedTextField(value = current, onValueChange = change, label = { Text(title) },
-        modifier = Modifier.fillMaxWidth(), singleLine = true)
+        modifier = Modifier.fillMaxWidth(), singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
 }
 
 @Composable
@@ -98,10 +103,24 @@ internal fun ConduitFabricationMobile() {
     var result by remember { mutableStateOf("Enter your dimensions and calculate.") }
     val context = LocalContext.current
 
-    Text("Conduit fabrication · offline", style = MaterialTheme.typography.titleLarge)
-    Text("Measure gain with the actual shoe. Geometric estimates are not physical tool marks.",
-        style = MaterialTheme.typography.bodySmall)
+    Text("Conduit fabrication · offline", fontSize = 19.sp)
     FabChoice("Tool", mode, listOf("Gain & cut length", "Parallel rack offsets")) { mode = it; result = "" }
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("MEASURE FIRST", color = Color(0xFF91EEE4), fontSize = 13.sp)
+            if (mode == "Gain & cut length") {
+                Text("1. Cut a test piece and record its original straight length.", fontSize = 13.sp)
+                Text("2. Bend a 90° using YOUR shoe; measure both finished legs with the same back-of-bend references.", fontSize = 13.sp)
+                Text("3. Gain = finished leg 1 + finished leg 2 − original stock. Use that gain to calculate cut length.", fontSize = 13.sp)
+            } else {
+                Text("1. Measure centre-to-centre spacing between neighbouring conduit runs.", fontSize = 13.sp)
+                Text("2. Select the angle for EACH bend; mark tape zero on every individual pipe.", fontSize = 13.sp)
+                Text("3. Enter the first reference mark; both marks on each next pipe shift by the calculated stagger.", fontSize = 13.sp)
+            }
+            Text("These are measurement conventions, not assumed shoe marks. Replace example values before use.",
+                color = Color(0xFFF2C87F), fontSize = 12.sp)
+        }
+    }
     FabChoice("Units", units, listOf("mm", "in")) { next ->
         if (next != units) {
             val multiplier = if (next == "mm") 25.4 else 1.0 / 25.4
@@ -175,7 +194,7 @@ internal fun ConduitFabricationMobile() {
         }, modifier = Modifier.fillMaxWidth()) { Text("Calculate each pipe mark") }
     }
     HorizontalDivider()
-    Text(result, style = MaterialTheme.typography.bodyMedium)
+    Text(result, fontSize = 13.sp, lineHeight = 19.sp)
     OutlinedButton(onClick = {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("Conduit fabrication", result))

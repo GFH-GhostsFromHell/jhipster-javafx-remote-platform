@@ -56,12 +56,41 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
   .ops{grid-template-columns:minmax(0,1fr)}
   .ops button{grid-column:auto}
 }
+ 
+/* Compact field layout: preserve 16px numeric input size to avoid Android browser zoom. */
+body{font-size:14px;line-height:1.42}
+h1{font-size:clamp(23px,4vw,30px)}h2{font-size:18px;margin-bottom:9px}
+.card{padding:13px;margin-bottom:11px}
+.quick-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.quick-fields input,.quick-fields select,.bend-setup select{font-size:16px;font-weight:650;min-height:46px}
+.quick-summary .quick-mark{font-size:clamp(19px,3.3vw,24px)}
+.steptext{font-size:15px;min-height:0;line-height:1.45}
+.hookvisual{font-size:clamp(16px,2.8vw,23px);padding:11px}
+.measure-guide{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.9fr);gap:9px;margin:10px 0;padding:12px;border-radius:12px;background:#092e40;border:1px solid #3f899a}
+.measure-guide strong{display:block;color:#93f8f1;font-size:14px}
+.measure-guide p{margin:4px 0;font-size:13px;color:#e4f2fa}
+.measure-guide ol{margin:5px 0;padding-left:19px;color:#e0f0f7;font-size:13px;line-height:1.45}
+.measure-guide li{padding:2px 0}
+.measure-guide .guide-visual{border:1px solid #597f92;background:#f5fafc;border-radius:9px;display:grid;place-items:center;min-width:0}
+.measure-guide svg{display:block;width:100%;height:auto;max-height:138px}
+.guide-caution{grid-column:1/-1;color:#c6e5ee;font-size:12px}
+.bend-setup{grid-template-columns:minmax(0,2fr) minmax(115px,1fr);gap:9px}
+.field-help{display:block;margin:3px 0 0;color:#b9d4e5;font-size:12px;line-height:1.4}
+@media(max-width:680px){
+ .measure-guide{grid-template-columns:minmax(0,1fr);padding:10px}
+ .measure-guide svg{max-height:128px}
+ .quick-fields{grid-template-columns:minmax(0,1fr)}
+ .bend-setup{grid-template-columns:minmax(0,1fr)}
+ .card{padding:11px}
+ .cues{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:390px){.cues{grid-template-columns:minmax(0,1fr)}}
 </style></head><body>
 <header><b>ϟ Electrical Workbench · Bend Instruction Lab <span class="pill">EXPERIMENTAL</span></b><nav><a href="/bend-calcs.html">Existing bending calculator</a> · <a href="/bender-calibration.html">Calibration</a> · <a href="/field-suite.html">Field Suite</a></nav></header>
 <main><h1>Bend it right. Mark it fast.</h1><p>Only the measurements you need. Clear tape marks, hook direction and the next bend. Open the 3D preview when you need it.</p>
 <section class="card quick-card"><h2>1 · Choose bend and enter measurements</h2>
-<p class="note">Only the measurements needed for the selected bend appear. Results update as you type. Measure from the same tape-zero end.</p>
-<div class="fields quick-fields" id="quickFields">
+<p class="note">Pick the bend, follow the tape diagram, then enter your measured dimensions. No guessing from the sample.</p>
+<div class="fields bend-setup">
 <div class="field"><label for="kind">Bend type</label><select id="kind">
 <optgroup label="Common field bends">
 <option value="offset" selected>Offset · 2 bends</option>
@@ -81,14 +110,22 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 <option value="custom">Custom multi-bend geometry</option>
 </optgroup></select></div>
 <div class="field"><label for="unit">Units</label><select id="unit"><option value="mm">Millimetres</option><option value="in">Inches</option></select></div>
-<div class="field"><label for="height">Rise / stub height</label><input id="height" type="number" inputmode="decimal" step="any" min="0" value="500"></div>
+</div>
+<div class="measure-guide" id="measureGuide" aria-label="How to measure for the selected bend">
+ <div class="guide-copy"><strong>MEASURE FIRST · choose your reference end</strong>
+ <p id="measureIntro">Set tape zero at the end of the straight conduit.</p><ol id="measureSteps"></ol></div>
+ <div class="guide-visual" id="measureSketch"></div>
+ <span class="guide-caution" id="measureCaution">Sketch shows job dimensions, not bender alignment marks.</span>
+</div>
+<div class="fields quick-fields" id="quickFields">
+<div class="field"><label for="height">Rise / stub height</label><input id="height" type="number" inputmode="decimal" step="any" min="0" placeholder="Your measured dimension"></div>
 <div class="field"><label for="deduct">Your bender's 90° deduct</label><input id="deduct" type="number" inputmode="decimal" step="any" min="0" placeholder="Enter or load calibration"></div>
 <div class="field"><label for="angle">Kick / offset angle</label><select id="angle"><option>10</option><option>15</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></div>
-<div class="field"><label for="distance">Obstacle / reference from tape end</label><input id="distance" type="number" inputmode="decimal" step="any" min="0" value="900"></div>
-<div class="field"><label for="width">Flat / obstacle / back-to-back width</label><input id="width" type="number" inputmode="decimal" step="any" min="0" value="500"></div>
+<div class="field"><label for="distance">Obstacle / reference from tape end</label><input id="distance" type="number" inputmode="decimal" step="any" min="0" placeholder="From tape zero"></div>
+<div class="field"><label for="width">Flat / obstacle / back-to-back width</label><input id="width" type="number" inputmode="decimal" step="any" min="0" placeholder="Measure on the job"></div>
 </div>
 <div class="actions quick-actions"><button id="recalc" class="primary">Show tape marks ↓</button><button id="quickCopy">Copy bend plan</button><button id="loadProfile">Load saved deduct</button><span class="note" id="profileStatus">90° marks require your actual shoe deduct — never a guessed value.</span></div>
-<div class="quick-summary" role="status" aria-live="polite" id="quickSummary"><strong>Your tape marks appear here</strong><span>Change the dimensions above to calculate.</span></div>
+<div class="quick-summary" role="status" aria-live="polite" id="quickSummary"><strong>Your tape marks appear here</strong><span>Enter measurements above. Marks appear automatically.</span></div>
 <div class="stock-status" id="stockStatus" role="status" aria-live="polite">10 ft EMT · 3,048 mm stock limit</div>
 <details class="advanced-disclosure" id="advancedOptions"><summary>More options · shoe method, reference, 3D radius & stock length</summary>
 <div class="fields advanced-fields"><div class="field"><label for="method">Physical hand-bender method</label><select id="method"><option value="klein">Klein-style manufacturer guide</option><option value="other">Other / unverified shoe</option></select></div>
@@ -118,4 +155,4 @@ label{font-size:13px;font-weight:750;color:#d5edf7;display:block;margin-bottom:4
 </details>
 <section class="card"><h2>Before you bend the real conduit</h2><div id="checks"></div><div class="actions"><button id="copyPlan">Copy instruction plan</button><button id="print">Print worksheet</button><a href="/bend-calcs.html">Return to existing calculations</a></div>
 <p class="note">Manufacturer reference: <a href="https://data.kleintools.com/sites/all/product_assets/documents/instructions/klein/ConduitBenderGuide.pdf" target="_blank" rel="noopener noreferrer">Klein Tools Conduit Bender Guide</a>. Physical handling varies with the exact shoe and whether floor bending or air bending. Always verify against the equipment you are holding.</p>
-</section></main><script src="/bend-instruction-lab.js?v=20261106-mobile-field-v2" defer></script></body></html>
+</section></main><script src="/bend-measure-help.js?v=20261106-measure-guide-v1" defer></script><script src="/bend-instruction-lab.js?v=20261106-measure-guide-v3" defer></script></body></html>
