@@ -133,7 +133,7 @@ struct TroubleshootingOfflineView: View {
                                     .font(.subheadline)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
-                            .toggleStyle(.checkbox)
+                            .toggleStyle(.switch)
                             .tint(WorkbenchStyle.cyan)
                             Divider().opacity(0.25)
                         }
