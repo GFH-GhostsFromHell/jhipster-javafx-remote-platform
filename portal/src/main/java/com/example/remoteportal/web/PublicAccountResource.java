@@ -170,7 +170,14 @@ public class PublicAccountResource {
 
   private String safeTier(Principal principal) {
     try { return clientAccounts.tier(principal.getName()); }
-    catch (Exception ex) { return "ADMIN"; }
+    catch (Exception ex) {
+      if (principal instanceof org.springframework.security.core.Authentication auth
+          && auth.isAuthenticated()
+          && auth.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())))
+        return "ADMIN";
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+          "Subscription information is temporarily unavailable. Please try again.");
+    }
   }
 
   private static String causeType(Throwable ex) {
