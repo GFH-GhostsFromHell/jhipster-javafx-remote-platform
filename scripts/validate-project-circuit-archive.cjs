@@ -61,7 +61,7 @@ assert.throws(()=>A.append(fullStorage,A.build(
  {project:'Mine',title:'Feeder'},data,result,'NOT CODE VERIFIED',
  today,'limit')),/archive has reached/);
 const broken={getItem:()=>'{bad JSON',setItem:()=>{}};
-assert.throws(()=>A.read(broken),/Could not read/);
+assert.throws(()=>A.read(broken),/unreadable/);
 const fakeProjectName='Project-'+'x'.repeat(160);
 assert.throws(()=>save(fakeProjectName,'Feeder A','badname'),/Project name/);
 const root=path.resolve(__dirname,'..');
@@ -70,7 +70,7 @@ const html=read('portal/src/main/resources/static/circuit-sizing.html');
 for(const key of ['projectName','worksheetTitle','worksheetNotes','savedWorksheet','saveWorksheet','loadWorksheet','exportProject']){
  assert.ok(html.includes('id="'+key+'"'),'Web project UI missing '+key);
 }
-assert.ok(html.includes('CircuitProjectArchive.append(localStorage,rec)'));
+assert.ok(html.includes('CircuitProjectArchive.append(localStorage,rec,archiveKey)'));
 assert.ok(html.includes("el('calculate').click()"),'Web save must recalculate current inputs');
 assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/CircuitSizingActivity.kt')
  .includes('CircuitWorksheetStore.save('));

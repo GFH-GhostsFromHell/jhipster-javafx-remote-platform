@@ -201,6 +201,18 @@ private fun CircuitSizingScreen(username:String) {
                 Text("Save new worksheet revision")
             }
             Text(saveStatus,style=MaterialTheme.typography.bodySmall,color=Color(0xFFFFCF75))
+            OutlinedButton(onClick={
+                if(username.isNotBlank()) {
+                    MobileAccountSync.schedule(context.applicationContext)
+                    savedRows=CircuitWorksheetStore.records(context,username)
+                    saveStatus="Showing current locally stored revisions. Account sync requested; tap Refresh after reconnection. " +
+                        MobileAccountSync.status
+                }else{
+                    saveStatus="Sign in to refresh account-linked project revisions."
+                }
+            },modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){
+                Text("Refresh saved projects / request sync")
+            }
             Text("Saved revisions for this project",style=MaterialTheme.typography.titleSmall)
             savedRows.filter{it.optString("project")==project.trim()}.take(15).forEach { row->
                 OutlinedButton(

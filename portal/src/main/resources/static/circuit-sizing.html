@@ -62,7 +62,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
 <div class="card" aria-live="polite"><h2>3. Worked assessment</h2><p id="status" class="warning">Enter your actual values, then calculate.</p>
 <pre id="result">No conductor or device has been approved by this worksheet.</pre></div>
 <div class="card"><h2>4. Save worksheet to a project</h2>
-<p class="note">Every save creates a dated, immutable revision containing all inputs, numeric results, the worked explanation, and unverified Code assumptions. Browser records are saved <strong>on this device only</strong>, not to your cloud account. Export backups before clearing browser data.</p>
+<p class="note">Every save creates a dated, immutable revision containing all inputs, numeric results, the worked explanation, and unverified Code assumptions. Signed-in records synchronize using your account design reports. Legacy local-only records remain separate until you explicitly import a backup. Export a backup before clearing browser data.</p>
+<p class="note warning" id="archiveAccount" aria-live="polite">Checking signed-in account…</p>
 <div class="grid">
 <label>Project name<input id="projectName" maxlength="150" value="Field project" list="projectNames"></label>
 <datalist id="projectNames"></datalist>
@@ -75,13 +76,18 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
 <div class="grid" style="margin-top:10px">
 <button id="loadWorksheet" type="button">Load selected revision</button>
 <button id="exportProject" type="button">Export project JSON backup</button>
+<button id="syncProjects" type="button">Synchronize account revisions</button>
+<button id="localArchiveMode" type="button">Switch to local-only archive</button>
 </div>
-<p class="note" id="archiveStatus" aria-live="polite">Local browser archive. Save and export to retain project history.</p>
+<label>Restore project JSON backup (does not overwrite earlier revisions)
+<input type="file" id="importProjectFile" accept=".json,application/json"></label>
+<p class="note" id="archiveStatus" aria-live="polite">Preparing project archive…</p>
 </div>
 <div class="card"><h2>Before installation</h2><p class="note">This calculator never certifies compliance or automatically picks an AWG size from unverified data. Confirm the Ontario Electrical Safety Code edition/amendments, actual terminal marking, conductor material and dimensions, CEC Table 1–4, Table 5A/5C, neutral count, wiring method, overcurrent protection, and upstream voltage drop. Any specialty circuit requires its own applicable Code path.</p></div>
 </main>
 <script src="/circuit-review-math.js?v=20261108-v1"></script>
-<script src="/circuit-project-archive.js?v=20261108-v1"></script>
+<script src="/circuit-project-archive.js?v=20261108-sync-v2"></script>
+<script src="/account-sync.js?v=20261108-sync-v2"></script>
 <script>
 (function(){
  'use strict';
@@ -132,8 +138,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
    out.textContent=err.message;
   }
  });
- const archiveStatus=el('archiveStatus');
- const archive=()=>CircuitProjectArchive.read(localStorage);
+ const archiveStatus=el('archiveStatus'),accountStatus=el('archiveAccount');
+ let archiveKey=CircuitProjectArchive.KEY,verifiedUsername='',usingLocal=true;
+ const archive=()=>CircuitProjectArchive.read(localStorage,archiveKey);
+ function runSync(){if(!usingLocal&&window.EWAccountSync)EWAccountSync.run();}
  const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID
     ? crypto.randomUUID() : 'local-'+Date.now()+'-'+Math.random().toString(36).slice(2);
  function refreshArchive(){
@@ -159,10 +167,11 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
       notes:el('worksheetNotes').value,
       referenceTables:el('tableReference').value+'; Tables 5A and 5C (user-entered)'
     },latest.inputs,latest.results,latest.report,new Date(),id());
-   const saved=CircuitProjectArchive.append(localStorage,rec);
+   const saved=CircuitProjectArchive.append(localStorage,rec,archiveKey);
    refreshArchive();el('savedWorksheet').value=saved.id;
+   runSync();
    archiveStatus.textContent='Saved '+saved.project+' / '+saved.title+' · revision '+saved.revision+
-      ' · '+new Date(saved.saved).toLocaleString()+'. Local-only; export a backup.';
+      ' · '+new Date(saved.saved).toLocaleString()+(usingLocal?'. Browser-only: export a backup.':'. Account sync queued.');
   }catch(e){archiveStatus.textContent='Not saved: '+e.message;}
  });
  el('loadWorksheet').addEventListener('click',()=>{
@@ -188,7 +197,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
  el('exportProject').addEventListener('click',()=>{
   try{
    const project=el('projectName').value.trim();
-   const rows=CircuitProjectArchive.forProject(localStorage,project);
+   const rows=CircuitProjectArchive.forProject(localStorage,project,archiveKey);
    if(!rows.length)throw Error('No saved worksheets under this project.');
    const payload={format:'ElectricalWorkbenchCircuitProject',schemaVersion:1,
       project,exported:new Date().toISOString(),localOnly:true,worksheets:rows};
@@ -202,7 +211,59 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
  el('projectName').addEventListener('change',()=>{
    try{refreshArchive()}catch(e){archiveStatus.textContent=e.message}
  });
+ el('importProjectFile').addEventListener('change',async(event)=>{
+   const file=event.target.files&&event.target.files[0];
+   if(!file)return;
+   try{
+     if(file.size>2_000_000)throw Error('Backup exceeds 2 MB. Use smaller project exports.');
+     const payload=JSON.parse(await file.text());
+     const result=CircuitProjectArchive.importProject(localStorage,payload,archiveKey);
+     refreshArchive();runSync();
+     archiveStatus.textContent='Restored '+result.added+' new revision(s), '+result.skipped+
+       ' already present. Older records remain unchanged.'+
+       (usingLocal?' Browser-only: export a backup.':' Account sync queued.');
+   }catch(e){archiveStatus.textContent='Nothing imported: '+e.message}
+   finally{event.target.value=''}
+ });
+ el('syncProjects').addEventListener('click',()=>{
+   if(usingLocal)archiveStatus.textContent='Local-only. Sign in and reload, or export/import JSON to transfer.';
+   else{runSync();archiveStatus.textContent='Account synchronization requested; offline records remain local.';}
+ });
+ el('localArchiveMode').addEventListener('click',()=>{
+   if(usingLocal&&verifiedUsername){archiveKey=CircuitProjectArchive.keyForAccount(verifiedUsername);usingLocal=false;}
+   else{archiveKey=CircuitProjectArchive.KEY;usingLocal=true;}
+   accountStatus.textContent=usingLocal?'Local-only browser archive — not synchronized. Export a backup.':
+     'Signed-in account '+verifiedUsername+' — synchronizes while authenticated.';
+   el('localArchiveMode').textContent=usingLocal&&verifiedUsername?
+     'Return to account archive':'Switch to local-only archive';
+   latest=null;
+   try{refreshArchive()}catch(e){archiveStatus.textContent=e.message}
+ });
+ if(window.EWAccountSync)EWAccountSync.onStatus(message=>{
+   if(!usingLocal)archiveStatus.textContent=message;
+ });
+ async function connectAccount(){
+   try{
+     const response=await fetch('/api/profile',{credentials:'same-origin',cache:'no-store'});
+     if(!response.ok)throw Error(response.status===401?'Not signed in':'Account unavailable');
+     const profile=await response.json(),username=String(profile.username||'').trim();
+     if(!username)throw Error('Account username not verified');
+     verifiedUsername=username;
+     archiveKey=CircuitProjectArchive.keyForAccount(username);
+     usingLocal=false;
+     accountStatus.textContent='Signed in as '+username+' · circuit projects sync when online.';
+     el('localArchiveMode').textContent='Switch to local-only archive';
+     refreshArchive();
+     if(window.EWAccountSync)EWAccountSync.register('designReports',archiveKey,()=>{
+       if(!usingLocal)refreshArchive();
+     });
+   }catch(e){
+     accountStatus.textContent='Local-only (no verified signed-in account). Sign in to portal and reload to sync. No anonymous uploads.';
+     archiveStatus.textContent='Local-only. Export JSON backup before clearing browser data.';
+   }
+ }
  try{refreshArchive()}catch(e){archiveStatus.textContent=e.message}
+ connectAccount();
 })();
 </script>
 </body>
