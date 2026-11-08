@@ -51,4 +51,42 @@ for(const field of ['industrial-commissioning-math.js','id="calculate"','id="res
 const script=file.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(script);
 new (require('node:vm').Script)(script[1],{filename:'industrial-ui.js'});
-console.log('Industrial commissioning passed: six guarded worksheets, invalid cases, source-status safety and mobile UI syntax.');
+// Native implementations are exercised independently by Android Gradle,
+ // Swift self-tests and Windows Maven/JUnit workflows.
+const read=relative=>fs.readFileSync(path.join(__dirname,'..',relative),'utf8');
+for(const [platform,source,screen] of [
+ ['Android','android-client/app/src/main/java/com/gfh/electricalworkbench/IndustrialFieldMath.kt',
+  'android-client/app/src/main/java/com/gfh/electricalworkbench/IndustrialFieldActivity.kt'],
+ ['iOS','ios-client/ElectricalWorkbench/IndustrialFieldMath.swift',
+  'ios-client/ElectricalWorkbench/IndustrialFieldView.swift'],
+ ['Windows','desktop-client/src/main/java/com/example/desktop/IndustrialFieldMath.java',
+  'desktop-client/src/main/java/com/example/desktop/IndustrialFieldPane.java']
+]){
+ const src=read(source),ui=read(screen);
+ for(const mode of ['ct','vt','power','pickup','fault','analog']){
+   assert.ok(src.includes(mode),platform+' missing '+mode);
+ }
+ assert.ok(src.includes('codeComplianceVerified'),platform+' missing false compliance flag');
+ assert.ok(ui.includes('NOT CODE VERIFIED'),platform+' missing Code warning');
+}
+assert.ok(read('android-client/app/src/main/AndroidManifest.xml').includes('IndustrialFieldActivity'));
+assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt').includes('IndustrialFieldActivity::class.java'));
+assert.ok(read('ios-client/ElectricalWorkbench/WorkbenchTools.swift').includes('IndustrialFieldView()'));
+assert.ok(read('desktop-client/src/main/java/com/example/desktop/NativeCalculatorPane.java').includes('new IndustrialFieldPane()'));
+const circuitWeb=read('portal/src/main/resources/static/circuit-sizing.html');
+const circuitAndroid=read('android-client/app/src/main/java/com/gfh/electricalworkbench/CircuitSizingActivity.kt');
+const circuitIOS=read('ios-client/ElectricalWorkbench/UnifiedCircuitSizingView.swift');
+const circuitWindows=read('desktop-client/src/main/java/com/example/desktop/CircuitReviewPane.java');
+for(const [platform,ui]of [
+ ['web',circuitWeb],['Android',circuitAndroid],['iOS',circuitIOS],['Windows',circuitWindows]
+]){
+ for(const nominal of ['120','208','347','600'])
+  assert.ok(ui.includes(nominal),platform+' missing '+nominal+' V fast preset');
+}
+const cec=JSON.parse(read('docs/CEC2024_TABLE_VERIFICATION_REGISTER.json'));
+assert.equal(cec.referenceProfileId,'OESC_ON_2024');
+assert.equal(cec.numericDatasetReleaseStatus,'AUTHORIZED_SOURCE_NOT_AVAILABLE');
+assert.equal(cec.reviewRows.length,8);
+assert.ok(cec.reviewRows.every(x=>x.status==='PENDING_AUTHORIZED_COPY' &&
+  x.acceptedNumericRowCount===0 && x.approvedForDistribution===false));
+console.log('Industrial commissioning passed: six guarded worksheets, invalid cases, four-platform UI wiring and provisional CEC audit gates.');
