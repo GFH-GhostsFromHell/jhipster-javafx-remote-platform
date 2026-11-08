@@ -229,7 +229,7 @@ public final class DesktopAccountSync {
             prefs.put("size",data.path("size").asText(""));
             String units=data.path("units").asText("mm");
             prefs.put("units",units.equals("in")?"Inches":"Millimetres");
-            for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain","minMarkGap")){
+            for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain","minMarkGap","minStraight")){
                 String from=switch(field){case "mark"->"arrowMark";case "stub"->"actualStub";default->field;};
                 prefs.put(field,data.path(from).asText(data.path(field).asText("")));
             }
@@ -243,7 +243,7 @@ public final class DesktopAccountSync {
         payload.put("material",prefs.get("material","EMT"));
         payload.put("size",prefs.get("size",""));
         payload.put("units",prefs.get("units","Millimetres").equals("Inches")?"in":"mm");
-        for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain","minMarkGap")){
+        for(String field:List.of("mark","stub","stock","legA","legB","deduct","gain","minMarkGap","minStraight")){
             payload.put(field,prefs.get(field,""));
         }
         payload.put("arrowMark",prefs.get("mark",""));
@@ -257,7 +257,7 @@ public final class DesktopAccountSync {
             // No local edits; accept newer profile from another device in the next UI session.
             ObjectNode remoteData=found.path("data") instanceof ObjectNode o?o:null;
             if(remoteData!=null){
-                for(String field:List.of("name","model","material","size","units","mark","stub","stock","legA","legB","deduct","gain","minMarkGap")){
+                for(String field:List.of("name","model","material","size","units","mark","stub","stock","legA","legB","deduct","gain","minMarkGap","minStraight")){
                     String from=switch(field){case "name"->"name";case "mark"->"arrowMark";case "stub"->"actualStub";default->field;};
                     String value=remoteData.path(from).asText(remoteData.path(field).asText(""));
                     String localKey=field.equals("name")?"profile":field;
