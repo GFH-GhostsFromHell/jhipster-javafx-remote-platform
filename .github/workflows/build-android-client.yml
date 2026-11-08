@@ -56,6 +56,9 @@ jobs:
             echo "UPDATE_CHANNEL=stable" >> "$GITHUB_ENV"
           fi
 
+      - name: Run offline transformer and conductor arithmetic unit tests
+        run: gradle :app:testDebugUnitTest --stacktrace
+
       - name: Build Android APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
