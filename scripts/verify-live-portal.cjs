@@ -26,7 +26,7 @@ async function get(url,timeoutMs=14000){
   if(!response.ok)throw Error('HTTP '+response.status+' at '+new URL(url).pathname);
   return response;
 }
-async function smoke(base,expected){
+async function checkBuild(base,expected){
   const build=await get(base+'/api/public/build-info');
   const payload=await build.json();
   const sha=validateBuild(payload,expected);
@@ -34,6 +34,11 @@ async function smoke(base,expected){
   if(health.status!=='UP')throw Error('Client health is not UP');
   const auth=await (await get(base+'/api/public/auth-options')).json();
   if(auth.password!==true)throw Error('Public password login status missing');
+  return {commit:sha,health:health.status,authStatus:'public options readable',
+    referenceProfileId:payload.referenceProfileId};
+}
+async function smoke(base,expected){
+  const verified=await checkBuild(base,expected);
   const home=await get(base+'/index.html');
   if(!/text\/html/i.test(home.headers.get('content-type')||''))
     throw Error('Public sign-in landing page did not return HTML');
@@ -41,14 +46,13 @@ async function smoke(base,expected){
   if(!/Electrical Workbench|Remote JavaFX|electrical/i.test(html))
     throw Error('Public sign-in landing page is not the expected application');
   // Pages requiring login are intentionally not probed with anonymous secrets.
-  return {commit:sha,health:health.status,authStatus:'public options readable',
-    staticLanding:'OK',referenceProfileId:payload.referenceProfileId};
+  return {...verified,staticLanding:'OK'};
 }
-async function waitFor(base,expected,attempts=9,delayMs=20000){
+async function waitFor(base,expected,attempts=9,delayMs=20000,mode='full'){
   if(!Number.isInteger(attempts)||attempts<1||attempts>50)throw Error('Invalid max attempts.');
   for(let i=1;i<=attempts;i++){
     try{
-      const result=await smoke(base,expected);
+      const result=await (mode==='build-only'?checkBuild(base,expected):smoke(base,expected));
       process.stdout.write('PRODUCTION VERIFIED '+JSON.stringify(result)+'\n');
       return result;
     }catch(e){
@@ -73,7 +77,11 @@ if(require.main===module){
     process.exit(2);
   }
   const attempts=Number(args['--attempts']||9);
-  waitFor(base,expected,attempts,Number(args['--delay-ms']||20000))
+  const mode=args['--mode']||'full';
+  if(!['full','build-only'].includes(mode)){
+    process.stderr.write('Invalid smoke-check mode.\\n');process.exit(2);
+  }
+  waitFor(base,expected,attempts,Number(args['--delay-ms']||20000),mode)
     .catch(e=>{process.stderr.write('PRODUCTION NOT VERIFIED: '+e.message+'\n');process.exitCode=1;});
 }
-module.exports={validateBuild,smoke,waitFor};
+module.exports={validateBuild,checkBuild,smoke,waitFor};
