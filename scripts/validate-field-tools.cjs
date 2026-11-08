@@ -67,7 +67,10 @@ if(geometryStart<0||geometryEnd<=geometryStart){
  // Confirm measured shoe clearance is enforced when supplied.
  const scenarios=[
   {name:'10 foot limit',ops:[{before:3300,angle:90,plane:0}],minStraight:null, expected:'CALCULATION NOT POSSIBLE'},
-  {name:'tool bend spacing',ops:[{before:300,angle:30,plane:0},{before:25,angle:-30,plane:0}],minStraight:150,expected:'BENDS TOO CLOSE'}
+  {name:'tool bend spacing',ops:[{before:300,angle:30,plane:0},{before:25,angle:-30,plane:0}],minStraight:150,expected:'BENDS TOO CLOSE'},
+  {name:'no straight between arcs',ops:[{before:300,angle:30,plane:0},{before:0,angle:-30,plane:0}],minStraight:null,expected:'BENDS TOO CLOSE'},
+  {name:'negative straight lead',ops:[{before:-50,angle:90,plane:0}],minStraight:null,expected:'Invalid bend operation'},
+  {name:'zero-degree bend',ops:[{before:350,angle:0,plane:0}],minStraight:null,expected:'Invalid bend operation'}
  ];
  for(const check of scenarios){
   try{
@@ -81,6 +84,36 @@ if(geometryStart<0||geometryEnd<=geometryStart){
    if(!String(error.message).includes(check.expected)){
     console.error('Unexpected stock-check failure '+check.name+': '+error.message);failed=true;
    }else console.log('Bend stock regression OK: '+check.name);
+  }
+ }
+}
+// Physical shop marks must not overlap even without a saved shoe profile.
+const stockStart=labJs.indexOf('const TEN_FOOT_EMT_MM=3048;');
+const stockEnd=labJs.indexOf('function showQuickSummary(');
+if(stockStart<0||stockEnd<=stockStart){
+ console.error('Could not locate physical stock validation');failed=true;
+}else{
+ const checkSource=labJs.slice(stockStart,stockEnd);
+ const cases=[
+  {name:'overlapping same-datum marks',marks:[{tag:'A',pos:400,tool:'ARROW'},{tag:'B',pos:400,tool:'ARROW'}],gap:null,expected:'BENDS TOO CLOSE'},
+  {name:'shoe clearance below minimum',marks:[{tag:'A',pos:400,tool:'ARROW'},{tag:'B',pos:450,tool:'ARROW'}],gap:150,expected:'BENDS TOO CLOSE'},
+  {name:'mark exceeds 10-foot stock',marks:[{tag:'A',pos:3049,tool:'ARROW'}],gap:null,expected:'CALCULATION NOT POSSIBLE'},
+  {name:'valid separated marks',marks:[{tag:'A',pos:400,tool:'ARROW'},{tag:'B',pos:800,tool:'ARROW'}],gap:150,expected:null},
+  {name:'kick mark does not prove common datum',marks:[{tag:'A',pos:400,tool:'ARROW'},{tag:'K',pos:400,tool:'USER-SUPPLIED'}],gap:150,expected:null}
+ ];
+ for(const c of cases){
+  const status={className:'',textContent:''};
+  try{
+   vm.runInNewContext(checkSource+'\ncheckStockAndSpacing()',{
+    layout:{marks:c.marks},v:id=>id==='stock'?3048:id==='minMarkGap'?c.gap:null,
+    toMm:n=>n,length:n=>String(n)+' mm',$:id=>status
+   });
+   if(c.expected){console.error('Missing rejection: '+c.name);failed=true}
+   else console.log('Bend mark regression OK: '+c.name);
+  }catch(error){
+   if(!c.expected||!String(error.message).includes(c.expected)){
+    console.error('Incorrect result '+c.name+': '+error.message);failed=true;
+   }else console.log('Bend mark regression OK: '+c.name);
   }
  }
 }

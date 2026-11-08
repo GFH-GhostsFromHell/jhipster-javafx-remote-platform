@@ -49,6 +49,12 @@ function valid(){
   if(number===null)throw Error('Enter '+names[id]+' to calculate this bend.');
   if(!Number.isFinite(number)||number<0)throw Error('Enter a valid '+names[id]+'.');
  }
+ const kind=$('kind').value;
+ // Zero rise and coincident 90s cannot form independent bends.
+ if(required.includes('height')&&v('height')===0)
+  throw Error('BENDS TOO CLOSE: enter a positive rise or stub height.');
+ if(['back','saddle4'].includes(kind)&&v('width')===0)
+  throw Error('BENDS TOO CLOSE: enter a positive spacing or obstacle width.');
  for(const id of ['radius','stock']){
   const number=v(id);
   if(number===null||!Number.isFinite(number)||number<=0)throw Error('Enter a valid '+id+'.');
@@ -211,18 +217,21 @@ function checkStockAndSpacing(){
  const overshot=marks.find(m=>m.pos<0||toMm(m.pos)>stockMm+1e-6);
  if(overshot)
   throw Error('CALCULATION NOT POSSIBLE on one 10 ft EMT: mark '+overshot.tag+' is at '+length(overshot.pos)+', outside '+length(stock)+' of actual stock.');
- const ordered=marks.filter(m=>m.tool!=='GEOMETRY ONLY').slice().sort((a,b)=>a.pos-b.pos);
- if(minMarkGap!==null&&minMarkGap>0){
-  for(let i=1;i<ordered.length;i++){
-   const gap=ordered[i].pos-ordered[i-1].pos;
-   if(gap+1e-6<minMarkGap)
-    throw Error('CALCULATION NOT POSSIBLE: '+ordered[i-1].tag+' and '+ordered[i].tag+
-     ' are only '+length(gap)+' apart, below the bender minimum of '+length(minMarkGap)+'.');
-  }
+ // Use only known same-datum physical marks for shoe-spacing checks.
+ // K is manually supplied and may have another tape reference.
+ const ordered=marks.filter(m=>m.tool!=='GEOMETRY ONLY'&&m.tag!=='K').slice().sort((a,b)=>a.pos-b.pos);
+ for(let i=1;i<ordered.length;i++){
+  const gap=ordered[i].pos-ordered[i-1].pos;
+  if(gap<=1e-6)
+   throw Error('BENDS TOO CLOSE: physical marks '+ordered[i-1].tag+' and '+ordered[i].tag+
+    ' overlap. Increase the required rise or spacing.');
+  if(minMarkGap!==null&&minMarkGap>0&&gap+1e-6<minMarkGap)
+   throw Error('BENDS TOO CLOSE: '+ordered[i-1].tag+' and '+ordered[i].tag+
+    ' are only '+length(gap)+' apart, below the verified shoe minimum of '+length(minMarkGap)+'.');
  }
  const furthest=marks.length?Math.max(...marks.map(m=>m.pos)):0;
  $('stockStatus').className='stock-status pending';
- $('stockStatus').textContent='10 ft EMT · marks within stock (furthest '+length(furthest)+' of '+length(stock)+'). '+
+ $('stockStatus').textContent='Single-piece EMT · shop marks within stock (furthest '+length(furthest)+' of '+length(stock)+'; max 10 ft). '+
   (minMarkGap===null?'Shoe clearance NOT VERIFIED — set your minimum in More options.':
   'Same-datum marks checked against your '+length(minMarkGap)+' minimum.')+
   ' Verify actual shoe access, radius, springback and developed length.';
@@ -311,6 +320,15 @@ function calculatePath(){
   throw Error('CALCULATION NOT POSSIBLE: enter stock from 0 to 10 ft (3,048 mm).');
  if(minStraight!==null&&(!Number.isFinite(minStraight)||minStraight<0))
   throw Error('Enter a valid minimum straight between arcs (mm).');
+ // Reject invalid operations BEFORE summing developed material, so negative
+ // leads cannot mask a stock overrun.
+ if(!ops.length)throw Error('Enter at least one 3D bend operation.');
+ ops.forEach((o,i)=>{
+  if(!Number.isFinite(o.before)||o.before<0||!Number.isFinite(o.angle)||Math.abs(o.angle)>180||Math.abs(o.angle)<1e-8||!Number.isFinite(o.plane))
+   throw Error('Invalid bend operation '+(i+1)+': check straight lead, angle and plane.');
+  if(i>0&&o.before<=1e-6)
+   throw Error('BENDS TOO CLOSE: B'+(i+1)+' has no straight conduit between bend arcs. Confirm shoe clearance.');
+ });
  const developed=ops.reduce((sum,o)=>sum+o.before+Math.abs(o.angle)*RAD*radius,toMm(tail));
  if(!Number.isFinite(developed)||developed>stock+1e-6)
   throw Error('CALCULATION NOT POSSIBLE on one 10 ft EMT: 3D developed centreline needs '+fmt(developed,1)+' mm, available '+fmt(stock,1)+' mm. Shorten the leads or bends.');
@@ -325,7 +343,6 @@ function calculatePath(){
   for(let k=0;k<count;k++){pos=add(pos,delta);pts.push({p:pos.slice(),bend})}
  }
  ops.forEach((o,i)=>{
-  if(!Number.isFinite(o.before)||o.before<0||!Number.isFinite(o.angle)||Math.abs(o.angle)>180||!Number.isFinite(o.plane))throw Error('Invalid bend operation '+(i+1));
   straight(o.before,i);
   const bin=norm(cross(t,n)),phi=o.plane*RAD,normal=norm(add(times(n,Math.cos(phi)),times(bin,Math.sin(phi))));
   const arc=o.angle*RAD,count=Math.max(2,Math.ceil(Math.abs(o.angle)/2.5)),p0=pos.slice();
