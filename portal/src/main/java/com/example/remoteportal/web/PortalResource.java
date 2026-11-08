@@ -4,6 +4,9 @@ import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.PortalStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -51,9 +54,7 @@ public class PortalResource {
   @GetMapping("/api/client/bootstrap")
   public Map<String,Object> bootstrap(Principal p){
     String u=p.getName();
-    Map<String,Object> account;
-    try { account=accounts.get(u); }
-    catch(Exception ex) { account=Map.of("username",u,"displayName",u,"enabled",true,"subscriptionTier","ADMIN"); }
+    Map<String,Object> account=accountForPrincipal(p);
     return Map.of(
       "user",account,
       "features",store.effective(u),
@@ -64,10 +65,30 @@ public class PortalResource {
 
   @GetMapping("/api/profile")
   public Map<String,Object> profile(Principal p){
-    try { return accounts.get(p.getName()); }
-    catch(Exception ex) {
-      return Map.of("username",p.getName(),"displayName",p.getName(),"email","","enabled",true,"subscriptionTier","ADMIN");
+    return accountForPrincipal(p);
+  }
+
+  private Map<String,Object> accountForPrincipal(Principal principal) {
+    try {
+      return accounts.get(principal.getName());
+    } catch (org.springframework.security.core.userdetails.UsernameNotFoundException missing) {
+      // The in-memory administrator is not a client_account database row.
+      // Only authenticated principals with the actual admin authority qualify.
+      if (isAdmin(principal)) return Map.of(
+          "username",principal.getName(),"displayName",principal.getName(),
+          "email","","enabled",true,"subscriptionTier","ADMIN");
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+          "Your account profile could not be loaded. Please try again.");
+    } catch (Exception error) {
+      throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+          "Your account profile is temporarily unavailable. Please try again.");
     }
+  }
+
+  private static boolean isAdmin(Principal principal) {
+    return principal instanceof Authentication auth && auth.isAuthenticated()
+        && auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+            .anyMatch("ROLE_ADMIN"::equals);
   }
 
   public record ProfileUpdate(String displayName,String email,String avatarData){}
