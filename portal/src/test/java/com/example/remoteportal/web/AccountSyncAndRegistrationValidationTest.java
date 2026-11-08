@@ -84,6 +84,8 @@ class AccountSyncAndRegistrationValidationTest {
         assertEquals(HttpStatus.BAD_REQUEST,
             assertThrows(ResponseStatusException.class,
                 ()->endpoint.push("designReports",new AccountSyncResource.BatchRequest(oversize),worker)).getStatusCode());
+        verify(db,never()).update(anyString(),any(Object[].class));
+        verifyNoInteractions(db);
     }
 
     @Test void subscriptionFeaturesRespectFourTiers() {
