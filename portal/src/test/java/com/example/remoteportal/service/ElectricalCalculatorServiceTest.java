@@ -142,4 +142,74 @@ class ElectricalCalculatorServiceTest {
         assertThrows(IllegalArgumentException.class,
             () -> sut.transformer(75,600,208,3,1.25,1.25,1.25,"CEC_2021"));
     }
+    @Test void conductorReviewUsesSelectedSixtyDegreeTerminationBasis() {
+        // 90°C conductor insulation does NOT authorize the 90°C column
+        // at a 60°C rated termination; 55 × 0.82 × 0.80 = 36.08 A.
+        Map<String,Object> r=sut.conductorReview(30,55,60,90,0.82,0.80,"TABLE_2",EDITION);
+        assertEquals(60,r.get("selectedTerminationTemperatureC"));
+        assertEquals(90,r.get("conductorInsulationTemperatureC"));
+        assertEquals("TABLE 2",r.get("tableReference"));
+        assertEquals(36.08,number(r,"adjustedAmpacityA"),0.001);
+        assertEquals(6.08,number(r,"marginA"),0.001);
+        assertEquals(true,r.get("meetsEnteredLoadArithmetically"));
+        assertEquals(false,r.get("codeComplianceVerified"));
+        assertEquals(false,r.get("terminationMarkingVerified"));
+    }
+
+    @Test void conductorReviewFailsLoadUsingTerminationColumnAtHotAmbient() {
+        // 60°C column at 50°C ambient, 6 load conductors:
+        // 55 × 0.58 × 0.80 = 25.52 A, not adequate for 30 A load.
+        Map<String,Object> r=sut.conductorReview(30,55,60,90,0.58,0.80,"TABLE_2",EDITION);
+        assertEquals(25.52,number(r,"adjustedAmpacityA"),0.001);
+        assertEquals(-4.48,number(r,"marginA"),0.001);
+        assertEquals(false,r.get("meetsEnteredLoadArithmetically"));
+        assertTrue(String.valueOf(r.get("status")).contains("FAIL"));
+    }
+
+    @Test void conductorReviewUsesSeventyFiveDegreeBasisWhenSelected() {
+        Map<String,Object> r=sut.conductorReview(50,85,75,90,0.88,0.80,"TABLE_2",EDITION);
+        assertEquals(59.84,number(r,"adjustedAmpacityA"),0.001);
+        assertEquals(true,r.get("meetsEnteredLoadArithmetically"));
+        assertEquals(false,r.get("codeComplianceVerified"));
+    }
+
+    @Test void conductorReviewRejectsRatingsAndUnverifiedFactors() {
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,75,60,0.82,0.80,"TABLE_2",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,50,90,0.82,0.80,"TABLE_2",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,60,90,Double.NaN,0.80,"TABLE_2",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,60,90,0.82,1.01,"TABLE_2",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,60,90,0.82,0.80,"UNKNOWN_TABLE",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,60,90,0.82,0.80,null,EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(0,55,60,90,0.82,0.80,"TABLE_2",EDITION));
+    }
+
+    @Test void legacyMotorAndTransformerStarterSizesMustNeverClaimApproval() {
+        Map<String,Object> motor=sut.motor(34,1.25,1.15,1.75,1.15,"TIME_DELAY_FUSE",false,EDITION);
+        Map<String,Object> transformer=sut.transformer(75,600,208,3,1.25,1.25,1.25,EDITION);
+        @SuppressWarnings("unchecked")
+        Map<String,Object> starter=(Map<String,Object>)motor.get("starterConductor");
+        @SuppressWarnings("unchecked")
+        Map<String,Object> primary=(Map<String,Object>)transformer.get("primaryConductorStarter");
+        assertEquals(true,starter.get("candidateOnly"));
+        assertEquals(false,starter.get("codeComplianceVerified"));
+        assertEquals(true,primary.get("candidateOnly"));
+        assertEquals(false,motor.get("conductorSelectionVerified"));
+        assertEquals(false,transformer.get("terminationTemperatureChecked"));
+        assertTrue(String.valueOf(starter.get("requiredReview")).contains("60°C"));
+    }
+
+    @Test void conductorReviewRejectsArithmeticOverflowAndUnsupportedEdition() {
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,1e308,75,90,1,1,"TABLE_2",EDITION));
+        assertThrows(IllegalArgumentException.class,
+            ()->sut.conductorReview(30,55,60,90,0.82,0.8,"TABLE_2","CEC_2021"));
+    }
+
 }
