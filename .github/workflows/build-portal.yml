@@ -41,6 +41,6 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Compile and package portal
-        run: mvn -f portal/pom.xml -DskipTests package
+        run: mvn -B -f portal/pom.xml package
 
 # Trigger: calculator selection parity across Web, Windows and Android.
