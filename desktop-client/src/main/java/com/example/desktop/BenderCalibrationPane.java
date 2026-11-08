@@ -19,6 +19,8 @@ final class BenderCalibrationPane extends ScrollPane {
     private final TextField stock = field(PREFS.get("stock",""));
     private final TextField legA = field(PREFS.get("legA",""));
     private final TextField legB = field(PREFS.get("legB",""));
+    private final TextField minimumMarkGap = field(PREFS.get("minMarkGap",""));
+    private final TextField minimumStraight = field(PREFS.get("minStraight",""));
     private final Label result = new Label();
 
     BenderCalibrationPane() {
@@ -42,6 +44,9 @@ final class BenderCalibrationPane extends ScrollPane {
         gain.addRow(0,new Label("Original straight test stock"),stock);
         gain.addRow(1,new Label("First finished leg"),legA);
         gain.addRow(2,new Label("Second finished leg"),legB);
+        GridPane clearance = grid();
+        clearance.addRow(0,new Label("Verified minimum shoe mark spacing (optional)"),minimumMarkGap);
+        clearance.addRow(1,new Label("Verified straight between bend arcs (optional)"),minimumStraight);
         Button calculate = new Button("Calculate calibration");
         calculate.setOnAction(e -> calculate(false));
         Button save = new Button("Save calibration for this bender");
@@ -52,6 +57,7 @@ final class BenderCalibrationPane extends ScrollPane {
         page.getChildren().addAll(title,explanation,new Separator(),
             heading("1 · Tool identification"),identity,heading("2 · Effective stub deduct"),info("Deduct = actual finished stub height − original ARROW mark distance. Both must use the same reference end and dimension convention."),deduct,
             heading("3 · 90° bend gain"),info("Gain = finished leg A + finished leg B − original straight test stock. Use the same back-of-bend datums as your cut-length worksheet."),gain,
+            heading("4 · Verified shoe clearance"),info("Optional. Enter the minimum spacing between two shop marks only if checked against this exact bender model, material and trade size. This does NOT establish minimum straight between bend arcs or full head clearance."),clearance,
             new HBox(10,calculate,save),result,
             info("Load this measured profile in the Single Bend or Gain/Cut Length tabs using their Use saved calibration button. Always verify the correct shoe and conduit size, springback, radius and manufacturing instructions."));
         setContent(page);setFitToWidth(true);
@@ -75,7 +81,7 @@ final class BenderCalibrationPane extends ScrollPane {
         try{
             boolean hasDeduct=!mark.getText().isBlank()||!stub.getText().isBlank();
             boolean hasGain=!stock.getText().isBlank()||!legA.getText().isBlank()||!legB.getText().isBlank();
-            if(save&&(profile.getText().isBlank()||model.getText().isBlank()||material.getText().isBlank()||size.getText().isBlank()||!hasDeduct&&!hasGain))
+            if(save&&(profile.getText().isBlank()||model.getText().isBlank()||material.getText().isBlank()||size.getText().isBlank()||!hasDeduct&&!hasGain&&minimumMarkGap.getText().isBlank()&&minimumStraight.getText().isBlank()))
                 throw new IllegalArgumentException("Name/model/size/material and at least one complete test required.");
             Double deduct=null, bendGain=null;
             if(hasDeduct){
@@ -88,15 +94,31 @@ final class BenderCalibrationPane extends ScrollPane {
                 if(a+b<original)throw new IllegalArgumentException("Measured bend gain is negative; check the measurement datums.");
                 bendGain=a+b-original;
             }
+            double maxStock="Inches".equals(units.getValue())?120:3048;
+            Double minimumGap=null,minimumArcStraight=null;
+            if(!minimumMarkGap.getText().isBlank()){
+                double gap=positive(minimumMarkGap);
+                if(gap>maxStock)throw new IllegalArgumentException("Verified shoe mark spacing must not exceed 10 ft stock.");
+                minimumGap=gap;
+            }
+            if(!minimumStraight.getText().isBlank()){
+                double gap=positive(minimumStraight);
+                if(gap>maxStock)throw new IllegalArgumentException("Verified straight between arcs must not exceed 10 ft stock.");
+                minimumArcStraight=gap;
+            }
             String u=units.getValue();
             String message=(deduct==null?"Deduct: not measured":"Measured deduct: "+fmt(deduct)+" "+u)+"\n"+
-                (bendGain==null?"90° gain: not measured":"Measured 90° gain: "+fmt(bendGain)+" "+u);
+                (bendGain==null?"90° gain: not measured":"Measured 90° gain: "+fmt(bendGain)+" "+u)+"\n"+
+                (minimumGap==null?"Shoe mark gap: NOT VERIFIED":"Verified mark gap: "+fmt(minimumGap)+" "+u)+"\n"+
+                (minimumArcStraight==null?"Straight between arcs: NOT VERIFIED":"Verified arc-to-arc straight: "+fmt(minimumArcStraight)+" "+u);
             if(save){
                 PREFS.put("profile",profile.getText().trim());PREFS.put("model",model.getText().trim());
                 PREFS.put("material",material.getText().trim());PREFS.put("size",size.getText().trim());PREFS.put("units",u);
                 PREFS.put("mark",mark.getText().trim());PREFS.put("stub",stub.getText().trim());
                 PREFS.put("stock",stock.getText().trim());PREFS.put("legA",legA.getText().trim());PREFS.put("legB",legB.getText().trim());
                 PREFS.put("deduct",deduct==null?"":deduct.toString());PREFS.put("gain",bendGain==null?"":bendGain.toString());
+                PREFS.put("minMarkGap",minimumGap==null?"":minimumGap.toString());
+                PREFS.put("minStraight",minimumArcStraight==null?"":minimumArcStraight.toString());
                 DesktopAccountSync.scheduleCurrent();
                 message+="\nSaved locally for "+profile.getText().trim()+". Sync will run when online.";
             }

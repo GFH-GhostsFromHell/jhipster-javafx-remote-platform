@@ -24,22 +24,33 @@ internal object MobileConduitMath {
         require(g >= 0) { "Negative gain: check the back-of-bend measurement reference." }
         return g
     }
-    fun cut(first: Double, second: Double, span: Double, bends: Int, gain: Double): Double {
+    fun cut(first: Double, second: Double, span: Double, bends: Int, gain: Double,
+            maxStock: Double = 3048.0): Double {
         require(bends in 1..2 && listOf(first, second, span, gain).all { it.isFinite() }
             && first > 0 && second > 0 && gain >= 0 && (bends == 1 || span > 0)) {
             "Enter valid finished dimensions and measured gain."
         }
+        require(maxStock.isFinite() && maxStock > 0) { "Enter a valid stock limit." }
         val value = first + second + (if (bends == 2) span else 0.0) - bends * gain
-        require(value > 0) { "Calculated stock length must be positive." }
+        require(value.isFinite() && value > 0) { "Calculated stock length must be positive." }
+        require(value <= maxStock + 1e-6) {
+            "CALCULATION NOT POSSIBLE on one 10 ft EMT stick: required cut length exceeds available stock."
+        }
         return value
     }
-    fun rack(spacing: Double, angle: Double, start: Double, count: Int, increase: Boolean): List<Double> {
+    fun rack(spacing: Double, angle: Double, start: Double, count: Int, increase: Boolean,
+             maxStock: Double = 3048.0): List<Double> {
         require(spacing.isFinite() && angle.isFinite() && start.isFinite() &&
             spacing > 0 && angle > 0 && angle < 90 && start >= 0 && count in 2..20) {
             "Use positive spacing, a valid angle, a nonnegative datum and 2–20 conduits."
         }
+        require(maxStock.isFinite() && maxStock > 0) { "Enter a valid stock limit." }
         val step = spacing * tan(Math.toRadians(angle / 2))
-        return List(count) { start + (if (increase) 1 else -1) * it * step }
+        val marks = List(count) { start + (if (increase) 1 else -1) * it * step }
+        require(marks.all { it.isFinite() && it >= 0 && it <= maxStock + 1e-6 }) {
+            "CALCULATION NOT POSSIBLE on one 10 ft EMT stick: a proposed rack mark is before tape zero or beyond the stock."
+        }
+        return marks
     }
 }
 
@@ -154,7 +165,8 @@ internal fun ConduitFabricationMobile() {
                 val bends = if (arrangement == "Single 90°") 1 else 2
                 val calibrated = gain.toDoubleOrNull() ?: error("Calibrate shoe gain on scrap first.")
                 val cut = MobileConduitMath.cut(first.toDouble(), second.toDouble(),
-                    if (bends == 2) span.toDouble() else 0.0, bends, calibrated)
+                    if (bends == 2) span.toDouble() else 0.0, bends, calibrated,
+                    if (units == "mm") 3048.0 else 120.0)
                 "STRAIGHT STOCK TO CUT: " + fabMark(cut, units, precision) +
                     "\nGain allowance: " + fabMark(calibrated * bends, units, precision) +
                     "\n\nCut length = sum of finished dimensions − (number of 90s × measured gain)." +
@@ -183,13 +195,14 @@ internal fun ConduitFabricationMobile() {
         Button(onClick = {
             result = runCatching {
                 val marks = MobileConduitMath.rack(spacing.toDouble(), angle.toDouble(),
-                    datum.toDouble(), count.toInt(), direction.startsWith("Increasing"))
+                    datum.toDouble(), count.toInt(), direction.startsWith("Increasing"),
+                    if (units == "mm") 3048.0 else 120.0)
                 val stagger = spacing.toDouble() * tan(Math.toRadians(angle.toDouble() / 2))
                 "Adjacent stagger: " + fabMark(stagger, units, precision) +
                     "\nFirst-to-last stagger: " + fabMark(stagger * (marks.size - 1), units, precision) + "\n\n" +
                     marks.mapIndexed { i, mark -> "Pipe " + (i + 1) + ": " +
-                        (if (mark < 0) "BEFORE DATUM — revise layout" else fabMark(mark, units, precision)) }.joinToString("\n") +
-                    "\n\nShift BOTH marks on each adjacent conduit. Verify offset plane, shoe radius and installation clearances."
+                        fabMark(mark, units, precision) }.joinToString("\n") +
+                    "\n\nFirst marks are within one standard 10 ft EMT stick. This rack calculation does NOT verify the second offset mark or physical shoe-head clearance. Check both marks on every pipe before bending."
             }.getOrElse { "Check rack: " + it.message }
         }, modifier = Modifier.fillMaxWidth()) { Text("Calculate each pipe mark") }
     }
@@ -199,6 +212,6 @@ internal fun ConduitFabricationMobile() {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("Conduit fabrication", result))
     }, enabled = result.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Copy measurements") }
-    Text("FIELD CHECK: verify actual shoe, radius, gain, deduct, straight lead, bend plane, springback, conduit OD and applicable code. Test on scrap before a production run.",
+    Text("STOCK CHECK: 10 ft EMT = 3,048 mm / 120 in. Calculated cut lengths and rack reference marks beyond one stick are rejected. FIELD CHECK: verify shoe clearance, second offset marks, radius, gain, deduct, springback and code before fabrication.",
         style = MaterialTheme.typography.bodySmall)
 }

@@ -237,7 +237,7 @@ internal object MobileAccountSync {
             val id = picked.optString("id")
             val edit = prefs.edit()
             for (field in listOf("name","model","material","size","units","mark","stub",
-                                 "stock","first","second","deduct","gain")) {
+                                 "stock","first","second","deduct","gain","minMarkGap","minStraight")) {
                 val source = when (field) {
                     "mark" -> "arrowMark"
                     "stub" -> "actualStub"
@@ -254,7 +254,7 @@ internal object MobileAccountSync {
                 .apply()
             val updated = JSONObject()
             for (field in listOf("name","model","material","size","units","mark","stub",
-                                 "stock","first","second","deduct","gain")) {
+                                 "stock","first","second","deduct","gain","minMarkGap","minStraight")) {
                 updated.put(field,prefs.getString(field,"").orEmpty())
             }
             updated.put("_syncId",id)
@@ -269,7 +269,7 @@ internal object MobileAccountSync {
         }
         val values = JSONObject()
         for (field in listOf("name","model","material","size","units","mark","stub",
-                             "stock","first","second","deduct","gain")) {
+                             "stock","first","second","deduct","gain","minMarkGap","minStraight")) {
             values.put(field,prefs.getString(field,"").orEmpty())
         }
         values.put("_syncId",id)
@@ -288,7 +288,7 @@ internal object MobileAccountSync {
             val data=found.optJSONObject("data") ?: return
             val edit=prefs.edit()
             for (field in listOf("name","model","material","size","units","mark","stub",
-                                 "stock","first","second","deduct","gain")) {
+                                 "stock","first","second","deduct","gain","minMarkGap","minStraight")) {
                 val alternate=when(field){"mark"->"arrowMark";"stub"->"actualStub";
                     "first"->"legA";"second"->"legB";else->field}
                 edit.putString(field,if(data.has(alternate))data.optString(alternate)else data.optString(field))
@@ -296,7 +296,7 @@ internal object MobileAccountSync {
             edit.putLong("_syncRevision",found.optLong("revision")).apply()
             val fresh=JSONObject()
             for (field in listOf("name","model","material","size","units","mark","stub",
-                                 "stock","first","second","deduct","gain")) {
+                                 "stock","first","second","deduct","gain","minMarkGap","minStraight")) {
                 fresh.put(field,prefs.getString(field,"").orEmpty())
             }
             fresh.put("_syncId",id)

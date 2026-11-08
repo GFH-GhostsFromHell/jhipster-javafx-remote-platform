@@ -21,7 +21,9 @@ internal object LocalBenderCalibration {
     }
     fun measured(context: Context, key: String, destinationUnits: String): Double? {
         val stored = read(context, key).toDoubleOrNull() ?: return null
+        if (!stored.isFinite() || stored < 0) return null
         val sourceUnits = read(context, "units")
+        if (sourceUnits !in listOf("mm", "in") || destinationUnits !in listOf("mm", "in")) return null
         return if (sourceUnits == destinationUnits) stored
             else if (destinationUnits == "mm") stored * 25.4 else stored / 25.4
     }
@@ -43,6 +45,8 @@ internal fun BenderCalibrationMobile() {
     var stock by remember { mutableStateOf(LocalBenderCalibration.read(context, "stock")) }
     var first by remember { mutableStateOf(LocalBenderCalibration.read(context, "first")) }
     var second by remember { mutableStateOf(LocalBenderCalibration.read(context, "second")) }
+    var minimumMarkGap by remember { mutableStateOf(LocalBenderCalibration.read(context, "minMarkGap")) }
+    var minimumStraight by remember { mutableStateOf(LocalBenderCalibration.read(context, "minStraight")) }
     var result by remember { mutableStateOf("Measure a scrap bend and save this shoe before using its deduct or gain.") }
 
     val markValue = mark.toDoubleOrNull()
@@ -76,18 +80,37 @@ internal fun BenderCalibrationMobile() {
     OutlinedTextField(value = first, onValueChange = { first = it }, label = { Text("First finished leg (" + units + ")") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(value = second, onValueChange = { second = it }, label = { Text("Second finished leg (" + units + ")") }, modifier = Modifier.fillMaxWidth())
     Text("Gain = finished leg A + finished leg B − original stock. " + (gain?.let { String.format(Locale.ROOT, "Gain: %.3f %s", it, units) } ?: "Enter all three valid measurements."))
+    HorizontalDivider()
+    Text("3 · Verified shoe mark spacing (optional)", style = MaterialTheme.typography.titleMedium)
+    OutlinedTextField(value = minimumMarkGap, onValueChange = { minimumMarkGap = it },
+        label = { Text("Minimum mark spacing for this exact shoe (" + units + ")") },
+        modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(value = minimumStraight, onValueChange = { minimumStraight = it },
+        label = { Text("Verified straight BETWEEN bend arcs (" + units + ")") },
+        modifier = Modifier.fillMaxWidth())
+    Text("Record either gap only if confirmed for this exact shoe and conduit. Mark spacing is distinct from straight between arcs, and neither alone proves head access.", style = MaterialTheme.typography.bodySmall)
     Button(onClick = {
+        val gap = minimumMarkGap.trim().toDoubleOrNull()
+        val arcStraight = minimumStraight.trim().toDoubleOrNull()
+        val maxStock = if (units == "mm") 3048.0 else 120.0
+        val gapValid = minimumMarkGap.isBlank() ||
+            (gap != null && gap.isFinite() && gap > 0 && gap <= maxStock)
+        val straightValid = minimumStraight.isBlank() ||
+            (arcStraight != null && arcStraight.isFinite() && arcStraight > 0 && arcStraight <= maxStock)
         val deductStarted = mark.isNotBlank() || stub.isNotBlank()
         val gainStarted = stock.isNotBlank() || first.isNotBlank() || second.isNotBlank()
         if (name.isBlank() || model.isBlank() || size.isBlank() || material.isBlank() ||
-            (!deductStarted && !gainStarted) || (deductStarted && deduct == null) || (gainStarted && gain == null)) {
-            result = "Enter a profile name, model, size, material, and at least one COMPLETE valid measurement set."
+            (!deductStarted && !gainStarted && minimumMarkGap.isBlank() && minimumStraight.isBlank()) || (deductStarted && deduct == null) ||
+            (gainStarted && gain == null) || !gapValid || !straightValid) {
+            result = "Enter model, size, material and a complete deduct/gain test. Optional verified mark and arc clearances must be positive and within 10 ft."
         } else {
             LocalBenderCalibration.save(context, mapOf(
                 "name" to name, "model" to model, "material" to material, "size" to size,
                 "units" to units, "mark" to mark, "stub" to stub, "stock" to stock,
                 "first" to first, "second" to second,
-                "deduct" to (deduct?.toString() ?: ""), "gain" to (gain?.toString() ?: "")
+                "deduct" to (deduct?.toString() ?: ""), "gain" to (gain?.toString() ?: ""),
+                "minMarkGap" to (gap?.toString() ?: ""),
+                "minStraight" to (arcStraight?.toString() ?: "")
             ))
             MobileAccountSync.schedule(context)
             result = "Calibration saved locally: " + name + ". Account sync runs when online. In Conduit bender or Gain & racks, tap Use saved calibration."

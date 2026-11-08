@@ -458,9 +458,29 @@ $('unit').addEventListener('change',function(){
 });
 $('loadProfile').onclick=()=>{
  let p;try{p=JSON.parse(localStorage.getItem('ew.benderCalibration.active.v1')||'null')}catch(e){}
- if(!p||typeof p.deduct!=='number'||!Number.isFinite(p.deduct)||p.deduct<0){$('profileStatus').textContent='No saved measured deduct. Use Bender Calibration to record one first.';return}
- const value=p.units===unit()?p.deduct:unit()==='mm'?p.deduct*25.4:p.deduct/25.4;
- $('deduct').value=fmt(value,4);$('profileStatus').textContent='Loaded '+p.name+' ('+p.size+' '+p.material+'). Confirm you are using that exact shoe.';refresh(false);
+ if(!p||!['mm','in'].includes(p.units)){
+  $('profileStatus').textContent='No valid saved bender profile. Record one in Bender Calibration first.';return;
+ }
+ const parsedDeduct=p.deduct===null||p.deduct===undefined||String(p.deduct).trim()===''?null:Number(p.deduct);
+ const hasDeduct=parsedDeduct!==null&&Number.isFinite(parsedDeduct)&&parsedDeduct>0&&parsedDeduct<=(p.units==='mm'?3048:120);
+ const profileNumber=key=>{
+  const raw=p[key];
+  if(raw===null||raw===undefined||String(raw).trim()==='')return null;
+  const n=Number(raw);
+  return Number.isFinite(n)&&n>0&&n<=(p.units==='mm'?3048:120)?n:null;
+ };
+ const minGap=profileNumber('minMarkGap'),minStraight=profileNumber('minStraight');
+ if(!hasDeduct&&minGap===null&&minStraight===null){
+  $('profileStatus').textContent='No measured deduct or verified gap saved for this shoe.';return;
+ }
+ const convert=n=>p.units===unit()?n:unit()==='mm'?n*25.4:n/25.4;
+ // Clear values absent from this profile, avoiding stale measurements from
+ // another shoe. Arc clearance is always expressed in mm in the editor.
+ $('deduct').value=hasDeduct?fmt(convert(parsedDeduct),4):'';
+ $('minMarkGap').value=minGap!==null?fmt(convert(minGap),4):'';
+ $('minStraight').value=minStraight!==null?fmt(p.units==='mm'?minStraight:minStraight*25.4,2):'';
+ $('profileStatus').textContent='Loaded '+p.name+' ('+p.size+' '+p.material+'). Confirm the exact shoe. Blank clearance fields mean NOT VERIFIED.';
+ refresh(false);
 };
 $('copyPlan').onclick=()=>{
  if(!layout)return;

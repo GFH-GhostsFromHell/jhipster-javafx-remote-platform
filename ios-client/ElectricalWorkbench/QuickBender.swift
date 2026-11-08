@@ -64,6 +64,7 @@ struct QuickBenderView: View {
     @State private var centre = ""
     @State private var saddleMethod = "Traditional"
     @AppStorage("ewb.ios.calibration.deduct.mm") private var savedDeductMm = 0.0
+    @AppStorage("ewb.ios.calibration.minMarkGap.mm") private var savedMinMarkGapMm = 0.0
     @AppStorage("ewb.ios.calibration.name") private var savedName = ""
     @AppStorage("ewb.ios.calibration.size") private var savedSize = ""
     @AppStorage("ewb.ios.calibration.material") private var savedMaterial = "EMT"
@@ -199,13 +200,21 @@ struct QuickBenderView: View {
                     if showOptions && [.offset, .rolling, .saddle3, .saddle4].contains(mode) {
                         entry("Verified minimum mark spacing (\(units.rawValue))",
                               id: "gap", value: $minimumGap,
-                              help: "Optional: enter the minimum spacing recommended for YOUR shoe. If unknown, clearance is not verified.")
+                              help: "Use a value confirmed by the shoe maker or a safe, measured test. Blank means NOT VERIFIED.")
+                        if savedMinMarkGapMm > 0 {
+                            Button {
+                                minimumGap = String(format: "%.3f", savedMinMarkGapMm / (units == .mm ? 1 : 25.4))
+                            } label: {
+                                Text("Use measured spacing · \(savedName) (\(savedSize) \(savedMaterial))")
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
                     NavigationLink { PortalScreen(title: "3D advanced bender", path: "/bend-instruction-lab.html") } label: {
                         Label("Full 3D multi-bend and detailed shoe directions", systemImage: "cube.transparent")
                             .font(.subheadline)
                     }
-                    Text("One straight 10-ft EMT length: \(units.stock.measurement(units)). A mark beyond the stock, or two marks closer than your entered minimum, is rejected. Bend arcs, hook access and springback still require a field check.")
+                    Text("One straight 10-ft EMT length: \(units.stock.measurement(units)). Marks outside stock or overlapping marks are rejected; optional measured spacing checks are applied when entered. Bend arcs, hook access and springback still require a field check.")
                         .font(.caption)
                         .foregroundStyle(WorkbenchStyle.muted)
                 }
@@ -491,7 +500,7 @@ struct QuickBenderView: View {
             let shift = height * tan(sideAngle * .pi / 360)
             let b = obstacle + shift
             let points = [b-spacing, b, b+spacing]
-            try validateMarks(points, stock: stock)
+            try validateMarks(points, stock: stock, applyShoeGap: traditional)
             return BendPlan(
                 marks: zip(["A","B","C"],points).map {
                     PencilMark(id: $0.0, distance: $0.1,
@@ -513,7 +522,7 @@ struct QuickBenderView: View {
             let shrink = height * tan(angle * .pi / 360)
             let b = near + shrink
             let coords = [b-s,b,b+wide,b+wide+s]
-            try validateMarks(coords, stock: stock)
+            try validateMarks(coords, stock: stock, applyShoeGap: false)
             return BendPlan(
                 marks: zip(["A","B","C","D"],coords).map { PencilMark(id: $0.0, distance: $0.1, shoeReference: "GEOMETRY ONLY") },
                 spacing: s, shrink: 2 * shrink,
@@ -534,22 +543,31 @@ struct QuickBenderView: View {
         let detail = farCritical
             ? "Far critical: B = reference distance + shrink; A = B − spacing."
             : "Near critical: A = reference distance + shrink; B = A + spacing."
-        let clearance = minimumGap.isEmpty
+        let clearance = minimumGap.trimmingCharacters(in: .whitespaces).isEmpty
             ? "Minimum shoe spacing is NOT VERIFIED. " + shoeWarning
-            : shoeWarning
+            : "Minimum mark spacing checked against your input; actual shoe-head access is NOT VERIFIED. " + shoeWarning
         return BendPlan(marks: [PencilMark(id: "A", distance: markA, shoeReference: "CHECK ARROW"),
                                 PencilMark(id: "B", distance: markB, shoeReference: "CHECK ARROW")],
                         spacing: spacing, shrink: shrink, detail: detail, warning: clearance)
     }
 
-    private func validateMarks(_ marks: [Double], stock: Double) throws {
+    private func validateMarks(_ marks: [Double], stock: Double, applyShoeGap: Bool = true) throws {
         guard marks.allSatisfy({ $0.isFinite && $0 >= 0 && $0 <= stock }) else {
             throw FieldError.invalid("CALCULATION NOT POSSIBLE: a plotted mark exceeds the 10-ft stock.")
         }
+        let sorted = marks.sorted()
+        for idx in 1..<sorted.count where sorted[idx] - sorted[idx-1] <= 0.000001 {
+            throw FieldError.invalid("BENDS TOO CLOSE: physical bend marks overlap. Increase rise or separation.")
+        }
+        // Geometric saddle centres are not manufacturer-approved ARROW marks.
+        // Validate stock for those plans, but never claim a shoe-gap check.
+        guard applyShoeGap else { return }
         if !minimumGap.trimmingCharacters(in: .whitespaces).isEmpty {
             let gap = try positive(minimumGap, label: "minimum shoe spacing")
-            let sorted = marks.sorted()
-            for idx in 1..<sorted.count where sorted[idx] - sorted[idx-1] < gap {
+            guard gap <= stock else {
+                throw FieldError.invalid("Verified shoe spacing cannot exceed the 10-ft stock.")
+            }
+            for idx in 1..<sorted.count where sorted[idx] - sorted[idx-1] + 0.000001 < gap {
                 throw FieldError.invalid("BENDS TOO CLOSE: marks are closer than the verified shoe spacing.")
             }
         }
