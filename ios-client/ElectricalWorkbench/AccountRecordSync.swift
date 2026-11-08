@@ -397,7 +397,8 @@ final class AccountRecordSync: ObservableObject {
             "units":"mm",
             "deduct":defaults.double(forKey:"ewb.ios.calibration.deduct.mm"),
             "gain":defaults.double(forKey:"ewb.ios.calibration.gain.mm"),
-            "minMarkGap":defaults.double(forKey:"ewb.ios.calibration.minMarkGap.mm")
+            "minMarkGap":defaults.double(forKey:"ewb.ios.calibration.minMarkGap.mm"),
+            "minStraight":defaults.double(forKey:"ewb.ios.calibration.minStraight.mm")
         ]
         var all=read(key)
         all.removeAll { ($0["_syncId"] as? String) == savedID }
@@ -439,6 +440,13 @@ final class AccountRecordSync: ObservableObject {
         else if let raw = match["minMarkGap"] as? String { gap = Double(raw) ?? 0 }
         defaults.set(gap.isFinite && gap > 0 && gap * multiplier <= 3048 ? gap * multiplier : 0,
                      forKey:"ewb.ios.calibration.minMarkGap.mm")
+        // Retain advanced arc-to-arc clearance from web profiles even though
+        // the native iOS quick bender does not use this separate measurement.
+        var straight = 0.0
+        if let raw = match["minStraight"] as? NSNumber { straight = raw.doubleValue }
+        else if let raw = match["minStraight"] as? String { straight = Double(raw) ?? 0 }
+        defaults.set(straight.isFinite && straight > 0 && straight * multiplier <= 3048
+                     ? straight * multiplier : 0,forKey:"ewb.ios.calibration.minStraight.mm")
     }
 
     private func loadDailyQuiz(user:String,key:String) -> [[String:Any]] {
