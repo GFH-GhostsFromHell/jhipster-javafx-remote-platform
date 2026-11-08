@@ -49,8 +49,8 @@ jobs:
           # If the exact commit is already live, an HTTP 401/403 on the
           # login page is an authentication/access regression, NOT deploy drift.
           # Redeploying an identical commit cannot repair a page-access issue.
-          if node scripts/verify-live-portal.cjs \\
-               --base="$PRODUCTION_URL" --expected="$EXPECTED_SHA" \\
+          if node scripts/verify-live-portal.cjs \
+               --base="$PRODUCTION_URL" --expected="$EXPECTED_SHA" \
                --mode=build-only --attempts=2 --delay-ms=3000; then
             echo "::error::Production commit and public APIs match main, but the sign-in landing page is inaccessible. Check Spring Security, proxy/WAF and anonymous route permissions; do not redeploy identical code."
             echo "Correct commit deployed; login page access failed. No redeploy attempted." >> "$GITHUB_STEP_SUMMARY"
