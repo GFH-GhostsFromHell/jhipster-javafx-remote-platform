@@ -34,7 +34,8 @@ class ElectricalCodeReferencesTest {
 
     @Test void editionCatalogDisclosesUnverifiedWorksheetDataset() {
         Map<String,Object> version=calc.editions().getFirst();
-        assertEquals("WORKSHEET_ONLY",version.get("status"));
+        assertEquals("ACTIVE",version.get("status"));
+        assertEquals("WORKSHEET_ONLY",version.get("useStatus"));
         assertEquals(false,version.get("numericDatasetVerified"));
         assertEquals(ElectricalCodeReferences.PROFILE_ID,version.get("referenceProfileId"));
         Map<String,Object> catalog=calc.catalog("TIER_1");
