@@ -53,14 +53,17 @@ final class QuickConduitBendPane extends BorderPane {
         Label clearanceNote=note("Tool clearance varies by shoe. Leave spacing blank if unknown; the result will say NOT VERIFIED.");
         stockNotice.setWrapText(true);
         stockNotice.setStyle("-fx-font-size:14px;-fx-font-weight:bold;-fx-text-fill:#166534;");
-        Button load=primary("Use saved shoe deduct");
+        Button load=primary("Use saved shoe measurements");
         load.setOnAction(e -> {
             Double calibrated=BenderCalibrationPane.value("deduct",units.getValue());
-            if(calibrated==null){
-                notice.setText("No measured deduct is saved. Enter the actual shoe take-up, or calibrate it first.");
+            Double minimum=BenderCalibrationPane.value("minMarkGap",units.getValue());
+            if(calibrated==null&&minimum==null){
+                notice.setText("No measured deduct or minimum shoe gap saved. Calibrate this exact tool first.");
                 return;
             }
-            deduct.setText(String.format(Locale.ROOT,"%.3f",calibrated));
+            if(calibrated!=null)deduct.setText(String.format(Locale.ROOT,"%.3f",calibrated));
+            if(minimum!=null&&minimum>0)minShoeMarkGap.setText(String.format(Locale.ROOT,"%.3f",minimum));
+            notice.setText("Loaded "+BenderCalibrationPane.profileDescription()+". Confirm this is the exact shoe before using its measurements.");
         });
         Button copy=primary("Copy bend marks");
         copy.setOnAction(e -> {
@@ -145,7 +148,7 @@ final class QuickConduitBendPane extends BorderPane {
             } else {
                 double take=positive(deduct,"actual bender deduct");
                 double markA=h-take;
-                if(markA<0)throw new IllegalArgumentException("The desired stub is shorter than the actual bender deduct.");
+                if(markA<=0)throw new IllegalArgumentException("Stub height must exceed the measured deduct so the ARROW mark is beyond tape zero.");
                 if(h>stockLimit(unit))throw new IllegalArgumentException("CALCULATION NOT POSSIBLE: stub height exceeds a 10 ft EMT stick.");
                 headline.setText("Mark A = "+fmt(markA,unit)+" from the short end");
                 marks.add(new BendMarkStripPane.Mark(markA,1,"A","ARROW","HOOK ← toward short end","Make first 90° stub"));
@@ -189,18 +192,22 @@ final class QuickConduitBendPane extends BorderPane {
                     " at "+fmt(mark.position(),unit)+" falls outside "+fmt(stock,unit)+" stock.");
         }
         String entry=minShoeMarkGap.getText().trim();
-        if(entry.isEmpty())return;
-        double minimum;
-        try{minimum=Double.parseDouble(entry);}catch(NumberFormatException ex){throw new IllegalArgumentException("Enter a numeric shoe minimum or leave it blank.");}
-        if(!Double.isFinite(minimum)||minimum<0)throw new IllegalArgumentException("Shoe minimum must be zero or greater.");
+        double minimum=0;
+        if(!entry.isEmpty()){
+            try{minimum=Double.parseDouble(entry);}catch(NumberFormatException ex){throw new IllegalArgumentException("Enter a numeric shoe minimum or leave it blank.");}
+            if(!Double.isFinite(minimum)||minimum<0||minimum>stock)
+                throw new IllegalArgumentException("Verified shoe mark gap must be within the 10 ft stock.");
+        }
         List<BendMarkStripPane.Mark> sameDatum=marks.stream().filter(m->!m.relativeReference())
             .sorted(java.util.Comparator.comparingDouble(BendMarkStripPane.Mark::position)).toList();
         for(int index=1;index<sameDatum.size();index++) {
             double distance=sameDatum.get(index).position()-sameDatum.get(index-1).position();
-            if(distance+1e-6<minimum)
+            if(distance<=1e-6)
+                throw new IllegalArgumentException("BENDS TOO CLOSE: shop marks overlap. Increase the rise or separation.");
+            if(minimum>0&&distance+1e-6<minimum)
                 throw new IllegalArgumentException("BENDS TOO CLOSE: "+fmt(distance,unit)+
                     " between marks "+sameDatum.get(index-1).name()+" and "+sameDatum.get(index).name()+
-                    ", less than your bender minimum of "+fmt(minimum,unit)+".");
+                    ", less than your verified shoe minimum of "+fmt(minimum,unit)+".");
         }
     }
     private static String fmt(double x,String unit) {
