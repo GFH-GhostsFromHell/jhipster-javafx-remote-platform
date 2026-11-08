@@ -453,7 +453,7 @@ private fun MobileShell(
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (selected) {
                     MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
-                    MobileTab.Workbench -> MobileWorkbenchPage(onOpenWeb)
+                    MobileTab.Workbench -> MobileWorkbenchPage(session.username, onOpenWeb)
                     MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
                     MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
                     MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
@@ -545,7 +545,7 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 }
 
 @Composable
-private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
+private fun MobileWorkbenchPage(username: String, onOpenWeb: (String) -> Unit) {
     val context = LocalContext.current
     MWPage("CEC 2024 Workbench", "Fast field tools first. Advanced calculations and exam worksheets are below.") {
         MWHubCard("⚡ Fast Conduit Bender · mark in seconds", "Choose your bend, enter only its required dimensions, then read the tape marks and shoe orientation. Optional 3D preview.") { onOpenWeb("/bend-instruction-lab.html") }
@@ -554,7 +554,8 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
         MWHubCard("Circuit + Conductor Review · native offline", "One set of inputs for termination-column ampacity, ambient/grouping, voltage drop, maximum length and an OCPD arithmetic screen") {
-            context.startActivity(Intent(context, CircuitSizingActivity::class.java))
+            context.startActivity(Intent(context, CircuitSizingActivity::class.java)
+                .putExtra("accountUsername", username))
         }
         MWHubCard("Transformer Size Selector · native", "Offline load-by-load transformer sizing including calculated residential, apartment, commercial, school, hospital, hotel and industrial service demands") {
             context.startActivity(Intent(context, TransformerSizingActivity::class.java))
