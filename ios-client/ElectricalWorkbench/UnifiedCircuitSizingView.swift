@@ -50,6 +50,16 @@ struct UnifiedCircuitSizingView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("1 · Circuit").font(.headline)
+                    Text("Quick system · changes voltage and phase only")
+                        .font(.caption).foregroundStyle(WorkbenchStyle.muted)
+                    ScrollView(.horizontal,showsIndicators:false){
+                        HStack(spacing:8){
+                            systemPreset("120 V · 1φ",voltage:"120",phase:1)
+                            systemPreset("208 V · 3φ",voltage:"208",phase:3)
+                            systemPreset("347 V · 1φ",voltage:"347",phase:1)
+                            systemPreset("600 V · 3φ",voltage:"600",phase:3)
+                        }
+                    }
                     entry("Actual load current (A)", value: $loadA)
                     entry("System voltage (V)", value: $voltageV)
                     Picker("Circuit type", selection: $phases) {
@@ -206,6 +216,18 @@ struct UnifiedCircuitSizingView: View {
         .onReceive(NotificationCenter.default.publisher(for: .ewbAccountSyncUpdated)) { _ in
             refreshRevisions()
         }
+    }
+
+    private func systemPreset(_ title:String,voltage:String,phase:Int)->some View {
+        Button(title){
+            voltageV=voltage
+            phases=phase
+            lastInput=nil
+            lastResult=nil
+            output="System selected. Confirm actual load and conductor settings, then recalculate."
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
     }
 
     @ViewBuilder
