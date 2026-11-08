@@ -25,25 +25,25 @@ import Foundation
         // User-provided Table 2/5A/5C example. A 90°C insulation rating does
         // NOT authorize selecting the 90°C column for 60°C terminations.
         almost(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 60,
-               insulationC: 90,ambientFactor: .58,groupingFactor: .8),
+               insulationC: 90,ambientFactor: 0.58,groupingFactor: 0.8),
                25.52,"60°C termination arithmetic")
         almost(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 75,
-               insulationC: 90,ambientFactor: .75,groupingFactor: .8),
+               insulationC: 90,ambientFactor: 0.75,groupingFactor: 0.8),
                33,"75°C termination arithmetic")
         expect(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 75,
-               insulationC: 60,ambientFactor: .75,groupingFactor: .8) == nil,
+               insulationC: 60,ambientFactor: 0.75,groupingFactor: 0.8) == nil,
                "insulation cannot be rated below selected terminal")
         expect(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 65,
-               insulationC: 90,ambientFactor: .75,groupingFactor: .8) == nil,
+               insulationC: 90,ambientFactor: 0.75,groupingFactor: 0.8) == nil,
                "invalid termination rating")
         expect(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 60,
-               insulationC: 90,ambientFactor: .nan,groupingFactor: .8) == nil,
+               insulationC: 90,ambientFactor: .nan,groupingFactor: 0.8) == nil,
                "NaN ambient factor")
         expect(OfflineElectricalMath.correctedAmpacity(base: 55,terminationC: 60,
-               insulationC: 90,ambientFactor: 1.25,groupingFactor: .8) == nil,
+               insulationC: 90,ambientFactor: 1.25,groupingFactor: 0.8) == nil,
                "impossible correction factor above one")
         expect(OfflineElectricalMath.correctedAmpacity(base: 0,terminationC: 60,
-               insulationC: 90,ambientFactor: .58,groupingFactor: .8) == nil,
+               insulationC: 90,ambientFactor: 0.58,groupingFactor: 0.8) == nil,
                "zero base ampacity")
         print("iOS native electrical arithmetic tests passed (12 assertions).")
     }
