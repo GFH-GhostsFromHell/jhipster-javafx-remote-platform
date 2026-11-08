@@ -100,7 +100,7 @@ final class CircuitWorksheetPdf {
         else for(String t:savedText.replace("\r","").split("\n"))lines.add(t);
         lines.add("");
         lines.add("REVIEW / SIGN-OFF (NOT AUTOMATICALLY AUTHORIZED)");
-        lines.add("Reviewed by: "+blank(reviewer));
+        lines.add("Reviewer: "+blank(reviewer));
         lines.add("Verification date: ______________________");
         lines.add("Signature: ___________________________");
         lines.add("Installation authorization: NOT PROVIDED BY THIS REPORT");
