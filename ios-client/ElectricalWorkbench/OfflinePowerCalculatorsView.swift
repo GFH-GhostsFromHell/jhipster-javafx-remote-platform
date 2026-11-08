@@ -4,6 +4,7 @@ import Foundation
 private enum OfflineCalculation: String, CaseIterable, Identifiable {
     case transformer = "Transformer currents"
     case motor = "Motor branch worksheet"
+    case conductorAmpacity = "Conductor termination / ampacity"
     case voltageDrop = "Conductor voltage drop"
     case busbar = "Busbar / straps"
     case capacitor = "Capacitor bank"
@@ -38,6 +39,13 @@ private extension OfflineCalculation {
             return [f("fla","Motor full-load current (A)","34"),f("conductorFactor","Conductor sizing factor (%)","125"),
                     f("ocpdFactor","Selected device maximum multiplier (%)","175"),
                     f("overloadFactor","Selected overload setting (%)","115")]
+        case .conductorAmpacity:
+            return [f("load","Required design current (A)","30"),
+                    f("base","Ampacity from TERMINATION temperature column (A)","55"),
+                    f("terminalTemp","Verified equipment termination rating (°C)","60"),
+                    f("insulationTemp","Wire insulation rating (°C)","90"),
+                    f("ambientFactor","Verified ambient factor from Table 5A","0.58"),
+                    f("groupingFactor","Verified conductor grouping factor from Table 5C","0.80")]
         case .voltageDrop:
             return [f("amps","Load current (A)","40"),f("length","One-way route length (m)","50"),
                     f("k","Conductor K factor","12.9"),f("cm","Conductor area (circular mils)","133100"),
@@ -79,6 +87,7 @@ private extension OfflineCalculation {
         switch self {
         case .transformer: "Use applicable CEC 2024 transformer protection rules/tables, actual device and transformer ratings. Percent fields are user-provided calculation assumptions, not code limits."
         case .motor: "Motor FLC, conductor, overload, starter and OCPD rules differ by device, motor type and duty. Select the correct CEC 2024 factor; this calculation does not choose a legal device."
+        case .conductorAmpacity: "Rule 4-006 worksheet only. Enter ampacity from the verified equipment TERMINATION temperature column of the applicable CEC table (1–4), plus relevant Table 5A/5C factors. Values are user-supplied; this does not approve conductor size, rating, circuit protection, or installation."
         case .voltageDrop: "Basic conductor K-factor worksheet. Verify AC impedance, corrected ampacity, actual terminals and CEC Table D3 conditions before a field decision."
         case .busbar: "Illustrative current-density method only. Use engineered bar construction, spacing and equipment approvals for actual busbar sizing."
         case .capacitor: "Capacitor current is not the final conductor or fuse rating. Check manufacturer instructions and applicable Code protection provisions."
@@ -227,8 +236,12 @@ struct OfflinePowerCalculatorsView: View {
         case .transformer:
             let kva = try n("kva"), primary = try n("pri"), secondary = try n("sec")
             let scale = try phase()
-            let a = kva * 1000 / (scale * primary)
-            let b = kva * 1000 / (scale * secondary)
+            guard let a = OfflineElectricalMath.transformerCurrent(kva: kva, voltage: primary,
+                                                                phases: scale == 1 ? 1 : 3),
+                  let b = OfflineElectricalMath.transformerCurrent(kva: kva, voltage: secondary,
+                                                                phases: scale == 1 ? 1 : 3) else {
+                throw CalculationError.bad("Transformer inputs exceed the supported finite range.")
+            }
             let factorA = try n("primaryPercent") / 100, factorB = try n("secondaryPercent") / 100
             return """
             Formula: I = VA / (\(format(scale)) × V)
@@ -246,6 +259,30 @@ struct OfflinePowerCalculatorsView: View {
             Selected OCPD upper limit (UNROUNDED): \(format(a * (try n("ocpdFactor")) / 100, unit: "A"))
             Entered overload setting: \(format(a * (try n("overloadFactor")) / 100, unit: "A"))
             CEC device-specific factors and conductor ampacity still require verification.
+            """
+        case .conductorAmpacity:
+            let load = try n("load")
+            let base = try n("base")
+            let terminal = try n("terminalTemp"), insulation = try n("insulationTemp")
+            guard terminal.rounded() == terminal, insulation.rounded() == insulation else {
+                throw CalculationError.bad("Enter a whole-number 60, 75, or 90 °C rating.")
+            }
+            let ambient = try n("ambientFactor"), grouping = try n("groupingFactor")
+            guard let adjusted = OfflineElectricalMath.correctedAmpacity(base: base,
+                     terminationC: Int(terminal), insulationC: Int(insulation),
+                     ambientFactor: ambient, groupingFactor: grouping) else {
+                throw CalculationError.bad("Check termination and insulation (60/75/90°C), base ampacity and correction factors (0–1).")
+            }
+            return """
+            RULE 4-006 CONDUCTOR REVIEW — NOT CODE VERIFIED
+            Entered TERMINATION column: \(Int(terminal)) °C
+            Insulation temperature: \(Int(insulation)) °C
+            Entered table ampacity: \(format(base, unit: "A"))
+            Ambient factor: \(format(ambient)); grouping: \(format(grouping))
+            Corrected ampacity: \(format(adjusted, unit: "A"))
+            Required current: \(format(load, unit: "A"))
+            Arithmetic check: \(adjusted >= load ? "WITHIN ENTERED AMPACITY" : "FAIL / OVERRUN")
+            Verify actual equipment marking, appropriate Table 1–4 column, Table 5A/5C, neutral count, wiring method, Ontario amendments and OCPD. Values are user-entered and not independently verified.
             """
         case .voltageDrop:
             let factor = try phase() == 1 ? 2 : sqrt(3)
