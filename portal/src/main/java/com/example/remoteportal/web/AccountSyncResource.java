@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 import java.security.Principal;
@@ -74,28 +75,37 @@ public class AccountSyncResource {
             rs.getBoolean(4),rs.getTimestamp(5)), principal.getName(), bucket);
   }
 
+  @Transactional
   @PostMapping("/{bucket}/batch")
   public BatchResponse push(@PathVariable String bucket, @RequestBody BatchRequest batch, Principal principal) {
     checkedBucket(bucket);
     if (batch == null || batch.records() == null || batch.records().size() > MAX_RECORDS) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submit at most 200 records per batch");
     }
-    var accepted = new ArrayList<SyncRecord>();
-    var conflicts = new ArrayList<SyncRecord>();
-    var username = principal.getName();
+    // Validate the ENTIRE batch before any database writes. A bad second row
+    // must never partially save the first row, including for offline replays.
+    var payloads = new LinkedHashMap<String,String>();
     var seen = new HashSet<String>();
     for (SyncItem item : batch.records()) {
       if (item == null || item.id() == null || !item.id().matches("[A-Za-z0-9_.:-]{1,128}")
           || !seen.add(item.id()) || item.revision() == null || item.revision() < 0
-          || item.data() == null || (item.deleted() == null)) {
+          || item.revision() == Long.MAX_VALUE || item.data() == null
+          || item.deleted() == null) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ID, revision or payload");
       }
       String payload;
       try { payload = mapper.writeValueAsString(item.data()); }
       catch(Exception ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid JSON payload"); }
-      if (payload.length() > MAX_JSON_CHARS) {
+      if (payload.length() > MAX_JSON_CHARS)
         throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Record exceeds 64,000 characters");
-      }
+      payloads.put(item.id(),payload);
+    }
+
+    var accepted = new ArrayList<SyncRecord>();
+    var conflicts = new ArrayList<SyncRecord>();
+    var username = principal.getName();
+    for (SyncItem item : batch.records()) {
+      String payload=payloads.get(item.id());
       long next = item.revision() + 1;
       Timestamp now = Timestamp.from(Instant.now());
       int modified;
