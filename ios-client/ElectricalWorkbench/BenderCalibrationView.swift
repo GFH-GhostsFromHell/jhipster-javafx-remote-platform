@@ -210,7 +210,7 @@ struct BenderCalibrationView: View {
         }
         let deductStarted = !arrowMark.isEmpty || !finishedStub.isEmpty
         let gainStarted = !originalStock.isEmpty || !firstLeg.isEmpty || !secondLeg.isEmpty
-        guard (deductStarted || gainStarted),
+        guard (deductStarted || gainStarted || measuredGap > 0 || measuredStraight > 0),
               (!deductStarted || deduct != nil),
               (!gainStarted || gain != nil) else {
             notice = "Complete at least one valid measurement set. Correct partial or impossible values."
