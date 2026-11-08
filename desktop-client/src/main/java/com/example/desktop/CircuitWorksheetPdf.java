@@ -129,7 +129,7 @@ final class CircuitWorksheetPdf {
                             printLine(stream,bold,9,margin,760,
                                 "ELECTRICAL WORKBENCH | "+ascii(record.path("project").asText(""))+
                                 " | Page "+pageNumber);
-                            stream.setStrokingColor(120,150,170);
+                            stream.setStrokingColor(120f/255f,150f/255f,170f/255f);
                             stream.moveTo(margin,751);stream.lineTo(565,751);stream.stroke();
                             y=top;
                         }
