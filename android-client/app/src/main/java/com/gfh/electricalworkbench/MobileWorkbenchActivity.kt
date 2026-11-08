@@ -553,6 +553,9 @@ private fun MobileWorkbenchPage(onOpenWeb: (String) -> Unit) {
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
+        MWHubCard("Circuit + Conductor Review · native offline", "One set of inputs for termination-column ampacity, ambient/grouping, voltage drop, maximum length and an OCPD arithmetic screen") {
+            context.startActivity(Intent(context, CircuitSizingActivity::class.java))
+        }
         MWHubCard("Transformer Size Selector · native", "Offline load-by-load transformer sizing including calculated residential, apartment, commercial, school, hospital, hotel and industrial service demands") {
             context.startActivity(Intent(context, TransformerSizingActivity::class.java))
         }

@@ -10,6 +10,7 @@ on:
       - 'scripts/validate-field-tools.cjs'
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
+      - 'scripts/validate-circuit-sizing.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
   pull_request:
@@ -20,6 +21,7 @@ on:
       - 'scripts/validate-field-tools.cjs'
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
+      - 'scripts/validate-circuit-sizing.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
 
@@ -38,6 +40,8 @@ jobs:
         run: node scripts/validate-account-sync.cjs
       - name: Audit conductor source-data parity and offline formula wiring
         run: node scripts/validate-conductor-data-audit.cjs
+      - name: Validate unified Android and web circuit sizing
+        run: node scripts/validate-circuit-sizing.cjs
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
