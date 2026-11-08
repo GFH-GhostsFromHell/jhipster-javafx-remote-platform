@@ -49,6 +49,13 @@ struct WorkbenchTools: View {
         List {
             Section("Offline field calculators") {
                 NavigationLink {
+                    FeatureGate(feature: "ENGINEERING_POWER_SYSTEMS", title: "Industrial Field Worksheets") {
+                        IndustrialFieldView()
+                    }
+                } label: {
+                    Label("Industrial CT/PT + relay math · offline",systemImage:"waveform.path.ecg")
+                }
+                NavigationLink {
                     FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Circuit + Conductor Review") {
                         UnifiedCircuitSizingView()
                     }
