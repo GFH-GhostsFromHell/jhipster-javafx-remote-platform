@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "referenceProfileId": "OESC_ON_2024",
+  "jurisdiction": "Ontario, Canada",
+  "codeEdition": "CSA C22.1:24 + Ontario amendments",
+  "effectiveDate": "2025-05-01",
+  "regulatoryReference": "Ontario Regulation 164/99, as amended by 449/24",
+  "numericDatasetReleaseStatus": "AUTHORIZED_SOURCE_NOT_AVAILABLE",
+  "sourceEvidencePolicy": "No embedded table row may be marked verified without authorized OESC copy and reviewer/date/rule applicability evidence; do not redistribute proprietary tables.",
+  "reviewRows": [
+    {
+      "tableId": "TABLE_1",
+      "purpose": "Copper free-air ampacity",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_2",
+      "purpose": "Copper cable/raceway ampacity",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_3",
+      "purpose": "Aluminum free-air ampacity",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_4",
+      "purpose": "Aluminum cable/raceway ampacity",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_5A",
+      "purpose": "Ambient correction factors",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_5C",
+      "purpose": "Conductor grouping correction factors",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_13",
+      "purpose": "Standard overcurrent device ratings",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    },
+    {
+      "tableId": "TABLE_29",
+      "purpose": "Motor overcurrent factors",
+      "status": "PENDING_AUTHORIZED_COPY",
+      "sourceEdition": "CSA C22.1:24",
+      "sourceDocumentId": null,
+      "sourceTablePage": null,
+      "verifiedConditions": null,
+      "reviewer": null,
+      "reviewedAt": null,
+      "approvedForDistribution": false,
+      "acceptedNumericRowCount": 0,
+      "notes": "No authorized licensed row-by-row comparison available."
+    }
+  ],
+  "independentArithmeticChecks": [
+    {
+      "caseId": "three-phase-transformer-current",
+      "formula": "kVA*1000/(sqrt(3)*lineVoltage)",
+      "inputs": {
+        "kva": 75,
+        "lineVoltage": 600
+      },
+      "expectedA": 72.16878365,
+      "status": "ARITHMETIC_TESTED_NOT_CEC_APPROVED"
+    },
+    {
+      "caseId": "termination-column-derating",
+      "formula": "enteredBaseAmpacity*enteredAmbientFactor*enteredGroupingFactor",
+      "inputs": {
+        "baseAmpacityA": 55,
+        "ambientFactor": 0.58,
+        "groupingFactor": 0.8,
+        "terminalC": 60,
+        "insulationC": 90
+      },
+      "expectedA": 25.52,
+      "status": "ARITHMETIC_TESTED_NOT_CEC_APPROVED"
+    },
+    {
+      "caseId": "voltage-drop-k-factor-example",
+      "formula": "sqrt(3)*K*current*oneWayFeet/circularMils",
+      "inputs": {
+        "K": 12.9,
+        "currentA": 40,
+        "lengthM": 40,
+        "circularMils": 66360
+      },
+      "expectedV": 1.76746,
+      "status": "ARITHMETIC_TESTED_NOT_CEC_APPROVED"
+    }
+  ]
+}
