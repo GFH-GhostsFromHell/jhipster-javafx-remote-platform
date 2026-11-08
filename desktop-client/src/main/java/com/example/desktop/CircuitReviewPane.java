@@ -271,6 +271,9 @@ public final class CircuitReviewPane extends BorderPane {
             item.put("project",p);item.put("title",title);
             item.put("revision",revision);item.put("saved",Instant.now().toString());
             item.put("codeEdition","CEC_2024");
+            item.put("referenceProfileId","OESC_ON_2024");
+            item.put("numericDatasetVerificationStatus","AUTHORIZED_TABLE_VERIFICATION_REQUIRED");
+            item.put("numericDatasetVerified",false);
             item.put("jurisdiction","Ontario (verify effective OESC amendments)");
             item.put("referenceTables",table.getValue()+"; Tables 5A and 5C (user-supplied)");
             ObjectNode assumptions=json.createObjectNode();
