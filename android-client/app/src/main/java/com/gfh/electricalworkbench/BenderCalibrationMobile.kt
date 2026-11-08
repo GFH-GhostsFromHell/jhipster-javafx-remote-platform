@@ -100,7 +100,7 @@ internal fun BenderCalibrationMobile() {
         val deductStarted = mark.isNotBlank() || stub.isNotBlank()
         val gainStarted = stock.isNotBlank() || first.isNotBlank() || second.isNotBlank()
         if (name.isBlank() || model.isBlank() || size.isBlank() || material.isBlank() ||
-            (!deductStarted && !gainStarted) || (deductStarted && deduct == null) ||
+            (!deductStarted && !gainStarted && minimumMarkGap.isBlank() && minimumStraight.isBlank()) || (deductStarted && deduct == null) ||
             (gainStarted && gain == null) || !gapValid || !straightValid) {
             result = "Enter model, size, material and a complete deduct/gain test. Optional verified mark and arc clearances must be positive and within 10 ft."
         } else {
