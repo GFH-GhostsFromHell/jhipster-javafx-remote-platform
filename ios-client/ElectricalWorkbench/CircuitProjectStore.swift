@@ -94,6 +94,9 @@ enum CircuitProjectStore {
             "project":p,"title":t,"revision":next,
             "saved":ISO8601DateFormatter().string(from:Date()),
             "codeEdition":"CEC_2024",
+            "referenceProfileId":"OESC_ON_2024",
+            "numericDatasetVerificationStatus":"AUTHORIZED_TABLE_VERIFICATION_REQUIRED",
+            "numericDatasetVerified":false,
             "jurisdiction":"Ontario (verify effective OESC amendments)",
             "referenceTables":table+"; Tables 5A and 5C (user-supplied)",
             "assumptions":[
