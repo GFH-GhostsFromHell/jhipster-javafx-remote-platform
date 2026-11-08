@@ -46,6 +46,9 @@ function build(meta,inputs,results,report,now,id){
   return {
     _syncId:id,id,kind:'circuitWorksheet',schemaVersion:1,
     project,title,revision:0,saved,codeEdition:'CEC_2024',
+    referenceProfileId:'OESC_ON_2024',
+    numericDatasetVerificationStatus:'AUTHORIZED_TABLE_VERIFICATION_REQUIRED',
+    numericDatasetVerified:false,
     jurisdiction:'Ontario (verify effective OESC amendments)',
     referenceTables:meta.referenceTables||'CEC Table 1–4; 5A; 5C (user-supplied)',
     assumptions:{
