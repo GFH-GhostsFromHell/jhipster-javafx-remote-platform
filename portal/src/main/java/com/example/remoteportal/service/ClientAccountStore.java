@@ -11,7 +11,7 @@ import java.util.*;
 
 @Service
 public class ClientAccountStore {
-  public static final List<String> TIERS = List.of("TIER_1", "TIER_2", "TIER_3");
+  public static final List<String> TIERS = List.of("TIER_1", "TIER_2", "TIER_3", "TIER_4");
 
   private final JdbcTemplate db;
   private final PasswordEncoder encoder;
