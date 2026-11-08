@@ -629,7 +629,12 @@ private fun CalculatorsScreen(onOpenWeb: (String) -> Unit) {
             }
         }
 
-        Button(onClick = { onOpenWeb("/calculators.html") }, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { onOpenWeb("/circuit-sizing.html") }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Calculate, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Circuit + conductor review", fontWeight = FontWeight.Bold)
+        }
+        OutlinedButton(onClick = { onOpenWeb("/calculators.html") }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Calculate, null)
             Spacer(Modifier.width(8.dp))
             Text("Launch calculator workspace", fontWeight = FontWeight.Bold)
