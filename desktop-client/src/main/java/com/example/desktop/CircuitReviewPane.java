@@ -227,10 +227,7 @@ public final class CircuitReviewPane extends BorderPane {
                 ||!conductor.getText().equals(lastDescription)||!table.getValue().equals(lastTable))
                 throw new IllegalArgumentException("Review the current inputs before saving; earlier calculation may be stale.");
             ArrayNode prior=store.records("designReports");
-            int revision=1;
-            for(JsonNode row:prior)if("circuitWorksheet".equals(row.path("kind").asText())
-                &&p.equals(row.path("project").asText())&&title.equals(row.path("title").asText()))
-                revision=Math.max(revision,row.path("revision").asInt(0)+1);
+            int revision=CircuitWorksheetRevisions.next(prior,p,title);
             ObjectNode item=json.createObjectNode();
             item.put("kind","circuitWorksheet");item.put("schemaVersion",1);
             item.put("project",p);item.put("title",title);
