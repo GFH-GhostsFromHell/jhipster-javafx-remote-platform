@@ -16,7 +16,7 @@ strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;b
 </style></head><body>
 <header class="top"><div class="brand">ϟ Electrical Workbench · Bender Calibration</div><nav><a href="/bend-calcs.html">Bending calculators</a> · <a href="/account-records.html">Account profiles</a> · <a href="/portal.html">Dashboard</a></nav></header>
 <main class="wrap"><h1>Bender calibration</h1>
-<p>Measure your own shoe on scrap conduit. Save a separate profile for each bender, conduit type and trade size. No manufacturer deduct or gain is assumed.</p>
+<p>Measure your own shoe on scrap conduit. Save a separate profile for each bender, conduit type and trade size. No generic manufacturer deduct, gain or clearance is assumed.</p>
 <div class="cards">
 <section class="card full"><h2>1 · Bender profile</h2>
 <div class="fields">
@@ -42,7 +42,13 @@ strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;b
 <div><label for="legB">Second finished test leg</label><input id="legB" type="number" min="0" step="any" placeholder="Finished leg B"></div>
 </div><div class="tip">Gain = finished leg A + finished leg B − original stock. Gain is not the stub arrow deduct.</div><div class="result" id="gainResult" aria-live="polite">Enter three test-piece measurements above.</div>
 </section>
-<section class="card full"><h2>4 · Check angle and apply calibration</h2>
+<section class="card"><h2>4 · Verify this shoe's bend clearances</h2>
+<p>Only record manufacturer-confirmed or safely measured values for this exact make, model, conduit material and trade size. <strong>Mark spacing</strong> and <strong>straight length between finished bend arcs</strong> are different measurements. Neither guarantees actual head access.</p>
+<div class="fields">
+<div><label for="minMarkGap">Minimum physical mark spacing (optional)</label><input id="minMarkGap" type="number" min="0" step="any" placeholder="Verified value"></div>
+<div><label for="minStraight">Minimum straight BETWEEN bend arcs (optional)</label><input id="minStraight" type="number" min="0" step="any" placeholder="Verified value"></div>
+</div><p class="small">Leave fields blank if unknown. The Bend Instruction Lab will keep clearance as NOT VERIFIED until entered.</p></section>
+<section class="card full"><h2>5 · Check angle and apply calibration</h2>
 <div class="fields"><div><label for="targetAngle">Target bend angle (degrees)</label><input id="targetAngle" type="number" min="1" max="180" step="any" value="90"></div><div><label for="actualAngle">Measured bend angle (degrees, optional)</label><input id="actualAngle" type="number" min="0" max="180" step="any" placeholder="e.g. 88.5"></div></div>
 <div class="result" id="angleResult" aria-live="polite">Angle check is optional.</div>
 <div class="actions"><button class="primary" id="calculate">Recalculate all</button><a href="/bend-calcs.html" style="padding:11px 0">Return to bending calculators</a></div>
@@ -54,7 +60,7 @@ strong.value{color:#91edfa}.tip{border-left:3px solid #59d5e7;padding:8px 12px;b
 (function(){
 'use strict';
 const KEY='ew.benderCalibration.v1', ACTIVE='ew.benderCalibration.active.v1';
-const ids=['name','model','material','size','units','arrowMark','actualStub','stock','legA','legB','targetAngle','actualAngle'];
+const ids=['name','model','material','size','units','arrowMark','actualStub','stock','legA','legB','minMarkGap','minStraight','targetAngle','actualAngle'];
 const el=id=>document.getElementById(id);let activeId='';
 function num(id){let value=el(id).value.trim();return value===''?null:Number(value)}
 function finitePositive(n){return n!==null&&Number.isFinite(n)&&n>0}
@@ -82,7 +88,18 @@ function save(){
  const hasAny=candidates.some(id=>el(id).value.trim()!=='');
  const invalidDeduct=el('arrowMark').value.trim()!==''||el('actualStub').value.trim()!=='';
  const invalidGain=['stock','legA','legB'].some(id=>el(id).value.trim()!=='');
- if(!hasAny||invalidDeduct&&deduct===null||invalidGain&&gain===null){el('storageStatus').textContent='Complete at least one valid measurement set before saving.';el('storageStatus').className='small error';return;}
+ const maxStock=el('units').value==='mm'?3048:120;
+ const gaps=['minMarkGap','minStraight'];
+ const invalidGap=gaps.some(id=>{const raw=el(id).value.trim(),x=num(id);return raw!==''&&(!Number.isFinite(x)||x<=0||x>maxStock)});
+ if(invalidGap){
+  el('storageStatus').textContent='Verified shoe clearance must be positive and no longer than one 10 ft stick. Leave it blank if unknown.';
+  el('storageStatus').className='small error';return;
+ }
+ const hasVerifiedGap=gaps.some(id=>el(id).value.trim()!=='');
+ if((!hasAny&&!hasVerifiedGap)||(invalidDeduct&&deduct===null)||(invalidGain&&gain===null)){
+  el('storageStatus').textContent='Complete a valid deduct/gain test OR enter a verified shoe clearance value.';
+  el('storageStatus').className='small error';return;
+ }
  const all=profiles();const id=activeId||'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
  const existing=all.find(p=>p.id===id);
  const record={id,_syncId:(existing&&existing._syncId)||id,name,model,deduct,gain};ids.filter(k=>!['name','model'].includes(k)).forEach(k=>record[k]=el(k).value);
