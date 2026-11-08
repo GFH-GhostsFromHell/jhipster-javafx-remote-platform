@@ -23,6 +23,26 @@ summary{cursor:pointer;font-weight:750;margin-bottom:9px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Consolas,monospace;color:#e8f5ff}
 #status{font-weight:750;margin:4px 0 12px}
 @media(max-width:520px){header{padding:15px}main{padding:12px 9px}.card{padding:13px}.grid{grid-template-columns:1fr}nav a{flex:1 1 45%;text-align:center}}
+#printSheet{display:none}
+@media print {
+  @page{size:letter;margin:14mm}
+  body{color:#172b3a;background:white!important;font-family:Arial,Helvetica,sans-serif}
+  body>header,body>main{display:none!important}
+  #printSheet{display:block!important;width:100%;color:#15283a}
+  #printSheet .pdf-kicker{font-size:10pt;font-weight:bold;color:#244d65}
+  #printSheet h1{font-size:19pt;margin:5pt 0 9pt}
+  #printSheet .pdf-warning{font-weight:bold;border:1px solid #9a5b20;padding:7pt;color:#75420d;line-height:1.4}
+  #printSheet .pdf-head{border-bottom:2pt solid #244d65;margin-bottom:11pt}
+  #printSheet h2{font-size:11pt;background:#e7f0f5;padding:6pt;margin:14pt 0 7pt;break-after:avoid}
+  #printSheet .pdf-report-meta{font-size:9pt;line-height:1.55}
+  #printSheet table{width:100%;border-collapse:collapse;font-size:8.5pt}
+  #printSheet th,#printSheet td{border-bottom:0.4pt solid #d3dce1;text-align:left;padding:4pt 6pt;vertical-align:top}
+  #printSheet th{width:51%;font-weight:600}
+  #printSheet tr{break-inside:avoid}
+  #printSheet p{font-size:9pt;line-height:1.55}
+  #printSheet pre{font-size:7.5pt;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+  #printSheet .pdf-calculation{border:0.5pt solid #d3dce1;padding:8pt}
+}
 </style>
 </head>
 <body>
@@ -76,16 +96,25 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
 <div class="grid" style="margin-top:10px">
 <button id="loadWorksheet" type="button">Load selected revision</button>
 <button id="exportProject" type="button">Export project JSON backup</button>
+<button id="printSavedPdf" type="button">Print / Save selected PDF</button>
 <button id="syncProjects" type="button">Synchronize account revisions</button>
 <button id="localArchiveMode" type="button">Switch to local-only archive</button>
 </div>
+<div class="grid">
+<label>PDF client / employer<input id="reportClient" value="" maxlength="150"></label>
+<label>PDF site / location<input id="reportSite" value="" maxlength="150"></label>
+<label>PDF reviewer (optional)<input id="reportReviewer" value="" maxlength="150"></label>
+</div>
+<p class="note">Choose a saved revision above, then use Print / Save selected PDF. The print dialog lets you save a formatted PDF; nothing is silently uploaded or signed.</p>
 <label>Restore project JSON backup (does not overwrite earlier revisions)
 <input type="file" id="importProjectFile" accept=".json,application/json"></label>
 <p class="note" id="archiveStatus" aria-live="polite">Preparing project archive…</p>
 </div>
 <div class="card"><h2>Before installation</h2><p class="note">This calculator never certifies compliance or automatically picks an AWG size from unverified data. Confirm the Ontario Electrical Safety Code edition/amendments, actual terminal marking, conductor material and dimensions, CEC Table 1–4, Table 5A/5C, neutral count, wiring method, overcurrent protection, and upstream voltage drop. Any specialty circuit requires its own applicable Code path.</p></div>
 </main>
+<section id="printSheet" aria-hidden="true"></section>
 <script src="/circuit-review-math.js?v=20261108-v1"></script>
+<script src="/circuit-project-print.js?v=20261108-v1"></script>
 <script src="/circuit-project-archive.js?v=20261108-sync-v2"></script>
 <script src="/account-sync.js?v=20261108-sync-v2"></script>
 <script>
@@ -173,6 +202,20 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
    archiveStatus.textContent='Saved '+saved.project+' / '+saved.title+' · revision '+saved.revision+
       ' · '+new Date(saved.saved).toLocaleString()+(usingLocal?'. Browser-only: export a backup.':'. Account sync queued.');
   }catch(e){archiveStatus.textContent='Not saved: '+e.message;}
+ });
+ el('printSavedPdf').addEventListener('click',()=>{
+   try {
+     const selected=archive().find(r=>r.id===el('savedWorksheet').value);
+     if(!selected)throw Error('Select and save a worksheet revision first.');
+     el('printSheet').innerHTML=CircuitProjectPrint.html(selected,{
+       client:el('reportClient').value,
+       site:el('reportSite').value,
+       reviewer:el('reportReviewer').value
+     });
+     archiveStatus.textContent='Prepared PDF report for '+selected.title+
+       ' · revision '+selected.revision+'. In the print dialog choose Save as PDF.';
+     window.print();
+   }catch(e){archiveStatus.textContent='PDF report not generated: '+e.message}
  });
  el('loadWorksheet').addEventListener('click',()=>{
   try{
