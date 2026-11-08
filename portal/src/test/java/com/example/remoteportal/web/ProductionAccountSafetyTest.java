@@ -46,7 +46,7 @@ class ProductionAccountSafetyTest {
         Map<String,Object> profile=endpoint.profile(admin());
         assertEquals("ADMIN",profile.get("subscriptionTier"));
         assertEquals("root-admin",profile.get("username"));
-        when(accounts.get("root-admin")).thenThrow(new IllegalStateException("DB down"));
+        doThrow(new IllegalStateException("DB down")).when(accounts).get("root-admin");
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE,
             assertThrows(ResponseStatusException.class,()->endpoint.profile(admin())).getStatusCode());
     }
