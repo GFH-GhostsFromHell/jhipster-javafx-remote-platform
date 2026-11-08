@@ -50,6 +50,16 @@ assert.throws(()=>save('Mine Expansion','','id-6'),/Worksheet title/);
 assert.throws(()=>A.build({project:'x',title:'y'},data,{...result,codeComplianceVerified:true},
  'report',today,'bad'),/valid circuit calculation/);
 assert.throws(()=>A.build({project:'x',title:'y'},data,result,'',today,'bad'),/valid circuit calculation/);
+const atLimit=A.read(storage);
+const fullStorage={
+ getItem:()=>JSON.stringify(Array.from({length:A.MAX_RECORDS},(_,i)=>({
+  ...atLimit[0],id:'full-'+i,_syncId:'full-'+i
+ }))),
+ setItem:()=>{throw Error('No record should be evicted');}
+};
+assert.throws(()=>A.append(fullStorage,A.build(
+ {project:'Mine',title:'Feeder'},data,result,'NOT CODE VERIFIED',
+ today,'limit')),/archive has reached/);
 const broken={getItem:()=>'{bad JSON',setItem:()=>{}};
 assert.throws(()=>A.read(broken),/Could not read/);
 const fakeProjectName='Project-'+'x'.repeat(160);
