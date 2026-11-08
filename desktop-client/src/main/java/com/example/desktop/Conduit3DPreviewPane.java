@@ -98,13 +98,23 @@ public final class Conduit3DPreviewPane extends BorderPane {
         shoeStraightField.setPrefColumnCount(7);
         Button restore = action("Load selected layout", true);
         restore.setOnAction(e -> loadPreset());
+        Button savedGap = action("Use verified shoe arc spacing", false);
+        savedGap.setOnAction(e -> {
+            Double gap=BenderCalibrationPane.value("minStraight","Millimetres");
+            if(gap==null||gap<=0){
+                status.setText("No verified arc-to-arc clearance saved for this shoe. Enter it manually or calibrate the exact tool.");
+                return;
+            }
+            shoeStraightField.setText(format(gap));
+            status.setText("Loaded verified straight between arcs from "+BenderCalibrationPane.profileDescription()+". Confirm exact shoe and conduit size.");
+        });
         FlowPane setup = new FlowPane(10, 10,
                 labeled("Layout preset", preset),
                 labeled("Centreline radius (mm)", radiusField),
                 labeled("Final straight / tail (mm)", tailField),
                 labeled("Straight stock ≤ 10 ft (mm)", stockField),
                 labeled("Required clear straight between arcs (mm, optional)", shoeStraightField),
-                restore);
+                restore,savedGap);
         setup.setAlignment(Pos.CENTER_LEFT);
         page.getChildren().addAll(card("Preview dimensions", setup));
 
