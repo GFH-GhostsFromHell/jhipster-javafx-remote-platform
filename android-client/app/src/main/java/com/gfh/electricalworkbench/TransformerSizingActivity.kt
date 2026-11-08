@@ -303,7 +303,9 @@ private fun computeTransformer(phase: String, primary: String, secondary: String
         result.append(String.format(Locale.CANADA,
             "RECOMMENDED: %s kVA (%s)\nPrimary full-load current: %.2f A at %.0f V\nSecondary full-load current: %.2f A at %.0f V\nAdjusted-load utilization: %.1f%%\n",
             String.format(Locale.CANADA, "%.2f", selected).trimEnd('0').trimEnd('.'),
-            phase, selected * 1000.0 / (factor * pv), selected * 1000.0 / (factor * sv),
+            phase,
+            OfflineElectricalMath.transformerCurrent(selected, pv, if (phase == "3φ") 3 else 1),
+            OfflineElectricalMath.transformerCurrent(selected, sv, if (phase == "3φ") 3 else 1),
             design / selected * 100.0))
         if (next != null) result.append("Next larger common size: $next kVA\n")
     }

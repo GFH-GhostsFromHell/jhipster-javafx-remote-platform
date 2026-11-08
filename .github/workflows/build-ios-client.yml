@@ -34,6 +34,10 @@ jobs:
           xcodebuild -version
       - name: Validate iOS study bank and release manifest
         run: node ../scripts/validate-ios-parity.cjs
+      - name: Test native offline electrical arithmetic
+        run: |
+          swiftc ElectricalWorkbench/OfflineElectricalMath.swift Tests/OfflineElectricalMathSelfTest.swift -o "$RUNNER_TEMP/offline-electrical-tests"
+          "$RUNNER_TEMP/offline-electrical-tests"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
