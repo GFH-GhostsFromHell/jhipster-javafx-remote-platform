@@ -48,7 +48,9 @@
     const matches=rows.filter(r=>r.project===record.project&&r.title===record.title);
     const revision=Math.max(0,...matches.map(r=>Number.isInteger(r.revision)?r.revision:0))+1;
     const saved={...record,revision};
-    const all=[saved,...rows].slice(0,MAX_RECORDS);
+    if(rows.length>=MAX_RECORDS)
+      throw Error('Local project archive has reached '+MAX_RECORDS+' records. Export a project backup before adding more revisions.');
+    const all=[saved,...rows];
     // Local storage is not a durable or synchronized cloud archive.
     storage.setItem(KEY,JSON.stringify(all));
     return saved;
