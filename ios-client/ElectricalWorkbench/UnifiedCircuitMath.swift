@@ -3,7 +3,7 @@ import Foundation
 /// Native offline circuit assessment. Arithmetic only: no licensed CEC tables,
 /// approved conductor sizes, equipment-specific OCPD selection or AC-impedance model.
 enum UnifiedCircuitMath {
-    struct Input {
+    struct Input: Equatable {
         let loadA: Double
         let designMultiplier: Double
         let voltageV: Double
