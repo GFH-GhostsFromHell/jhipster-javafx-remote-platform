@@ -81,7 +81,7 @@ final class BenderCalibrationPane extends ScrollPane {
         try{
             boolean hasDeduct=!mark.getText().isBlank()||!stub.getText().isBlank();
             boolean hasGain=!stock.getText().isBlank()||!legA.getText().isBlank()||!legB.getText().isBlank();
-            if(save&&(profile.getText().isBlank()||model.getText().isBlank()||material.getText().isBlank()||size.getText().isBlank()||!hasDeduct&&!hasGain))
+            if(save&&(profile.getText().isBlank()||model.getText().isBlank()||material.getText().isBlank()||size.getText().isBlank()||!hasDeduct&&!hasGain&&minimumMarkGap.getText().isBlank()&&minimumStraight.getText().isBlank()))
                 throw new IllegalArgumentException("Name/model/size/material and at least one complete test required.");
             Double deduct=null, bendGain=null;
             if(hasDeduct){
