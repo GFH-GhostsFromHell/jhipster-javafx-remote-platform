@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
+import org.json.JSONObject
 
 /** One-screen native offline planning worksheet. Never certifies Code compliance. */
 class CircuitSizingActivity: ComponentActivity() {
@@ -25,13 +27,25 @@ class CircuitSizingActivity: ComponentActivity() {
             MaterialTheme(colorScheme=darkColorScheme(
                 primary=Color(0xFF22D3EE),background=Color(0xFF06111F),
                 surface=Color(0xFF10253A),onSurface=Color(0xFFF1F7FC)
-            )) { CircuitSizingScreen() }
+            )) { CircuitSizingScreen(intent.getStringExtra("accountUsername").orEmpty()) }
         }
     }
 }
 
 @Composable
-private fun CircuitSizingScreen() {
+private fun CircuitSizingScreen(username:String) {
+    val context=LocalContext.current
+    var project by remember {mutableStateOf("Field project")}
+    var worksheetTitle by remember {mutableStateOf("Circuit 1")}
+    var fieldNotes by remember {mutableStateOf("")}
+    var saveStatus by remember {mutableStateOf("Each save creates a dated revision. Project records sync through your signed-in account when online.")}
+    var savedRows by remember(username) {mutableStateOf(
+        if(username.isBlank()) emptyList() else CircuitWorksheetStore.records(context,username)
+    )}
+    var lastInputs by remember {mutableStateOf<CircuitReviewMath.Input?>(null)}
+    var lastResults by remember {mutableStateOf<CircuitReviewMath.Result?>(null)}
+    var lastDescription by remember {mutableStateOf("")}
+    var lastTable by remember {mutableStateOf("")}
     var load by remember {mutableStateOf("40")}
     var voltage by remember {mutableStateOf("600")}
     var phases by remember {mutableStateOf("3")}
@@ -50,6 +64,12 @@ private fun CircuitSizingScreen() {
     var dropLimit by remember {mutableStateOf("3")}
     var showVD by remember {mutableStateOf(false)}
     var result by remember {mutableStateOf("Replace sample inputs with your actual circuit data, then calculate.")}
+    fun currentInputs()=CircuitReviewMath.Input(
+        load.toDouble(),multiplier.toDouble(),voltage.toDouble(),
+        phases.toInt(),run.toDouble(),cm.toDouble(),k.toDouble(),base.toDouble(),
+        terminal.toInt(),insulation.toInt(),ambient.toDouble(),group.toDouble(),
+        device.toDouble(),dropLimit.toDouble()
+    )
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()
         .verticalScroll(rememberScrollState()).padding(16.dp),
@@ -92,14 +112,11 @@ private fun CircuitSizingScreen() {
             }
         }
         Button(onClick={
+            lastInputs=null;lastResults=null
             result=runCatching {
-                val inputs=CircuitReviewMath.Input(
-                    load.toDouble(),multiplier.toDouble(),voltage.toDouble(),
-                    phases.toInt(),run.toDouble(),cm.toDouble(),k.toDouble(),base.toDouble(),
-                    terminal.toInt(),insulation.toInt(),ambient.toDouble(),group.toDouble(),
-                    device.toDouble(),dropLimit.toDouble()
-                )
+                val inputs=currentInputs()
                 val r=CircuitReviewMath.calculate(inputs)
+                lastInputs=inputs;lastResults=r;lastDescription=description;lastTable=table
                 fun fmt(v:Double)=String.format(Locale.CANADA,"%.2f",v)
                 buildString {
                     appendLine(description+" · "+table+" / "+terminal+"°C termination")
@@ -132,6 +149,93 @@ private fun CircuitSizingScreen() {
         }
         CircuitInputCard("3 · Worked result"){
             SelectionContainer {Text(result,style=MaterialTheme.typography.bodyMedium)}
+        }
+        CircuitInputCard("4 · Project worksheet archive") {
+            Text("Saved revisions include full entered measurements, numeric results, code assumptions, timestamps and the worked explanation. Each save is a new revision, never an overwrite.",
+                style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
+            CircuitNumber("Project",project,false){project=it}
+            CircuitNumber("Worksheet title",worksheetTitle,false){worksheetTitle=it}
+            CircuitNumber("Field notes / verification outstanding",fieldNotes,false){fieldNotes=it}
+            Button(onClick={
+                saveStatus=runCatching {
+                    require(username.isNotBlank()){"Sign in before saving account-linked worksheets."}
+                    val inputs=currentInputs()
+                    val output=lastResults
+                    require(lastInputs==inputs && output!=null &&
+                        lastDescription==description && lastTable==table) {
+                        "Calculate or review the current fields before saving; an earlier result may be stale."
+                    }
+                    val data=JSONObject().apply {
+                        put("loadA",inputs.loadA);put("designMultiplier",inputs.designMultiplier)
+                        put("voltageV",inputs.voltageV);put("phases",inputs.phases)
+                        put("oneWayLengthM",inputs.oneWayLengthM);put("circularMils",inputs.circularMils)
+                        put("kOhmCircularMilPerFoot",inputs.kOhmCircularMilPerFoot)
+                        put("terminalColumnAmpacityA",inputs.terminalColumnAmpacityA)
+                        put("terminalC",inputs.terminalC);put("insulationC",inputs.insulationC)
+                        put("ambientFactor",inputs.ambientFactor);put("groupingFactor",inputs.groupingFactor)
+                        put("selectedOcpdA",inputs.selectedOcpdA)
+                        put("maxVoltageDropPercent",inputs.maxVoltageDropPercent)
+                        put("conductorDescription",description);put("tableReference",table)
+                    }
+                    val numeric=JSONObject().apply {
+                        put("designCurrentA",output.designCurrentA)
+                        put("adjustedAmpacityA",output.adjustedAmpacityA)
+                        put("conductorMarginA",output.conductorMarginA)
+                        put("voltageDropV",output.voltageDropV)
+                        put("voltageDropPercent",output.voltageDropPercent)
+                        put("allowableDropV",output.allowableDropV)
+                        put("minimumCircularMilsForDrop",output.minimumCircularMilsForDrop)
+                        put("maximumOneWayLengthM",output.maximumOneWayLengthM)
+                        put("ampacityArithmeticFits",output.ampacityArithmeticFits)
+                        put("voltageDropArithmeticFits",output.voltageDropArithmeticFits)
+                        put("protectionScreenFits",output.protectionScreenFits)
+                        put("codeComplianceVerified",false)
+                    }
+                    val row=CircuitWorksheetStore.save(context,username,project,worksheetTitle,
+                        fieldNotes,data,numeric,result)
+                    savedRows=CircuitWorksheetStore.records(context,username)
+                    "Saved "+row.optString("project")+" · "+row.optString("title")+
+                        " · rev "+row.optInt("revision")+" (local first; sync on connection)."
+                }.getOrElse{ "Not saved: "+(it.message?:"Storage unavailable.") }
+            },modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)) {
+                Text("Save new worksheet revision")
+            }
+            Text(saveStatus,style=MaterialTheme.typography.bodySmall,color=Color(0xFFFFCF75))
+            Text("Saved revisions for this project",style=MaterialTheme.typography.titleSmall)
+            savedRows.filter{it.optString("project")==project.trim()}.take(15).forEach { row->
+                OutlinedButton(
+                    onClick={
+                        val data=row.optJSONObject("inputs")
+                        if(data!=null){
+                            load=data.optString("loadA",load);voltage=data.optString("voltageV",voltage)
+                            phases=data.optString("phases",phases);run=data.optString("oneWayLengthM",run)
+                            device=data.optString("selectedOcpdA",device)
+                            multiplier=data.optString("designMultiplier",multiplier)
+                            description=data.optString("conductorDescription",description)
+                            table=data.optString("tableReference",table)
+                            terminal=data.optString("terminalC",terminal)
+                            insulation=data.optString("insulationC",insulation)
+                            base=data.optString("terminalColumnAmpacityA",base)
+                            ambient=data.optString("ambientFactor",ambient)
+                            group=data.optString("groupingFactor",group)
+                            cm=data.optString("circularMils",cm)
+                            k=data.optString("kOhmCircularMilPerFoot",k)
+                            dropLimit=data.optString("maxVoltageDropPercent",dropLimit)
+                            worksheetTitle=row.optString("title",worksheetTitle)
+                            fieldNotes=row.optJSONObject("assumptions")?.optString("notes").orEmpty()
+                            result=row.optString("result")+"\\n\\nLoaded archived revision "+
+                                row.optInt("revision")+". Recalculate before saving changes."
+                            lastInputs=null;lastResults=null
+                            saveStatus="Opened "+row.optString("title")+" rev "+row.optInt("revision")+
+                                " from "+row.optString("saved")+"."
+                        }
+                    },
+                    modifier=Modifier.fillMaxWidth()
+                ) {
+                    Text(row.optString("title")+" · rev "+row.optInt("revision")+" · "+
+                        row.optString("saved").take(10))
+                }
+            }
         }
         Text("Sample numbers are placeholders. Use verified equipment and conductor data. Special motor, transformer or other exceptions need a separate Code assessment.",
             color=Color(0xFFFFCF75),style=MaterialTheme.typography.bodySmall)

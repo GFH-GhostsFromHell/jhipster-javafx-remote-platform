@@ -11,6 +11,7 @@ on:
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
       - 'scripts/validate-circuit-sizing.cjs'
+      - 'scripts/validate-project-circuit-archive.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
   pull_request:
@@ -22,6 +23,7 @@ on:
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
       - 'scripts/validate-circuit-sizing.cjs'
+      - 'scripts/validate-project-circuit-archive.cjs'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
 
@@ -42,6 +44,8 @@ jobs:
         run: node scripts/validate-conductor-data-audit.cjs
       - name: Validate unified Android and web circuit sizing
         run: node scripts/validate-circuit-sizing.cjs
+      - name: Validate project worksheet revisions, backup and native links
+        run: node scripts/validate-project-circuit-archive.cjs
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:

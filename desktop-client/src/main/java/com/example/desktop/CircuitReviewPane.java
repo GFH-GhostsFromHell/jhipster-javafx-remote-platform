@@ -1,5 +1,10 @@
 package com.example.desktop;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.Instant;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -36,8 +41,25 @@ public final class CircuitReviewPane extends BorderPane {
     private final TextField vdTarget = field("3");
     private final TextArea report = new TextArea("Replace the sample inputs with verified site and conductor data.");
     private final Label status = new Label("Not code verified · no conductor or device has been approved.");
+    private final ObjectMapper json;
+    private final LocalWorkspaceStore store;
+    private final TextField project = field("Field project");
+    private final TextField worksheetTitle = field("Circuit 1");
+    private final TextField notes = field("");
+    private final Label archiveStatus = new Label("Every save creates a new dated revision linked to a project.");
+    private final ListView<SavedRevision> saved = new ListView<>();
+    private UnifiedCircuitMath.Input lastInput;
+    private UnifiedCircuitMath.Result lastResult;
+    private String lastDescription;
+    private String lastTable;
 
-    public CircuitReviewPane() {
+    private record SavedRevision(String label, JsonNode record) {
+        @Override public String toString(){return label;}
+    }
+
+    public CircuitReviewPane(ObjectMapper json, String username) {
+        this.json=json;
+        this.store=new LocalWorkspaceStore(json,username);
         setStyle("-fx-background-color:#f4f7fa;");
         VBox page = new VBox(13);
         page.setPadding(new Insets(16));
@@ -102,6 +124,22 @@ public final class CircuitReviewPane extends BorderPane {
         status.setWrapText(true);
         status.setStyle("-fx-text-fill:#854e0d;-fx-font-weight:bold;");
 
+        archiveStatus.setWrapText(true);
+        archiveStatus.setStyle(WARNING);
+        saved.setPrefHeight(150);
+        project.textProperty().addListener((obs,oldValue,newValue)->refreshRevisions());
+        Button saveRevision = new Button("Save new revision");
+        saveRevision.setMinHeight(44);
+        saveRevision.setMaxWidth(Double.MAX_VALUE);
+        saveRevision.setOnAction(event->saveRevision());
+        Button openRevision = new Button("Reopen selected revision");
+        openRevision.setMinHeight(42);
+        openRevision.setOnAction(event->reopenRevision());
+        GridPane metadata=grid();
+        metadata.addRow(0,row("Project name",project));
+        metadata.addRow(1,row("Worksheet title",worksheetTitle));
+        metadata.addRow(2,row("Verification / field notes",notes));
+
         Label footer = new Label(
             "NOT CODE VERIFIED. Confirm licensed CEC 2024 and Ontario amendments, conductor material/size, " +
             "termination marking, installation method, correction factor applicability, neutral counting, " +
@@ -114,7 +152,10 @@ public final class CircuitReviewPane extends BorderPane {
             card("1 · Circuit conditions",setup),
             card("2 · Selected conductor and installation",caution,wire,vdOptions),
             calculate,card("3 · Worked calculation",status,report,copy),
+            card("4 · Save to project",metadata,saveRevision,archiveStatus,
+                new Label("Previous revisions for this project"),saved,openRevision),
             footer);
+        refreshRevisions();
         ScrollPane scroll = new ScrollPane(page);
         scroll.setFitToWidth(true);
         scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
@@ -122,6 +163,8 @@ public final class CircuitReviewPane extends BorderPane {
     }
 
     private void calculate() {
+        lastInput=null;
+        lastResult=null;
         try {
             UnifiedCircuitMath.Input input = new UnifiedCircuitMath.Input(
                 number(load),multiplier.getValue(),number(voltage),phases.getValue(),
@@ -129,6 +172,7 @@ public final class CircuitReviewPane extends BorderPane {
                 number(base),terminal.getValue(),insulation.getValue(),
                 number(ambient),number(grouping),number(device),number(vdTarget));
             UnifiedCircuitMath.Result r = UnifiedCircuitMath.calculate(input);
+            lastInput=input;lastResult=r;lastDescription=conductor.getText();lastTable=table.getValue();
             StringBuilder b = new StringBuilder();
             b.append(conductor.getText()).append(" · ").append(table.getValue())
              .append(" / ").append(terminal.getValue()).append("°C terminations\n\n");
@@ -164,6 +208,93 @@ public final class CircuitReviewPane extends BorderPane {
             report.setText("Check inputs: "+(ex.getMessage()==null?"Invalid numeric values":ex.getMessage()));
             status.setText("Cannot calculate · review entered values");
         }
+    }
+
+    /** Keep complete immutable revision snapshots in the existing account-synced designReports collection. */
+    private void saveRevision() {
+        try {
+            String p=project.getText().trim(),title=worksheetTitle.getText().trim();
+            if(p.isBlank()||title.isBlank()||p.length()>150||title.length()>150)
+                throw new IllegalArgumentException("Project and title must each contain 1–150 characters.");
+            if(notes.getText().length()>2000)
+                throw new IllegalArgumentException("Notes must be no longer than 2,000 characters.");
+            UnifiedCircuitMath.Input current=new UnifiedCircuitMath.Input(
+                number(load),multiplier.getValue(),number(voltage),phases.getValue(),
+                number(length),number(circularMils),number(kFactor),
+                number(base),terminal.getValue(),insulation.getValue(),
+                number(ambient),number(grouping),number(device),number(vdTarget));
+            if(lastInput==null||lastResult==null||!lastInput.equals(current)
+                ||!conductor.getText().equals(lastDescription)||!table.getValue().equals(lastTable))
+                throw new IllegalArgumentException("Review the current inputs before saving; earlier calculation may be stale.");
+            ArrayNode prior=store.records("designReports");
+            int revision=CircuitWorksheetRevisions.next(prior,p,title);
+            ObjectNode item=json.createObjectNode();
+            item.put("kind","circuitWorksheet");item.put("schemaVersion",1);
+            item.put("project",p);item.put("title",title);
+            item.put("revision",revision);item.put("saved",Instant.now().toString());
+            item.put("codeEdition","CEC_2024");
+            item.put("jurisdiction","Ontario (verify effective OESC amendments)");
+            item.put("referenceTables",table.getValue()+"; Tables 5A and 5C (user-supplied)");
+            ObjectNode assumptions=json.createObjectNode();
+            assumptions.put("conductorTableValuesVerified",false);
+            assumptions.put("terminationMarkingVerified",false);
+            assumptions.put("codeComplianceVerified",false);
+            assumptions.put("specialCircuitRulesReviewed",false);
+            assumptions.put("voltageDropMethod","resistive K-factor estimate, not full AC impedance");
+            assumptions.put("notes",notes.getText());
+            item.set("assumptions",assumptions);
+            ObjectNode inputs=(ObjectNode)json.valueToTree(lastInput);
+            inputs.put("conductorDescription",conductor.getText());
+            inputs.put("tableReference",table.getValue());
+            item.set("inputs",inputs);
+            item.set("results",json.valueToTree(lastResult));
+            item.put("result",report.getText());
+            store.append("designReports",item);
+            refreshRevisions();
+            archiveStatus.setText("Saved "+title+" · revision "+revision+" · "+item.path("saved").asText()+
+                ". Local-first; sync runs when account connection is available.");
+        }catch(Exception ex){archiveStatus.setText("Not saved: "+ex.getMessage());}
+    }
+
+    private void refreshRevisions() {
+        saved.getItems().clear();
+        String p=project.getText().trim();
+        ArrayNode rows=store.records("designReports");
+        for(int j=rows.size()-1;j>=0;j--){
+            JsonNode r=rows.get(j);
+            if(!"circuitWorksheet".equals(r.path("kind").asText())||!p.equals(r.path("project").asText()))continue;
+            String label=r.path("title").asText()+" · rev "+r.path("revision").asInt()+
+                " · "+r.path("saved").asText().replace('T',' ');
+            saved.getItems().add(new SavedRevision(label,r));
+            if(saved.getItems().size()>=100)break;
+        }
+    }
+
+    private void reopenRevision(){
+        try {
+            SavedRevision selected=saved.getSelectionModel().getSelectedItem();
+            if(selected==null)throw new IllegalArgumentException("Select a saved revision.");
+            JsonNode row=selected.record(),i=row.path("inputs");
+            if(!i.isObject())throw new IllegalArgumentException("Saved revision is missing its input fields.");
+            load.setText(i.path("loadA").asText());voltage.setText(i.path("voltageV").asText());
+            phases.setValue(i.path("phases").asInt(3));length.setText(i.path("oneWayLengthM").asText());
+            device.setText(i.path("selectedOcpdA").asText());multiplier.setValue(i.path("designMultiplier").asDouble(1.25));
+            conductor.setText(i.path("conductorDescription").asText("Selected conductor"));
+            table.setValue(i.path("tableReference").asText("Table 2"));
+            terminal.setValue(i.path("terminalC").asInt(75));insulation.setValue(i.path("insulationC").asInt(90));
+            base.setText(i.path("terminalColumnAmpacityA").asText());
+            ambient.setText(i.path("ambientFactor").asText());grouping.setText(i.path("groupingFactor").asText());
+            circularMils.setText(i.path("circularMils").asText());
+            kFactor.setText(i.path("kOhmCircularMilPerFoot").asText());
+            vdTarget.setText(i.path("maxVoltageDropPercent").asText());
+            worksheetTitle.setText(row.path("title").asText("Circuit 1"));
+            notes.setText(row.path("assumptions").path("notes").asText(""));
+            report.setText(row.path("result").asText(""));
+            lastInput=null;lastResult=null;
+            status.setText("Archived revision "+row.path("revision").asInt()+" from "+row.path("saved").asText()+
+                " · NOT CODE VERIFIED. Recalculate before saving edits.");
+            archiveStatus.setText("Reopened "+row.path("title").asText()+" rev "+row.path("revision").asInt());
+        }catch(Exception ex){archiveStatus.setText("Could not open revision: "+ex.getMessage());}
     }
 
     private static double number(TextField field) {

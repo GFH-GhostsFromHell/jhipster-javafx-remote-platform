@@ -51,7 +51,7 @@ public final class NativeCalculatorPane extends BorderPane {
         bar.setPadding(new Insets(0,0,12,0));
         setTop(bar);
 
-        Tab circuit = new Tab("Circuit Review", new CircuitReviewPane());
+        Tab circuit = new Tab("Circuit Review", new CircuitReviewPane(json, username));
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
         Tab design = new Tab("Integrated Design", new IntegratedDesignPane(json, username));
         Tab transformerSizer = new Tab("Transformer Sizer", new TransformerLoadSizingPane(json, username));

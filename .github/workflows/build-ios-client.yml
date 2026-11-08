@@ -42,6 +42,10 @@ jobs:
         run: |
           swiftc ElectricalWorkbench/OfflineElectricalMath.swift ElectricalWorkbench/UnifiedCircuitMath.swift Tests/UnifiedCircuitMathSelfTest.swift -o "$RUNNER_TEMP/unified-circuit-tests"
           "$RUNNER_TEMP/unified-circuit-tests"
+      - name: Validate signed-in project worksheet revision archive
+        run: |
+          swiftc ElectricalWorkbench/OfflineElectricalMath.swift ElectricalWorkbench/UnifiedCircuitMath.swift ElectricalWorkbench/CircuitProjectStore.swift Tests/CircuitProjectStoreSelfTest.swift -o "$RUNNER_TEMP/circuit-project-tests"
+          "$RUNNER_TEMP/circuit-project-tests"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project

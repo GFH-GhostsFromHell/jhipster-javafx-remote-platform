@@ -16,7 +16,7 @@ final class AccountRecordSync: ObservableObject {
         "projects","materials","nameplates","commissioning","inspections",
         "hours","credentials","quizHistory","unsafeConditions","rubberGloves",
         "safetyMaintenance","stormStandDowns","safetyAssessments",
-        "troubleshootingCases","benderProfiles"
+        "troubleshootingCases","benderProfiles","designReports"
     ]
 
     private struct Entry {
@@ -272,6 +272,7 @@ final class AccountRecordSync: ObservableObject {
 
     private func storageKey(_ bucket: String, user: String) -> String {
         if bucket == "troubleshootingCases" { return "ewb.ios.troubleshooting.cases.\(user)" }
+        if bucket == "designReports" { return "ewb.ios.circuitWorksheets.\(user)" }
         if bucket == "benderProfiles" { return "ewb.ios.calibration.sync.\(user)" }
         if bucket == "quizHistory" { return "ewb.ios.quiz.sync.\(user)" }
         if ["unsafeConditions","rubberGloves","safetyMaintenance","stormStandDowns","safetyAssessments"].contains(bucket) {
@@ -307,6 +308,12 @@ final class AccountRecordSync: ObservableObject {
         }
         if bucket == "quizHistory" {
             applyDailyQuiz(user:user,key:key,rows:rows)
+            return
+        }
+        if bucket == "designReports" {
+            // Preserve all nested snapshots as-is, including records created
+            // by Windows and Android; the iOS UI filters circuitWorksheet kind.
+            write(key,rows:rows)
             return
         }
         if bucket == "troubleshootingCases" {
