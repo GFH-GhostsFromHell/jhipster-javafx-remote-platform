@@ -14,6 +14,13 @@ public class CalculatorResource {
   public CalculatorResource(ElectricalCalculatorService calculators,WorksheetCalculatorService worksheets,ClientAccountStore accounts){this.calculators=calculators;this.worksheets=worksheets;this.accounts=accounts;}
   @GetMapping("/editions") public List<Map<String,Object>> editions(){return calculators.editions();}
   @GetMapping("/catalog") public Map<String,Object> catalog(Principal p){String tier;try{tier=accounts.tier(p.getName());}catch(Exception ex){tier="ADMIN";}return calculators.catalog(tier);}
+  public record ConductorReviewRequest(Double requiredLoadA,Double tableAmpacityA,Integer terminationTemperatureC,Integer insulationTemperatureC,Double ambientCorrection,Double groupingCorrection,String tableReference,String edition){}
+  @PostMapping("/conductor-review") public Map<String,Object> conductorReview(@RequestBody ConductorReviewRequest r){
+    return calculators.conductorReview(n(r.requiredLoadA()),n(r.tableAmpacityA()),
+        r.terminationTemperatureC()==null?0:r.terminationTemperatureC(),
+        r.insulationTemperatureC()==null?0:r.insulationTemperatureC(),
+        n(r.ambientCorrection()),n(r.groupingCorrection()),r.tableReference(),edition(r.edition()));
+  }
   public record TransformerRequest(Double kva,Double primaryVoltage,Double secondaryVoltage,Integer phases,Double designFactor,Double primaryOcpdFactor,Double secondaryOcpdFactor,String edition){}
   @PostMapping("/transformer") public Map<String,Object> transformer(@RequestBody TransformerRequest r){return calculators.transformer(n(r.kva()),n(r.primaryVoltage()),n(r.secondaryVoltage()),r.phases()==null?3:r.phases(),d(r.designFactor(),1.25),d(r.primaryOcpdFactor(),1.25),d(r.secondaryOcpdFactor(),1.25),edition(r.edition()));}
   public record DryTransformerWorksheetRequest(Double kva,Double primaryVoltage,Double secondaryVoltage,Integer phases){}
