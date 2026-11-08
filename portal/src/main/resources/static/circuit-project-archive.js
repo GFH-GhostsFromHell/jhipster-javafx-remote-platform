@@ -24,11 +24,14 @@ function allRows(storage,key=KEY){
   if(!Array.isArray(items))throw Error('Project archive has an unexpected format; no changes saved.');
   return items;
 }
+function rowId(r){return String(r&&((r._syncId||r.id))||'')}
 function isWorksheet(r){
   return r&&typeof r==='object'&&r.kind==='circuitWorksheet'&&
-    typeof r.id==='string'&&typeof r.project==='string'&&r.inputs&&r.results;
+    /^[A-Za-z0-9_.:-]{1,128}$/.test(rowId(r))&&
+    typeof r.project==='string'&&r.inputs&&r.results;
 }
-function read(storage,key=KEY){return allRows(storage,key).filter(isWorksheet)}
+function normalized(r){return {...r,id:rowId(r),_syncId:rowId(r)}}
+function read(storage,key=KEY){return allRows(storage,key).filter(isWorksheet).map(normalized)}
 function build(meta,inputs,results,report,now,id){
   const project=validText(meta.project,'Project name');
   const title=validText(meta.title,'Worksheet title');
@@ -59,7 +62,7 @@ function append(storage,record,key=KEY){
   const all=allRows(storage,key);
   if(!isWorksheet(record)||record.results.codeComplianceVerified!==false)
     throw Error('Invalid or unverified worksheet snapshot.');
-  if(all.some(r=>r&&(r._syncId===record.id||r.id===record.id)))
+  if(all.some(r=>r&&rowId(r)===rowId(record)))
     throw Error('Duplicate worksheet ID; please retry.');
   const matches=all.filter(r=>isWorksheet(r)&&r.project===record.project&&r.title===record.title);
   const revision=Math.max(0,...matches.map(r=>Number.isInteger(r.revision)?r.revision:0))+1;
@@ -75,8 +78,8 @@ function forProject(storage,project,key=KEY){
 }
 function validateImported(row){
   if(!isWorksheet(row)||row.schemaVersion!==1||
-      typeof row._syncId!=='string'||row.id!==row._syncId||
-      !/^[A-Za-z0-9_.:-]{1,128}$/.test(row.id)||
+      (row.id&&row._syncId&&row.id!==row._syncId)||
+      !/^[A-Za-z0-9_.:-]{1,128}$/.test(rowId(row))||
       !row.project.trim()||row.project.length>150||
       typeof row.title!=='string'||!row.title.trim()||row.title.length>150||
       !Number.isInteger(row.revision)||row.revision<1||
@@ -93,20 +96,27 @@ function importProject(storage,payload,key=KEY){
       payload.schemaVersion!==1||!Array.isArray(payload.worksheets)||
       payload.worksheets.length<1||payload.worksheets.length>MAX_RECORDS)
     throw Error('Unsupported project backup. No records were imported.');
-  const incoming=payload.worksheets.map(validateImported);
+  const incoming=payload.worksheets.map(row=>normalized(validateImported(row)));
   const all=allRows(storage,key);
-  const ids=new Set(all.filter(Boolean).map(r=>r._syncId||r.id));
+  const ids=new Set(all.filter(Boolean).map(rowId));
   const seen=new Set();
   let added=0,skipped=0;
   const merged=all.slice();
+  // Compare objects by keys and values, not property insertion order (Java vs Swift vs JS).
+  const canonical=v=>{
+    if(Array.isArray(v))return v.map(canonical);
+    if(v&&typeof v==='object')return Object.fromEntries(
+      Object.entries(v).sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>[key,canonical(value)]));
+    return v;
+  };
   for(const row of incoming){
-    if(seen.has(row.id))throw Error('Duplicate IDs inside backup. No records were imported.');
-    seen.add(row.id);
-    if(ids.has(row.id)){
-      const prior=all.find(r=>r&&(r._syncId===row.id||r.id===row.id));
+    if(seen.has(rowId(row)))throw Error('Duplicate IDs inside backup. No records were imported.');
+    seen.add(rowId(row));
+    if(ids.has(rowId(row))){
+      const prior=all.find(r=>r&&rowId(r)===rowId(row));
       // A different record with the same immutable ID is a conflict: never
       // overwrite either record, and do not silently skip changed history.
-      if(JSON.stringify(prior)!==JSON.stringify(row))
+      if(JSON.stringify(canonical(normalized(prior)))!==JSON.stringify(canonical(row)))
         throw Error('Worksheet ID conflict. Export both archives and reconcile before importing; nothing changed.');
       skipped++;continue;
     }
