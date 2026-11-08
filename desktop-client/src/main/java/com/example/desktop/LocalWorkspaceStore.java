@@ -8,6 +8,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.util.UUID;
 
 /** Local/offline persistence for apprentice, project, field and safety records. Records are intentionally per-user. */
 public final class LocalWorkspaceStore {
@@ -23,11 +26,15 @@ public final class LocalWorkspaceStore {
     };
 
     public LocalWorkspaceStore(ObjectMapper json, String username) {
+        this(json,username,Path.of(System.getProperty("user.home"), ".electrical-workbench"));
+    }
+
+    /** Testing and controlled local restore destination; not exposed to untrusted paths. */
+    LocalWorkspaceStore(ObjectMapper json,String username,Path directory) {
         this.json = json;
         this.username = username == null || username.isBlank() ? "default" : username;
         String safe = this.username.replaceAll("[^A-Za-z0-9._-]", "_");
-        Path dir = Path.of(System.getProperty("user.home"), ".electrical-workbench");
-        this.file = dir.resolve("workspace-" + safe + ".json");
+        this.file = directory.resolve("workspace-" + safe + ".json");
     }
 
     public synchronized ObjectNode load() {
@@ -36,8 +43,11 @@ public final class LocalWorkspaceStore {
             if (!Files.exists(file)) return blank();
             JsonNode node = json.readTree(Files.readString(file));
             if (node instanceof ObjectNode obj) return normalize(obj);
-        } catch (Exception ignored) {}
-        return blank();
+            throw new IllegalStateException("Workspace file is not a JSON object. Export or restore the backup before saving.");
+        } catch (IOException ex) {
+            // Never replace a corrupt or unreadable original with an empty workspace.
+            throw new IllegalStateException("Workspace could not be read; existing data was not overwritten: "+file,ex);
+        }
     }
 
     public synchronized void append(String collection, ObjectNode record) {
@@ -93,11 +103,24 @@ public final class LocalWorkspaceStore {
     }
 
     private void save(ObjectNode root) {
+        Path temp = file.resolveSibling(file.getFileName()+".tmp-"+UUID.randomUUID());
         try {
             Files.createDirectories(file.getParent());
-            Files.writeString(file, json.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+            byte[] bytes=json.writerWithDefaultPrettyPrinter().writeValueAsBytes(root);
+            Files.write(temp, bytes);
+            if (Files.exists(file)) {
+                // Retain the previous good version for accidental-edit recovery.
+                Files.copy(file,file.resolveSibling(file.getFileName()+".bak"),StandardCopyOption.REPLACE_EXISTING);
+            }
+            try {
+                Files.move(temp,file,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(temp,file,StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException ex) {
-            throw new IllegalStateException("Could not save local workspace: " + ex.getMessage(), ex);
+            throw new IllegalStateException("Could not atomically save local workspace; prior file retained: "+ex.getMessage(),ex);
+        } finally {
+            try { Files.deleteIfExists(temp); } catch (IOException ignored) { }
         }
     }
 
