@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Industrial Electrical Worksheets | Electrical Workbench</title>
+<style>
+:root{font-family:Inter,system-ui,Segoe UI,sans-serif;background:#071622;color:#edf7ff;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#061523,#122d40);min-height:100vh}
+header{padding:17px max(14px,calc((100vw - 900px)/2));background:#112a3b;border-bottom:1px solid #3d5668}
+main{max-width:930px;margin:auto;padding:17px 14px 40px}
+h1{font-size:clamp(23px,4vw,34px);margin:6px 0}h2{font-size:18px;margin:0 0 10px}
+p{line-height:1.5;color:#c7d9e5}small{color:#b6cad7}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+nav a{color:#c0f0ff;text-decoration:none;border:1px solid #42677b;padding:9px 13px;border-radius:9px;min-height:42px}
+.panel{background:#102b3c;border:1px solid #426079;border-radius:14px;padding:16px;margin-bottom:13px}
+fieldset{border:0;padding:0;margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+label{display:flex;flex-direction:column;gap:6px;font-weight:650;font-size:13px;line-height:1.4}
+input,select{width:100%;font:inherit;color:#eef9ff;background:#081b2c;border:1px solid #7892a8;border-radius:9px;padding:10px 12px;min-height:49px;font-size:16px}
+button{font:inherit;cursor:pointer;min-height:49px;padding:11px 14px;background:#25d0e9;color:#04202b;border:0;border-radius:10px;font-weight:800}
+button.secondary{background:#173d54;border:1px solid #86b6cf;color:#e6f6ff}
+.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button{flex:1 1 190px}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #ffd075;outline-offset:2px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,monospace;background:#061a29;color:#ddf5ff;padding:13px;border:1px solid #426079;border-radius:10px}
+.warn{color:#ffdf9b}.status{font-weight:750;min-height:1.5em}
+@media(max-width:560px){main{padding:11px 8px}header{padding:14px 10px}.panel{padding:13px}.actions{display:grid;grid-template-columns:1fr}}
+@media print{body{background:#fff;color:#111}header,nav,.actions,fieldset{display:none!important}.panel,pre{color:#111;background:#fff;border-color:#aaa}p{color:#333}}
+</style></head>
+<body>
+<header><small>ELECTRICAL WORKBENCH · OFFLINE ARITHMETIC</small>
+<h1>Industrial Electrical Worksheets</h1>
+<p>CT/PT ratios, balanced three-phase power, relay-current translation, an ideal transformer short-circuit estimate, and 4–20 mA scaling. No proprietary Code tables or automatic protection settings.</p>
+<nav><a href="/calculators.html">CEC calculators</a><a href="/circuit-sizing.html">Circuit sizing</a><a href="/cec-reference-status.html">CEC data status</a><a href="/portal.html">Portal</a></nav></header>
+<main>
+<div class="panel">
+<h2>1 · Select a field calculation</h2>
+<label>Worksheet type<select id="mode" aria-label="Industrial worksheet type"></select></label>
+</div>
+<div class="panel">
+<h2>2 · Enter measured or specified values</h2>
+<p class="warn">These are sample inputs only. Confirm nameplate ratings and actual readings before calculating.</p>
+<fieldset><div class="grid" id="fields"></div></fieldset>
+</div>
+<div class="panel">
+<h2>3 · Review calculation</h2>
+<div class="actions">
+<button type="button" id="calculate">Calculate</button>
+<button type="button" class="secondary" id="reset">Restore example inputs</button>
+<button type="button" class="secondary" id="copy">Copy results</button>
+</div>
+<p class="status warn" id="status" aria-live="polite">Select a worksheet and enter actual values.</p>
+<pre id="result">No calculation performed.</pre>
+<p class="warn">NOT CODE VERIFIED · Arithmetic worksheets only. These are not approved relay setpoints, fault-current studies, electrical designs or a substitute for commissioning procedures, calibrated instruments and applicable Code requirements.</p>
+</div>
+</main>
+<script src="/industrial-commissioning-math.js?v=20261108-a"></script>
+<script>
+(function(){
+'use strict';
+const el=id=>document.getElementById(id);
+const modes=IndustrialCommissioningMath.MODES;
+for(const [id,info] of Object.entries(modes))
+ el('mode').add(new Option(info.label,id));
+function render(){
+ const id=el('mode').value,container=el('fields');
+ container.replaceChildren();
+ for(const [key,label,example] of modes[id].fields){
+   const field=document.createElement('label');field.textContent=label;
+   const input=document.createElement('input');
+   input.type='number';input.step='any';input.inputMode='decimal';
+   input.id=key;input.value=String(example);
+   input.setAttribute('aria-label',label);
+   field.append(input);container.append(field);
+ }
+ el('result').textContent='No calculation performed. Use your actual field readings.';
+ el('status').textContent='Sample inputs shown — verify before calculating.';
+}
+el('mode').addEventListener('change',render);
+el('reset').addEventListener('click',render);
+el('calculate').addEventListener('click',()=>{
+ try{
+   const input=Object.fromEntries(modes[el('mode').value].fields.map(([key])=>
+      [key,el(key).value]));
+   const r=IndustrialCommissioningMath.calculate(el('mode').value,input);
+   const data=Object.entries(r).filter(([k])=>
+     !['note','codeComplianceVerified','referenceProfileId','numericDatasetVerificationStatus'].includes(k));
+   const fmt=v=>typeof v==='number'?Number(v.toFixed(5)).toString():String(v);
+   el('result').textContent=modes[el('mode').value].label+'\n'+
+      data.map(([key,value])=>key+': '+fmt(value)).join('\n')+
+      '\n\nMethod warning: '+r.note+
+      '\nReference profile: '+r.referenceProfileId+
+      '\nSource data: '+r.numericDatasetVerificationStatus+
+      '\nNOT CODE VERIFIED — NO PROTECTION APPROVAL.';
+   el('status').textContent='Arithmetic completed · field verification still required.';
+ }catch(e){
+   el('status').textContent='Cannot calculate — correct the entries.';
+   el('result').textContent=e.message;
+ }
+});
+el('copy').addEventListener('click',async()=>{
+ try {await navigator.clipboard.writeText(el('result').textContent);
+   el('status').textContent='Copied calculation text.';}
+ catch(_){el('status').textContent='Clipboard access unavailable. Select the text to copy.';}
+});
+render();
+})();
+</script>
+</body></html>
