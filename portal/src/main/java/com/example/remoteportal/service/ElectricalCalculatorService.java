@@ -13,8 +13,18 @@ public class ElectricalCalculatorService {
     CU.put("14 AWG",20d);CU.put("12 AWG",25d);CU.put("10 AWG",35d);CU.put("8 AWG",50d);CU.put("6 AWG",65d);CU.put("4 AWG",85d);CU.put("3 AWG",100d);CU.put("2 AWG",115d);CU.put("1 AWG",130d);CU.put("1/0 AWG",150d);CU.put("2/0 AWG",175d);CU.put("3/0 AWG",200d);CU.put("4/0 AWG",230d);CU.put("250 kcmil",255d);CU.put("300 kcmil",285d);CU.put("350 kcmil",310d);CU.put("400 kcmil",335d);CU.put("500 kcmil",380d);CU.put("600 kcmil",420d);CU.put("750 kcmil",475d);CU.put("1000 kcmil",545d);
     AL.put("12 AWG",20d);AL.put("10 AWG",30d);AL.put("8 AWG",40d);AL.put("6 AWG",50d);AL.put("4 AWG",65d);AL.put("3 AWG",75d);AL.put("2 AWG",90d);AL.put("1 AWG",100d);AL.put("1/0 AWG",120d);AL.put("2/0 AWG",135d);AL.put("3/0 AWG",155d);AL.put("4/0 AWG",180d);AL.put("250 kcmil",205d);AL.put("300 kcmil",230d);AL.put("350 kcmil",250d);AL.put("400 kcmil",270d);AL.put("500 kcmil",310d);AL.put("600 kcmil",340d);AL.put("750 kcmil",385d);AL.put("1000 kcmil",445d);
   }
-  public List<Map<String,Object>> editions(){return List.of(Map.of("id",DEFAULT_EDITION,"name","Canadian Electrical Code 2024","status","ACTIVE","dataRevision","starter-3","description","Versioned backend dataset used by the electrician calculator engine."));}
-  public Map<String,Object> catalog(String tier){List<Map<String,Object>>c=new ArrayList<>();c.add(x("TRANSFORMER","Transformer","Current, ratio, conductors and primary/secondary OCPD","TIER_1",true));c.add(x("MOTOR","Motor","Conductor, overload, disconnect and branch OCPD","TIER_2",at(tier,2)));c.add(x("REFRIGERATION","Refrigeration motor","Compressor MCA/MOCP, conductor and protection worksheet","TIER_2",at(tier,2)));c.add(x("MULTI_REFRIGERATION","Multiple refrigeration motors","Multiple refrigerant motor-compressors, equipment MCA/MOCP, conductor and protection worksheet","TIER_2",at(tier,2)));c.add(x("MULTI_MOTOR","Multiple motors","Feeder conductor and feeder OCPD with simultaneous-start allowance","TIER_2",at(tier,2)));c.add(x("CAPACITOR_BANK","Capacitor bank / PF correction","Required kvar, capacitor current, conductor and OCPD","TIER_2",at(tier,2)));c.add(x("WELDER","Welder","Duty-cycle-adjusted conductor load and OCPD worksheet","TIER_2",at(tier,2)));c.add(x("TAPS","Taps & splitters","Ratio, downstream OCPD and length compliance worksheet","TIER_2",at(tier,2)));c.add(x("CONDUIT_FILL","Conduit fill","Mixed conductor groups and fill percentage","TIER_2",at(tier,2)));c.add(x("BOX_FILL","Box fill","Conductors, devices and bond/clamp equivalents","TIER_2",at(tier,2)));c.add(x("SERVICE","Service calculations","Multi-component demand load engine","TIER_3",at(tier,3)));return Map.of("edition",DEFAULT_EDITION,"tier",tier,"dataRevision","starter-3","calculators",c);}
+  public List<Map<String,Object>> editions(){return List.of(Map.of(
+      "id",DEFAULT_EDITION,"name","Canadian Electrical Code 2024 / Ontario worksheet",
+      "status","ACTIVE","useStatus","WORKSHEET_ONLY","dataRevision",ElectricalCodeReferences.DATASET_REVISION,
+      "referenceProfileId",ElectricalCodeReferences.PROFILE_ID,
+      "numericDatasetVerified",false,
+      "numericDatasetVerificationStatus",ElectricalCodeReferences.UNVERIFIED,
+      "description","Regulatory reference is confirmed; embedded numerical code table datasets are NOT independently licensed-source-verified."));}
+  public Map<String,Object> catalog(String tier){List<Map<String,Object>>c=new ArrayList<>();c.add(x("TRANSFORMER","Transformer","Current, ratio, conductors and primary/secondary OCPD","TIER_1",true));c.add(x("MOTOR","Motor","Conductor, overload, disconnect and branch OCPD","TIER_2",at(tier,2)));c.add(x("REFRIGERATION","Refrigeration motor","Compressor MCA/MOCP, conductor and protection worksheet","TIER_2",at(tier,2)));c.add(x("MULTI_REFRIGERATION","Multiple refrigeration motors","Multiple refrigerant motor-compressors, equipment MCA/MOCP, conductor and protection worksheet","TIER_2",at(tier,2)));c.add(x("MULTI_MOTOR","Multiple motors","Feeder conductor and feeder OCPD with simultaneous-start allowance","TIER_2",at(tier,2)));c.add(x("CAPACITOR_BANK","Capacitor bank / PF correction","Required kvar, capacitor current, conductor and OCPD","TIER_2",at(tier,2)));c.add(x("WELDER","Welder","Duty-cycle-adjusted conductor load and OCPD worksheet","TIER_2",at(tier,2)));c.add(x("TAPS","Taps & splitters","Ratio, downstream OCPD and length compliance worksheet","TIER_2",at(tier,2)));c.add(x("CONDUIT_FILL","Conduit fill","Mixed conductor groups and fill percentage","TIER_2",at(tier,2)));c.add(x("BOX_FILL","Box fill","Conductors, devices and bond/clamp equivalents","TIER_2",at(tier,2)));c.add(x("SERVICE","Service calculations","Multi-component demand load engine","TIER_3",at(tier,3)));return Map.of("edition",DEFAULT_EDITION,"tier",tier,
+      "dataRevision",ElectricalCodeReferences.DATASET_REVISION,
+      "referenceProfileId",ElectricalCodeReferences.PROFILE_ID,
+      "numericDatasetVerificationStatus",ElectricalCodeReferences.UNVERIFIED,
+      "calculators",c);}
   /**
    * Preliminary math worksheet, not a device approval. Transformer OCPD
    * next-standard exceptions depend on equipment type, voltage and protection
@@ -160,9 +170,120 @@ public class ElectricalCalculatorService {
   }
   public Map<String,Object> capacitorBank(double kw,double p1,double p2,double v,int ph,double cf,double oc,String e){ok(e);pos(kw,"kW");pos(v,"Voltage");phase(ph);if(p1<=0||p1>1||p2<=p1||p2>1)throw new IllegalArgumentException("Power factors are invalid");double kvar=kw*(Math.tan(Math.acos(p1))-Math.tan(Math.acos(p2))),a=ph==3?kvar*1000/(Math.sqrt(3)*v):kvar*1000/v;Map<String,Object>r=b("CAPACITOR_BANK",e);r.put("formula","kvar = kW × [tan(cos⁻¹ PF1) − tan(cos⁻¹ PF2)]");r.put("requiredKvar",rd(kvar));r.put("capacitorCurrentA",rd(a));r.put("requiredConductorAmpacityA",rd(a*cf));r.put("starterConductor",cond(a*cf));ocpd(r,"capacitor",a*oc,oc);r.put("reference","CEC 2024 capacitor installation/protection rules and applicable conductor/OCPD requirements");r.put("note","Check manufacturer requirements, inrush/switching and harmonics before final selection.");return r;}
   public Map<String,Object> welder(double a,double duty,double cf,double oc,int units,double group,String e){ok(e);pos(a,"Input current");if(units<1)throw new IllegalArgumentException("Welder count must be at least 1");double each=a*duty*cf,total=each*units*group;Map<String,Object>r=b("WELDER",e);r.put("effectiveConductorLoadEachA",rd(each));r.put("groupConductorLoadA",rd(total));r.put("starterGroupConductor",cond(total));r.put("singleWelderOcpdCalculatedA",rd(a*oc));r.put("singleWelderOcpdStandardA",next(a*oc));r.put("reference","CEC 2024 welder rules and duty-cycle/demand tables as applicable");r.put("note","Enter validated CEC duty-cycle/group-demand factors; they are not hard-coded in this starter dataset.");return r;}
-  public Map<String,Object> tap(double src,double ta,double ratio,double len,Double down,String e){ok(e);pos(src,"Source OCPD");pos(ta,"Tap ampacity");boolean p=ta>=src*ratio,q=down==null||down<=0||down<=ta;Map<String,Object>r=b("TAPS",e);r.put("minimumTapAmpacityA",rd(src*ratio));r.put("passesRatio",p);r.put("passesDownstreamOcpdCheck",q);r.put("overallWorksheetPass",p&&q);r.put("reference","CEC 2024 tap-conductor rules; select the ratio and maximum-length condition matching the installation");r.put("note","Also verify termination, enclosure, length and mechanical-protection conditions.");return r;}
-  public Map<String,Object> conduitFill(double area,List<Double>as,List<Integer>cs,double pct,String e){ok(e);pos(area,"Raceway area");if(as==null||cs==null||as.size()!=cs.size()||as.isEmpty())throw new IllegalArgumentException("Provide matching conductor areas and counts");double used=0;int total=0;for(int i=0;i<as.size();i++){used+=as.get(i)*cs.get(i);total+=cs.get(i);}double allowed=area*pct/100;Map<String,Object>r=b("CONDUIT_FILL",e);r.put("totalConductors",total);r.put("usedArea",rd(used));r.put("allowedArea",rd(allowed));r.put("spareArea",rd(allowed-used));r.put("actualFillPercent",rd(used/area*100));r.put("passes",used<=allowed);r.put("reference","CEC 2024 raceway fill rules/tables using matching raceway and conductor areas");return r;}
-  public Map<String,Object> boxFill(double vol,double allow,int conds,int dev,int bonds,String e){ok(e);int eq=conds+dev+bonds;double req=allow*eq;Map<String,Object>r=b("BOX_FILL",e);r.put("totalEquivalents",eq);r.put("requiredVolume",rd(req));r.put("remainingVolume",rd(vol-req));r.put("passes",vol>=req);r.put("reference","CEC 2024 box-fill rules and conductor/device/bond allowances");return r;}
-  public Map<String,Object> service(List<Double>loads,List<Double>dfs,double v,int ph,double spare,String e){ok(e);if(loads==null||dfs==null||loads.size()!=dfs.size()||loads.isEmpty())throw new IllegalArgumentException("Provide matching loads and demand factors");double connected=0,demand=0;for(int i=0;i<loads.size();i++){connected+=loads.get(i);demand+=loads.get(i)*dfs.get(i);}double design=demand*(1+spare/100),a=ph==3?design/(Math.sqrt(3)*v):design/v;Map<String,Object>r=b("SERVICE",e);r.put("connectedLoadVA",rd(connected));r.put("demandLoadVA",rd(demand));r.put("designLoadVA",rd(design));r.put("serviceCurrentA",rd(a));r.put("starterConductor",cond(a));r.put("reference","CEC 2024 Section 8 demand calculations; occupancy-specific rules must be applied to each component");r.put("note","This is a component worksheet; dedicated dwelling/apartment/hotel/school/hospital rule engines can populate the factors later.");return r;}
-  private static Map<String,Object>x(String id,String n,String d,String tier,boolean u){return Map.of("id",id,"name",n,"description",d,"minimumTier",tier,"unlocked",u);}private static Map<String,Object>b(String c,String e){Map<String,Object>r=new LinkedHashMap<>();r.put("edition",e);r.put("dataRevision","starter-3");r.put("calculator",c);return r;}private static void ocpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));r.put(p+"OcpdStandardA",next(a));r.put(p+"OcpdFactor",rd(f));}private static void transformerOcpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));Integer standard=standardAtOrBelow(a);r.put(p+"OcpdStandardA",standard);r.put(p+"NoListedStandardWithinLimit",standard==null);r.put(p+"OcpdFactor",rd(f));}private static Integer standardAtOrBelow(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");if(limit<15)return null;return notAbove(limit);}private static Integer nextStandardCandidate(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");for(int rating:O){if(Math.abs(rating-limit)<1e-8)return null;if(rating>limit)return rating;}return null;}private static double checked(double value,String name){if(!Double.isFinite(value)||value<=0)throw new IllegalArgumentException(name+" is outside the supported finite worksheet range");return value;}private static double cur(double kva,double v,int ph){return ph==3?kva*1000/(Math.sqrt(3)*v):kva*1000/v;}private static Map<String,Object>cond(double a){return condMaterial(a,"COPPER");}private static Map<String,Object>condMaterial(double a,String material){Map<String,Double>m="ALUMINUM".equalsIgnoreCase(material)?AL:CU;String name="ALUMINUM".equalsIgnoreCase(material)?"Aluminum":"Copper";for(var entry:m.entrySet())if(entry.getValue()>=a)return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size",entry.getKey(),"ampacityA",entry.getValue(),"found",true,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Confirm applicable 60°C/75°C terminal column, Table 5A/5C corrections, wiring method, and protection.");return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size","Above worksheet dataset","ampacityA",0,"found",false,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Use appropriate CEC conductor tables and verified termination limits.");}private static int next(double a){for(int v:O)if(v>=a)return v;return(int)Math.ceil(a);}private static int notAbove(double a){int b=O[0];for(int v:O){if(v>a)break;b=v;}return b;}private static int nextHigher(int current){for(int v:O)if(v>current)return v;return current;}private static double motorStartingReliefCeiling(double flc,String deviceType,int candidate){return switch(deviceType){case "TIME_DELAY_FUSE"->flc*2.25;case "NON_TIME_DELAY_FUSE"->flc*(candidate<=600?4.0:3.0);case "INVERSE_TIME_BREAKER"->flc*(candidate<=100?4.0:3.0);default->0;};}private static void ok(String e){if(!DEFAULT_EDITION.equals(e))throw new IllegalArgumentException("Unsupported code edition");}private static void pos(double v,String n){if(!Double.isFinite(v)||v<=0)throw new IllegalArgumentException(n+" must be finite and greater than zero");}private static void phase(int p){if(p!=1&&p!=3)throw new IllegalArgumentException("Phases must be 1 or 3");}private static double rd(double v){return Math.round(v*100d)/100d;}private static boolean at(String t,int n){int r="ADMIN".equals(t)||"TIER_3".equals(t)?3:"TIER_2".equals(t)?2:1;return r>=n;}
+  public Map<String,Object> tap(double src,double ta,double ratio,double len,Double down,String e){
+    ok(e);pos(src,"Source OCPD");pos(ta,"Tap ampacity");
+    if(!Double.isFinite(ratio)||ratio<=0||ratio>1)
+      throw new IllegalArgumentException("Enter a finite tap ratio greater than zero and no more than 1.");
+    if(!Double.isFinite(len)||len<0)
+      throw new IllegalArgumentException("Tap length must be finite and cannot be negative.");
+    if(down!=null&&(!Double.isFinite(down)||down<=0))
+      throw new IllegalArgumentException("If a downstream OCPD is entered, its rating must be finite and positive.");
+    double required=checked(src*ratio,"Minimum tap ampacity");
+    boolean p=ta>=required,q=down==null||down<=ta;
+    Map<String,Object>r=b("TAPS",e);
+    r.put("minimumTapAmpacityA",rd(required));
+    r.put("tapLengthM",rd(len));
+    r.put("passesRatio",p);
+    r.put("passesDownstreamOcpdCheck",q);
+    r.put("overallWorksheetPass",p&&q);
+    r.put("lengthRequirementVerified",false);
+    r.put("reference","CEC 2024 tap-conductor rules; select the ratio and maximum-length condition matching the installation");
+    r.put("note","Ratio/current comparisons are arithmetic only. Tap length, conductor insulation/terminals, overcurrent protection, enclosure and mechanical-protection exceptions must be independently reviewed.");
+    return r;
+  }
+  public Map<String,Object> conduitFill(double area,List<Double>as,List<Integer>cs,double pct,String e){
+    ok(e);pos(area,"Raceway area");
+    if(!Double.isFinite(pct)||pct<=0||pct>100)
+      throw new IllegalArgumentException("Entered maximum fill percentage must be finite and between 0 and 100.");
+    if(as==null||cs==null||as.size()!=cs.size()||as.isEmpty()||as.size()>200)
+      throw new IllegalArgumentException("Provide 1–200 matching conductor areas and count groups.");
+    double used=0;
+    int total=0;
+    for(int i=0;i<as.size();i++){
+      Double conductorArea=as.get(i);
+      Integer count=cs.get(i);
+      if(conductorArea==null||!Double.isFinite(conductorArea)||conductorArea<=0)
+        throw new IllegalArgumentException("Every conductor area must be finite and positive.");
+      if(count==null||count<0||count>10000)
+        throw new IllegalArgumentException("Each conductor count must be between 0 and 10,000.");
+      used+=conductorArea*count;
+      total+=count;
+    }
+    if(total==0)throw new IllegalArgumentException("Enter at least one conductor.");
+    used=checked(used,"Occupied raceway area");
+    double allowed=checked(area*pct/100,"Allowed raceway area");
+    double actual=used/area*100;
+    if(!Double.isFinite(actual)||!Double.isFinite(allowed-used))
+      throw new IllegalArgumentException("Raceway fill is outside the supported numeric range.");
+    Map<String,Object>r=b("CONDUIT_FILL",e);
+    r.put("totalConductors",total);
+    r.put("usedArea",rd(used));
+    r.put("allowedArea",rd(allowed));
+    r.put("spareArea",rd(allowed-used));
+    r.put("actualFillPercent",rd(actual));
+    r.put("passes",used<=allowed);
+    r.put("reference","CEC 2024 raceway fill rules/tables using matching raceway and conductor areas");
+    r.put("note","Pass/fail reflects the user-entered maximum fill percentage only. Verify the wiring method, actual conductor and raceway dimensional data, applicable Section 12 rules and special conditions.");
+    return r;
+  }
+  public Map<String,Object> boxFill(double vol,double allow,int conds,int dev,int bonds,String e){
+    ok(e);pos(vol,"Box internal volume");pos(allow,"Volume per equivalent");
+    if(conds<0||dev<0||bonds<0||conds>10000||dev>10000||bonds>10000)
+      throw new IllegalArgumentException("Box-fill equivalent counts must be between 0 and 10,000.");
+    int eq=conds+dev+bonds;
+    if(eq==0)throw new IllegalArgumentException("Enter at least one box-fill equivalent.");
+    double req=checked(allow*eq,"Required box volume");
+    if(!Double.isFinite(vol-req))
+      throw new IllegalArgumentException("Remaining box volume is outside the supported numeric range.");
+    Map<String,Object>r=b("BOX_FILL",e);
+    r.put("totalEquivalents",eq);
+    r.put("requiredVolume",rd(req));
+    r.put("remainingVolume",rd(vol-req));
+    r.put("passes",vol>=req);
+    r.put("reference","CEC 2024 box-fill rules and conductor/device/bond allowances");
+    r.put("note","This is a user-entered volume/allowance arithmetic check; verify actual approved enclosure volume and applicable CEC device, fitting, bonding and conductor equivalencies.");
+    return r;
+  }
+  public Map<String,Object> service(List<Double>loads,List<Double>dfs,double v,int ph,double spare,String e){
+    ok(e);pos(v,"Service voltage");phase(ph);
+    if(loads==null||dfs==null||loads.size()!=dfs.size()||loads.isEmpty()||loads.size()>500)
+      throw new IllegalArgumentException("Provide 1–500 matching load and demand-factor values.");
+    if(!Double.isFinite(spare)||spare<0||spare>100)
+      throw new IllegalArgumentException("Entered spare capacity percentage must be 0–100.");
+    double connected=0,demand=0;
+    for(int i=0;i<loads.size();i++){
+      Double load=loads.get(i),factor=dfs.get(i);
+      if(load==null||!Double.isFinite(load)||load<0)
+        throw new IllegalArgumentException("All service loads must be finite and nonnegative.");
+      if(factor==null||!Double.isFinite(factor)||factor<0||factor>5)
+        throw new IllegalArgumentException("Demand factors must be finite values between 0 and 5 (including any explicit 125% multiplier).");
+      connected+=load;demand+=load*factor;
+    }
+    connected=checked(connected,"Total connected load");
+    demand=checked(demand,"Demand-adjusted load");
+    double design=checked(demand*(1+spare/100),"Design load");
+    double a=checked(ph==3?design/(Math.sqrt(3)*v):design/v,"Service current");
+    Map<String,Object>r=b("SERVICE",e);
+    r.put("connectedLoadVA",rd(connected));
+    r.put("demandLoadVA",rd(demand));
+    r.put("designLoadVA",rd(design));
+    r.put("serviceCurrentA",rd(a));
+    r.put("starterConductor",cond(a));
+    r.put("reference","CEC 2024 Section 8 demand calculations; occupancy-specific rules must be applied to each component");
+    r.put("note","The factors are user-entered and not automatically assigned under an occupancy-specific Rule 8 calculation. Any suggested conductor is an unverified example pending terminations, derating and Ontario amendments.");
+    return r;
+  }
+  private static Map<String,Object>x(String id,String n,String d,String tier,boolean u){return Map.of("id",id,"name",n,"description",d,"minimumTier",tier,"unlocked",u);}private static Map<String,Object>b(String c,String e){Map<String,Object>r=new LinkedHashMap<>();
+    r.put("edition",e);
+    r.put("dataRevision",ElectricalCodeReferences.DATASET_REVISION);
+    r.put("calculator",c);
+    r.put("referenceProfileId",ElectricalCodeReferences.PROFILE_ID);
+    r.put("numericDatasetVerificationStatus",ElectricalCodeReferences.UNVERIFIED);
+    r.put("numericDatasetVerified",false);
+    r.put("codeComplianceVerified",false);
+    return r;}private static void ocpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));r.put(p+"OcpdStandardA",next(a));r.put(p+"OcpdFactor",rd(f));}private static void transformerOcpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));Integer standard=standardAtOrBelow(a);r.put(p+"OcpdStandardA",standard);r.put(p+"NoListedStandardWithinLimit",standard==null);r.put(p+"OcpdFactor",rd(f));}private static Integer standardAtOrBelow(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");if(limit<15)return null;return notAbove(limit);}private static Integer nextStandardCandidate(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");for(int rating:O){if(Math.abs(rating-limit)<1e-8)return null;if(rating>limit)return rating;}return null;}private static double checked(double value,String name){if(!Double.isFinite(value)||value<=0)throw new IllegalArgumentException(name+" is outside the supported finite worksheet range");return value;}private static double cur(double kva,double v,int ph){return ph==3?kva*1000/(Math.sqrt(3)*v):kva*1000/v;}private static Map<String,Object>cond(double a){return condMaterial(a,"COPPER");}private static Map<String,Object>condMaterial(double a,String material){Map<String,Double>m="ALUMINUM".equalsIgnoreCase(material)?AL:CU;String name="ALUMINUM".equalsIgnoreCase(material)?"Aluminum":"Copper";for(var entry:m.entrySet())if(entry.getValue()>=a)return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size",entry.getKey(),"ampacityA",entry.getValue(),"found",true,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Confirm applicable 60°C/75°C terminal column, Table 5A/5C corrections, wiring method, and protection.");return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size","Above worksheet dataset","ampacityA",0,"found",false,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Use appropriate CEC conductor tables and verified termination limits.");}private static int next(double a){
+    if(!Double.isFinite(a)||a<=0)throw new IllegalArgumentException("OCPD demand must be positive and finite.");
+    for(int v:O)if(v>=a)return v;
+    throw new IllegalArgumentException("OCPD exceeds available worksheet standard-rating dataset; verify a supported device independently.");
+  }private static int notAbove(double a){int b=O[0];for(int v:O){if(v>a)break;b=v;}return b;}private static int nextHigher(int current){for(int v:O)if(v>current)return v;return current;}private static double motorStartingReliefCeiling(double flc,String deviceType,int candidate){return switch(deviceType){case "TIME_DELAY_FUSE"->flc*2.25;case "NON_TIME_DELAY_FUSE"->flc*(candidate<=600?4.0:3.0);case "INVERSE_TIME_BREAKER"->flc*(candidate<=100?4.0:3.0);default->0;};}private static void ok(String e){if(!DEFAULT_EDITION.equals(e))throw new IllegalArgumentException("Unsupported code edition");}private static void pos(double v,String n){if(!Double.isFinite(v)||v<=0)throw new IllegalArgumentException(n+" must be finite and greater than zero");}private static void phase(int p){if(p!=1&&p!=3)throw new IllegalArgumentException("Phases must be 1 or 3");}private static double rd(double v){return Math.round(v*100d)/100d;}private static boolean at(String t,int n){int r="ADMIN".equals(t)||"TIER_3".equals(t)?3:"TIER_2".equals(t)?2:1;return r>=n;}
 }

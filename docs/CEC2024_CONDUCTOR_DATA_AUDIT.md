@@ -2,6 +2,39 @@
 
 **Audit state: AUTHORIZED_SOURCE_NOT_AVAILABLE (8 November 2026)**
 
+## Two separate verification questions
+
+**Regulatory adoption (confirmed):** Ontario Regulation 164/99, as amended
+by O. Reg. 449/24, adopted CSA C22.1:24 with the Ontario amendments
+referenced in the regulation, effective **May 1, 2025**. Official sources:
+[Ontario e-Laws](https://www.ontario.ca/laws/regulation/990164) and
+[Electrical Safety Authority](https://esasafe.com/role/oesc/).
+
+**Numerical source tables (NOT verified):** confirming which Code edition is
+legally adopted does not verify any embedded ampacity, correction factor,
+breaker rating, or occupancy demand factor. The public metadata endpoint
+`GET /api/calculators/references` reports `OESC_ON_2024` and
+`AUTHORIZED_TABLE_VERIFICATION_REQUIRED`, with per-table review status.
+The client-facing reference-status page is `/cec-reference-status.html`.
+The endpoint intentionally **contains no licensed table rows**.
+
+### Release gate before marking any numerical dataset verified
+
+- A qualified reviewer compares each row required by the calculator with an
+  authorized current CSA C22.1:24/OESC edition and applicable amendments.
+- Each review entry identifies the rule/table, conductor material, installation
+  method, temperature column, temperature/grouping assumptions and exceptions.
+- Store reviewer, verification date, data revision and permitted redistribution
+  rights independently from the application deployment version.
+- Verify numeric cases (including rejected invalid cases) across backend,
+  Windows, Android and iOS before changing a dataset status.
+- Do **not** use a successful code build, cross-platform parity, or the confirmed
+  legal adoption date as grounds to mark numeric tables verified.
+
+The reference registry `ElectricalCodeReferences` is **metadata only**. Its
+provisional status must not be changed in order to bypass the licensed-source
+review process.
+
 This repository does **not** contain a confirmed licensed source-of-truth copy of
 CSA C22.1:24 / Ontario Electrical Safety Code for all required conductor tables.
 User-owned practice worksheets and public technical explanations are not a

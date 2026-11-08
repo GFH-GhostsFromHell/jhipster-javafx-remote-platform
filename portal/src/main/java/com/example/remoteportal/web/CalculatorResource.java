@@ -2,6 +2,7 @@ package com.example.remoteportal.web;
 
 import com.example.remoteportal.service.ClientAccountStore;
 import com.example.remoteportal.service.ElectricalCalculatorService;
+import com.example.remoteportal.service.ElectricalCodeReferences;
 import com.example.remoteportal.service.WorksheetCalculatorService;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
@@ -13,6 +14,7 @@ public class CalculatorResource {
   private final ElectricalCalculatorService calculators; private final WorksheetCalculatorService worksheets; private final ClientAccountStore accounts;
   public CalculatorResource(ElectricalCalculatorService calculators,WorksheetCalculatorService worksheets,ClientAccountStore accounts){this.calculators=calculators;this.worksheets=worksheets;this.accounts=accounts;}
   @GetMapping("/editions") public List<Map<String,Object>> editions(){return calculators.editions();}
+  @GetMapping("/references") public Map<String,Object> references(){return ElectricalCodeReferences.catalog();}
   @GetMapping("/catalog") public Map<String,Object> catalog(Principal p){String tier;try{tier=accounts.tier(p.getName());}catch(Exception ex){tier="ADMIN";}return calculators.catalog(tier);}
   public record ConductorReviewRequest(Double requiredLoadA,Double tableAmpacityA,Integer terminationTemperatureC,Integer insulationTemperatureC,Double ambientCorrection,Double groupingCorrection,String tableReference,String edition){}
   @PostMapping("/conductor-review") public Map<String,Object> conductorReview(@RequestBody ConductorReviewRequest r){

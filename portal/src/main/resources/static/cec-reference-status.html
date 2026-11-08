@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEC / Ontario reference verification status · Electrical Workbench</title>
+<style>
+:root{font-family:Inter,system-ui,Segoe UI,sans-serif;color:#f0f6ff;background:#081623;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#071322,#123047);min-height:100vh}
+header,main{padding:18px max(16px,calc((100vw - 940px)/2))}
+header{background:#102437;border-bottom:1px solid #34516a}
+h1{font-size:clamp(24px,5vw,35px);margin:8px 0}
+h2{font-size:19px;margin:0 0 12px}
+a{color:#a9edff}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+nav a{display:inline-block;text-decoration:none;border-radius:10px;border:1px solid #385e78;padding:10px 13px;min-height:44px}
+.panel{background:#10283b;border:1px solid #365b73;border-radius:14px;padding:18px;margin-bottom:16px}
+.note{line-height:1.55;color:#c2d6e3}
+.flag{color:#ffdc95;font-weight:750}
+.ready{color:#a6efca;font-weight:750}
+.tablebox{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #365569;font-size:14px;vertical-align:top}
+th{color:#a4c1d2}
+small{color:#b8cede}
+@media(max-width:580px){header,main{padding:14px 10px}.panel{padding:13px}}
+</style>
+</head>
+<body>
+<header>
+<div class="note">ELECTRICAL WORKBENCH · CODE REFERENCE GOVERNANCE</div>
+<h1>CEC 2024 / Ontario reference status</h1>
+<p class="note">Know which legal reference has been confirmed and which numerical table values still need licensed-source verification.</p>
+<nav><a href="/calculators.html">CEC calculators</a><a href="/circuit-sizing.html">Circuit sizing</a><a href="/portal.html">Account</a></nav>
+</header>
+<main>
+<section class="panel">
+<h2>Regulatory edition</h2>
+<p class="ready">Ontario Electrical Safety Code, 2024 edition — adopted effective May 1, 2025.</p>
+<p class="note">Ontario Regulation 164/99, amended by 449/24, adopts Canadian Electrical Code Part I, CSA C22.1:24, together with the Ontario amendments referenced in the regulation. This confirms the regulatory edition, <strong>not</strong> that this app's numerical tables are correct.</p>
+<p><a href="https://www.ontario.ca/laws/regulation/990164" target="_blank" rel="noopener">Ontario Regulation 164/99</a> · <a href="https://esasafe.com/role/oesc/" target="_blank" rel="noopener">Electrical Safety Authority OESC information</a></p>
+</section>
+<section class="panel">
+<h2>Numerical dataset verification</h2>
+<p class="flag" id="codeDataStatus">Authorized table-row verification REQUIRED</p>
+<p class="note" id="revision">Embedded sample data remains provisional. Calculations can pass arithmetic tests without being approved for electrical installation.</p>
+<div class="tablebox"><table><thead><tr><th>CEC table</th><th>Purpose</th><th>Status</th></tr></thead><tbody id="referenceRows">
+<tr><td>Tables 1–4, 5A, 5C, 13, 29</td><td>Ampacity, corrections, standard device ratings and motor protection examples</td><td class="flag">Not independently verified against licensed 2024 OESC</td></tr>
+</tbody></table></div>
+<p class="note">An equipment label, 60°C/75°C/90°C terminal limit, conductor count, installation method, occupancy-specific demand rule, and applicable Ontario amendment can change the result. Never treat a default or example value as verified merely because it is displayed.</p>
+</section>
+<section class="panel">
+<h2>How verification is completed</h2>
+<p class="note">A qualified reviewer compares each used value with an authorized CSA C22.1:24/OESC copy, records the edition, table, conditions, source revision, reviewer and date, then checks regression cases and platform behavior. Numerical data must not be promoted to verified status without that evidence. The app does not republish proprietary code tables.</p>
+<p class="note" id="loadStatus" aria-live="polite">Loading available backend verification details…</p>
+</section>
+</main>
+<script>
+(async function(){
+ const text=(id,value)=>document.getElementById(id).textContent=value;
+ try{
+   const r=await fetch('/api/calculators/references',{credentials:'same-origin',cache:'no-store'});
+   if(!r.ok)throw Error('Reference API unavailable (HTTP '+r.status+').');
+   const data=await r.json();
+   text('codeDataStatus',data.numericDatasetVerified?
+     'A dataset was flagged verified — request the source audit before use.' :
+     'Authorized table-row verification REQUIRED');
+   text('revision','Reference profile: '+data.referenceProfileId+
+     ' · Dataset: '+data.numericDatasetRevision+
+     ' · Status: '+data.numericDatasetVerificationStatus);
+   const body=document.getElementById('referenceRows');
+   body.replaceChildren();
+   for(const item of data.tables||[]){
+     const tr=document.createElement('tr');
+     const id=document.createElement('td'),purpose=document.createElement('td'),status=document.createElement('td');
+     id.textContent=item.id;purpose.textContent=item.purpose;
+     status.textContent=item.verificationStatus==='AUTHORIZED_TABLE_VERIFICATION_REQUIRED'?
+       'Licensed-source verification pending':item.verificationStatus;
+     status.className=item.licensedRowByRowReviewComplete?'ready':'flag';
+     tr.append(id,purpose,status);body.append(tr);
+   }
+   text('loadStatus','Live reference metadata loaded. These statuses are not a substitute for reviewing the official Code.');
+ }catch(error){
+   text('loadStatus','Backend reference details not available. The embedded dataset must still be treated as unverified. '+error.message);
+ }
+})();
+</script>
+</body>
+</html>
