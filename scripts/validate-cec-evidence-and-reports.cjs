@@ -77,6 +77,19 @@ for(const [name,body] of [['Windows',d],['Android',a],['iOS',i]]){
       name+' report missing '+phrase);
  }
 }
+for(const source of [
+  'android-client/app/src/main/java/com/gfh/electricalworkbench/CircuitWorksheetStore.kt',
+  'ios-client/ElectricalWorkbench/CircuitProjectStore.swift',
+  'desktop-client/src/main/java/com/example/desktop/CircuitReviewPane.java',
+  'portal/src/main/resources/static/circuit-project-archive.js'
+]){
+ const code=read(source);
+ assert.ok(code.includes('referenceProfileId'),source+' missing revision profile');
+ assert.ok(code.includes('OESC_ON_2024'),source+' missing revision profile ID');
+ assert.ok(code.includes('numericDatasetVerified'),source+' missing verification flag');
+ assert.ok(code.includes('AUTHORIZED_TABLE_VERIFICATION_REQUIRED'),
+   source+' must persist unverified numeric dataset status');
+}
 assert.ok(renderer.includes('UIGraphicsPDFRenderer'));
 assert.ok(a.includes('PdfDocument'));
 assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/CircuitSizingActivity.kt').includes('savePdf.launch('));
