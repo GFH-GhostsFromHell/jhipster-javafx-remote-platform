@@ -57,11 +57,11 @@ final class QuickConduitBendPane extends BorderPane {
         load.setOnAction(e -> {
             Double calibrated=BenderCalibrationPane.value("deduct",units.getValue());
             Double minimum=BenderCalibrationPane.value("minMarkGap",units.getValue());
-            if(calibrated==null&&minimum==null){
+            if((calibrated==null||calibrated<=0)&&(minimum==null||minimum<=0)){
                 notice.setText("No measured deduct or minimum shoe gap saved. Calibrate this exact tool first.");
                 return;
             }
-            if(calibrated!=null)deduct.setText(String.format(Locale.ROOT,"%.3f",calibrated));
+            if(calibrated!=null&&calibrated>0)deduct.setText(String.format(Locale.ROOT,"%.3f",calibrated));
             if(minimum!=null&&minimum>0)minShoeMarkGap.setText(String.format(Locale.ROOT,"%.3f",minimum));
             notice.setText("Loaded "+BenderCalibrationPane.profileDescription()+". Confirm this is the exact shoe before using its measurements.");
         });
