@@ -75,7 +75,8 @@ class UnifiedCircuitMathTest {
         assertThrows(IllegalArgumentException.class,
             ()->UnifiedCircuitMath.calculate(with(3,40,66360,85,75,1.2,1,50)));
         assertThrows(IllegalArgumentException.class,
-            ()->UnifiedCircuitMath.calculate(with(3,40,66360,85,90,1,1,50)));
+            ()->UnifiedCircuitMath.calculate(new UnifiedCircuitMath.Input(
+                40,1.25,600,3,40,66360,12.9,85,90,60,1,1,50,3)));
         assertThrows(IllegalArgumentException.class,
             ()->UnifiedCircuitMath.calculate(new UnifiedCircuitMath.Input(
                 Double.NaN,1.25,600,3,40,66360,12.9,85,75,90,1,1,50,3)));
