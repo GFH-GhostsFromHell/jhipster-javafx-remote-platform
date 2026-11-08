@@ -92,3 +92,34 @@ worked-example numeric facts and references.
 
 This audit intentionally does not assert that the app's pre-existing ampacity
 tables are accurate or complete just because cross-platform copies match.
+
+## Per-table evidence register and PDF report release gate
+
+The machine-readable file `docs/CEC2024_TABLE_VERIFICATION_REGISTER.json` keeps
+**separate** records for Tables 1–4, 5A, 5C, 13 and 29. Every row is presently
+`PENDING_AUTHORIZED_COPY`, with a blank source document, reviewer, reviewed
+conditions and review date. It does not reproduce proprietary table text.
+A successful arithmetic test is not a completed licensed-source comparison.
+
+The saved circuit revision PDF feature is available through each client:
+
+- **Web:** select a saved revision and choose **Print / Save selected PDF**,
+  then use the browser's PDF print destination.
+- **Windows:** select a saved revision in Circuit Review and export directly
+  to a PDF using the existing PDFBox library.
+- **Android:** reopen a saved revision and use the system Save Document picker.
+- **iOS:** select an archived revision, prepare the native PDF, and use the
+  iOS share sheet to save or share it.
+
+These reports use the **stored revision** (inputs, arithmetic results, notes,
+Code assumptions and IDs) rather than current unsaved screen contents.
+They include reviewer/signature blanks and prominent **NOT CODE VERIFIED**
+warnings, and they do not create a professional engineer's seal, inspection
+approval, or automatic conductor/OCPD selection.
+
+The CI gate `scripts/validate-cec-evidence-and-reports.cjs` checks that no table
+status has been silently promoted, that browser output safely escapes user
+text, and that the native report templates include necessary safety fields.
+Windows PDF tests also parse the generated PDF to verify contents and pagination.
+This is **not** a full live-device accessibility, share-sheet, font, or print
+smoke test; those checks remain necessary before field reliance.

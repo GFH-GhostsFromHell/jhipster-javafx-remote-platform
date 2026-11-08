@@ -3,6 +3,8 @@ package com.gfh.electricalworkbench
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +37,28 @@ class CircuitSizingActivity: ComponentActivity() {
 @Composable
 private fun CircuitSizingScreen(username:String) {
     val context=LocalContext.current
+    var pdfClient by remember {mutableStateOf("")}
+    var pdfSite by remember {mutableStateOf("")}
+    var pdfReviewer by remember {mutableStateOf("")}
+    var pdfStatus by remember {mutableStateOf("Select a saved revision, then export its complete calculation PDF.")}
+    var selectedRevision by remember {mutableStateOf<JSONObject?>(null)}
+    var pendingPdf by remember {mutableStateOf<ByteArray?>(null)}
+    val savePdf=rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ){ uri ->
+        val bytes=pendingPdf
+        if(uri!=null&&bytes!=null){
+            pdfStatus=runCatching {
+                val out=context.contentResolver.openOutputStream(uri)
+                    ?: error("Unable to open selected destination.")
+                out.use{it.write(bytes)}
+                "PDF saved to selected location. Preliminary report; not Code verified."
+            }.getOrElse { "PDF could not be saved: "+(it.message ?: "Write failed.") }
+        } else if(uri==null) {
+            pdfStatus="PDF export cancelled."
+        }
+        pendingPdf=null
+    }
     var project by remember {mutableStateOf("Field project")}
     var worksheetTitle by remember {mutableStateOf("Circuit 1")}
     var fieldNotes by remember {mutableStateOf("")}
@@ -233,6 +257,7 @@ private fun CircuitSizingScreen(username:String) {
                             cm=data.optString("circularMils",cm)
                             k=data.optString("kOhmCircularMilPerFoot",k)
                             dropLimit=data.optString("maxVoltageDropPercent",dropLimit)
+                            selectedRevision=row
                             worksheetTitle=row.optString("title",worksheetTitle)
                             fieldNotes=row.optJSONObject("assumptions")?.optString("notes").orEmpty()
                             result=row.optString("result")+"\\n\\nLoaded archived revision "+
@@ -248,6 +273,30 @@ private fun CircuitSizingScreen(username:String) {
                         row.optString("saved").take(10))
                 }
             }
+            Text("PDF calculation report",style=MaterialTheme.typography.titleSmall)
+            Text("Exports a saved revision, not unsaved inputs. The PDF includes the record ID, source assumptions, worked results and reviewer/signature lines.",
+                style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
+            CircuitNumber("Client / employer (PDF)",pdfClient,false){pdfClient=it}
+            CircuitNumber("Site / location (PDF)",pdfSite,false){pdfSite=it}
+            CircuitNumber("Reviewer (optional)",pdfReviewer,false){pdfReviewer=it}
+            Button(
+                enabled=selectedRevision!=null,
+                onClick={
+                    try{
+                        val row=requireNotNull(selectedRevision)
+                        pendingPdf=CircuitWorksheetPdf.render(row,pdfClient,pdfSite,pdfReviewer)
+                        val title=(row.optString("project")+"-"+
+                            row.optString("title")+"-rev"+row.optInt("revision"))
+                            .replace(Regex("[^A-Za-z0-9._-]"),"-")
+                        savePdf.launch(title.take(90)+".pdf")
+                    }catch(e:Exception){
+                        pdfStatus="PDF creation failed: "+(e.message?:"Invalid saved record")
+                    }
+                },
+                modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)
+            ){Text("Export selected revision PDF")}
+            Text(pdfStatus,style=MaterialTheme.typography.bodySmall,
+                color=Color(0xFFFFCF75))
         }
         Text("Sample numbers are placeholders. Use verified equipment and conductor data. Special motor, transformer or other exceptions need a separate Code assessment.",
             color=Color(0xFFFFCF75),style=MaterialTheme.typography.bodySmall)

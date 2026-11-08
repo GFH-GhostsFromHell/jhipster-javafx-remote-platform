@@ -46,6 +46,10 @@ jobs:
         run: |
           swiftc ElectricalWorkbench/OfflineElectricalMath.swift ElectricalWorkbench/UnifiedCircuitMath.swift ElectricalWorkbench/CircuitProjectStore.swift Tests/CircuitProjectStoreSelfTest.swift -o "$RUNNER_TEMP/circuit-project-tests"
           "$RUNNER_TEMP/circuit-project-tests"
+      - name: Test signed-in saved circuit PDF report text
+        run: |
+          swiftc ElectricalWorkbench/CircuitProjectReportText.swift Tests/CircuitProjectReportTextSelfTest.swift -o "$RUNNER_TEMP/circuit-pdf-text-tests"
+          "$RUNNER_TEMP/circuit-pdf-text-tests"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
