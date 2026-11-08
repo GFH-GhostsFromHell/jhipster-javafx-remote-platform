@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -103,6 +104,23 @@ private fun CircuitSizingScreen(username:String) {
         Text("OFFLINE · Enter one circuit; review corrected conductor ampacity, voltage drop, a conservative device screen and maximum one-way run.",
             color=Color(0xFFB6C4D4))
         CircuitInputCard("1 · Circuit") {
+            Text("Quick system presets · only voltage and phase change",
+                style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement=Arrangement.spacedBy(7.dp)) {
+                listOf(
+                    Triple("120 V · 1φ","120","1"),
+                    Triple("208 V · 3φ","208","3"),
+                    Triple("347 V · 1φ","347","1"),
+                    Triple("600 V · 3φ","600","3")
+                ).forEach { (label,volts,phase)->
+                    OutlinedButton(onClick={
+                        voltage=volts;phases=phase
+                        lastInputs=null;lastResults=null
+                        result="System selected. Confirm actual load, conductor data and limits; calculate again."
+                    },modifier=Modifier.heightIn(min=48.dp)){Text(label)}
+                }
+            }
             CircuitNumber("Actual load current A",load){load=it}
             CircuitNumber("System voltage V",voltage){voltage=it}
             CircuitSelect("Phases",phases,listOf("1","3")){phases=it}
