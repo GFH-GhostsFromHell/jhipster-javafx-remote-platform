@@ -500,7 +500,7 @@ struct QuickBenderView: View {
             let shift = height * tan(sideAngle * .pi / 360)
             let b = obstacle + shift
             let points = [b-spacing, b, b+spacing]
-            try validateMarks(points, stock: stock)
+            try validateMarks(points, stock: stock, applyShoeGap: traditional)
             return BendPlan(
                 marks: zip(["A","B","C"],points).map {
                     PencilMark(id: $0.0, distance: $0.1,
@@ -522,7 +522,7 @@ struct QuickBenderView: View {
             let shrink = height * tan(angle * .pi / 360)
             let b = near + shrink
             let coords = [b-s,b,b+wide,b+wide+s]
-            try validateMarks(coords, stock: stock)
+            try validateMarks(coords, stock: stock, applyShoeGap: false)
             return BendPlan(
                 marks: zip(["A","B","C","D"],coords).map { PencilMark(id: $0.0, distance: $0.1, shoeReference: "GEOMETRY ONLY") },
                 spacing: s, shrink: 2 * shrink,
@@ -551,7 +551,7 @@ struct QuickBenderView: View {
                         spacing: spacing, shrink: shrink, detail: detail, warning: clearance)
     }
 
-    private func validateMarks(_ marks: [Double], stock: Double) throws {
+    private func validateMarks(_ marks: [Double], stock: Double, applyShoeGap: Bool = true) throws {
         guard marks.allSatisfy({ $0.isFinite && $0 >= 0 && $0 <= stock }) else {
             throw FieldError.invalid("CALCULATION NOT POSSIBLE: a plotted mark exceeds the 10-ft stock.")
         }
@@ -559,6 +559,9 @@ struct QuickBenderView: View {
         for idx in 1..<sorted.count where sorted[idx] - sorted[idx-1] <= 0.000001 {
             throw FieldError.invalid("BENDS TOO CLOSE: physical bend marks overlap. Increase rise or separation.")
         }
+        // Geometric saddle centres are not manufacturer-approved ARROW marks.
+        // Validate stock for those plans, but never claim a shoe-gap check.
+        guard applyShoeGap else { return }
         if !minimumGap.trimmingCharacters(in: .whitespaces).isEmpty {
             let gap = try positive(minimumGap, label: "minimum shoe spacing")
             guard gap <= stock else {
