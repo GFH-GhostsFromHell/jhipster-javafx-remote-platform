@@ -9,6 +9,12 @@ struct UnifiedCircuitSizingView: View {
     @State private var fieldNotes = ""
     @State private var archiveStatus = "Save a new dated revision after reviewing the circuit."
     @State private var revisions: [CircuitSavedRevision] = []
+    @State private var selectedPDFRevision: CircuitSavedRevision?
+    @State private var preparedPDF: URL?
+    @State private var pdfClient = ""
+    @State private var pdfSite = ""
+    @State private var pdfReviewer = ""
+    @State private var pdfStatus = "Select a saved revision to prepare a PDF calculation report."
     @State private var lastInput: UnifiedCircuitMath.Input?
     @State private var lastResult: UnifiedCircuitMath.Result?
     @State private var lastConductor = ""
@@ -158,6 +164,28 @@ struct UnifiedCircuitSizingView: View {
                             Label("Share project JSON backup",systemImage:"square.and.arrow.up")
                         }
                         .font(.subheadline)
+                        Divider()
+                        Text("Saved circuit PDF report").font(.headline)
+                        Text("Select a saved revision above. PDF includes its inputs, calculations, assumptions, original results and reviewer/signature section.")
+                            .font(.footnote).foregroundStyle(WorkbenchStyle.muted)
+                        entry("Client / employer (PDF)",value:$pdfClient,numeric:false)
+                        entry("Site / location (PDF)",value:$pdfSite,numeric:false)
+                        entry("Reviewer (optional)",value:$pdfReviewer,numeric:false)
+                        Button {
+                            generatePDF()
+                        } label: {
+                            Label("Prepare selected revision PDF",systemImage:"doc.richtext")
+                                .frame(maxWidth:.infinity,minHeight:44)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(selectedPDFRevision == nil)
+                        if let preparedPDF {
+                            ShareLink(item:preparedPDF) {
+                                Label("Share / save PDF file",systemImage:"square.and.arrow.up")
+                            }
+                            .font(.subheadline.bold())
+                        }
+                        Text(pdfStatus).font(.footnote).foregroundStyle(.orange)
                     }
                 }
                 .circuitReviewCard()
@@ -258,6 +286,8 @@ struct UnifiedCircuitSizingView: View {
     }
 
     private func refreshRevisions() {
+        selectedPDFRevision=nil
+        preparedPDF=nil
         revisions=CircuitProjectStore.rows(user:account.username,
             project:project.trimmingCharacters(in:.whitespacesAndNewlines))
     }
@@ -281,6 +311,22 @@ struct UnifiedCircuitSizingView: View {
         }
     }
 
+    private func generatePDF() {
+        guard let revision=selectedPDFRevision else {
+            pdfStatus="Select a saved revision before exporting."
+            return
+        }
+        do {
+            preparedPDF=try CircuitProjectPDF.prepare(
+                record:revision.raw,client:pdfClient,site:pdfSite,reviewer:pdfReviewer)
+            pdfStatus="PDF created for "+revision.title+" · revision "+String(revision.revision)+
+                ". Select Share / save PDF to export the file."
+        } catch {
+            preparedPDF=nil
+            pdfStatus="PDF could not be generated: "+error.localizedDescription
+        }
+    }
+
     private func openRevision(_ record:CircuitSavedRevision) {
         guard let data=record.raw["inputs"] as? [String:Any] else {
             archiveStatus="Saved revision is missing its input fields."
@@ -289,6 +335,10 @@ struct UnifiedCircuitSizingView: View {
         func num(_ key:String,_ fallback:String)->String {
             (data[key] as? NSNumber)?.stringValue ?? fallback
         }
+        selectedPDFRevision=record
+        preparedPDF=nil
+        pdfStatus="Selected "+record.title+" · revision "+String(record.revision)+
+            " for PDF export."
         loadA=num("loadA",loadA);voltageV=num("voltageV",voltageV)
         phases=(data["phases"] as? NSNumber)?.intValue ?? phases
         lengthM=num("oneWayLengthM",lengthM)
