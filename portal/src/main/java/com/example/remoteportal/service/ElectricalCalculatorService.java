@@ -20,6 +20,50 @@ public class ElectricalCalculatorService {
    * next-standard exceptions depend on equipment type, voltage and protection
    * arrangement; never apply a blanket round-up to the secondary device.
    */
+  /**
+   * Conservative arithmetic check under the termination temperature column.
+   * Caller supplies the applicable CEC table ampacity and correction factors:
+   * without equipment/installation evidence the app cannot certify a conductor.
+   */
+  public Map<String,Object> conductorReview(double requiredLoadA,double tableAmpacityA,
+       int terminationTemperatureC,int insulationTemperatureC,
+       double ambientCorrection,double groupingCorrection,String tableReference,String e) {
+    ok(e);pos(requiredLoadA,"Required/design load");pos(tableAmpacityA,"Termination-column table ampacity");
+    if(terminationTemperatureC!=60&&terminationTemperatureC!=75&&terminationTemperatureC!=90)
+      throw new IllegalArgumentException("Select a verified termination-temperature column: 60, 75 or 90 C.");
+    if(insulationTemperatureC!=60&&insulationTemperatureC!=75&&insulationTemperatureC!=90)
+      throw new IllegalArgumentException("Conductor insulation rating must be 60, 75 or 90 C.");
+    if(insulationTemperatureC<terminationTemperatureC)
+      throw new IllegalArgumentException("Insulation temperature rating cannot be lower than the selected termination column.");
+    if(tableReference==null||!Set.of("TABLE_1","TABLE_2","TABLE_3","TABLE_4").contains(tableReference))
+      throw new IllegalArgumentException("Choose the appropriate CEC conductor ampacity Table 1, 2, 3 or 4.");
+    if(!Double.isFinite(ambientCorrection)||ambientCorrection<=0||ambientCorrection>1)
+      throw new IllegalArgumentException("Ambient correction factor must be positive and no greater than 1; choose a verified factor.");
+    if(!Double.isFinite(groupingCorrection)||groupingCorrection<=0||groupingCorrection>1)
+      throw new IllegalArgumentException("Grouping correction factor must be positive and no greater than 1; choose a verified factor.");
+    double corrected=checked(tableAmpacityA*ambientCorrection*groupingCorrection,"Corrected conductor ampacity");
+    Map<String,Object>r=b("CONDUCTOR_REVIEW",e);
+    r.put("tableReference",tableReference.replace("_"," "));
+    r.put("selectedTerminationTemperatureC",terminationTemperatureC);
+    r.put("conductorInsulationTemperatureC",insulationTemperatureC);
+    r.put("enteredTerminationColumnAmpacityA",rd(tableAmpacityA));
+    r.put("ambientCorrectionFactor",rd(ambientCorrection));
+    r.put("groupingCorrectionFactor",rd(groupingCorrection));
+    r.put("combinedCorrectionFactor",rd(ambientCorrection*groupingCorrection));
+    r.put("adjustedAmpacityA",rd(corrected));
+    r.put("requiredLoadA",rd(requiredLoadA));
+    r.put("marginA",rd(corrected-requiredLoadA));
+    r.put("meetsEnteredLoadArithmetically",corrected+1e-9>=requiredLoadA);
+    r.put("codeComplianceVerified",false);
+    r.put("terminationMarkingVerified",false);
+    r.put("status",corrected+1e-9>=requiredLoadA
+        ?"ARITHMETIC CHECK ONLY — FIELD VERIFICATION REQUIRED"
+        :"FAIL — ENTERED DESIGN LOAD EXCEEDS CORRECTED AMPACITY");
+    r.put("reference","CEC 2024 Rules 4-004 and 4-006; Tables 1 to 4 and applicable adjustment/correction tables (including Tables 5A and 5C).");
+    r.put("note","Provide the ampacity from the selected 60/75/90 C TERMINATION temperature column, not the 90 C insulation column unless terminals are specifically permitted at 90 C. Use verified factors for the installation; this arithmetic result is NOT an approved conductor selection. Confirm markings or applicable Rule 4-006 defaults, raceway/cable method, actual load, neutral counting, equipment limits, bonding, overcurrent protection and voltage drop.");
+    return r;
+  }
+
   public Map<String,Object> transformer(double kva,double pv,double sv,int ph,double cf,double pof,double sof,String e){
     ok(e);pos(kva,"kVA");pos(pv,"Primary voltage");pos(sv,"Secondary voltage");
     phase(ph);pos(cf,"Conductor design factor");pos(pof,"Primary protection factor");pos(sof,"Secondary protection factor");
@@ -33,7 +77,7 @@ public class ElectricalCalculatorService {
     r.put("voltageRatio",rd(checked(pv/sv,"Voltage ratio")));
     r.put("primaryCurrentA",rd(ip));r.put("secondaryCurrentA",rd(is));
     r.put("requiredPrimaryAmpacityA",rd(primaryAmpacity));r.put("requiredSecondaryAmpacityA",rd(secondaryAmpacity));
-    r.put("primaryConductorStarter",cond(primaryAmpacity));r.put("secondaryConductorStarter",cond(secondaryAmpacity));
+    r.put("primaryConductorStarter",cond(primaryAmpacity));r.put("secondaryConductorStarter",cond(secondaryAmpacity));r.put("conductorSelectionVerified",false);r.put("terminationTemperatureChecked",false);
     transformerOcpd(r,"primary",primaryLimit,pof);
     transformerOcpd(r,"secondary",secondaryLimit,sof);
     r.put("primaryNextStandardCandidateA",nextStandardCandidate(primaryLimit));
@@ -52,7 +96,7 @@ public class ElectricalCalculatorService {
     double disconnect=checked(flc*df,"Disconnect minimum");
     double calc=checked(flc*oc,"Motor branch OCPD calculation");
     Map<String,Object>r=b("MOTOR",e);
-    r.put("requiredConductorAmpacityA",rd(conductor));r.put("starterConductor",cond(conductor));
+    r.put("requiredConductorAmpacityA",rd(conductor));r.put("starterConductor",cond(conductor));r.put("conductorSelectionVerified",false);r.put("terminationTemperatureChecked",false);
     r.put("overloadSettingA",rd(overload));r.put("disconnectMinimumA",rd(disconnect));
     // Rule 28-200(3)(a) allows a minimum 15 A device even when Table 29
     // multiplication yields less than 15 A. Clearly flag this exception.
@@ -120,5 +164,5 @@ public class ElectricalCalculatorService {
   public Map<String,Object> conduitFill(double area,List<Double>as,List<Integer>cs,double pct,String e){ok(e);pos(area,"Raceway area");if(as==null||cs==null||as.size()!=cs.size()||as.isEmpty())throw new IllegalArgumentException("Provide matching conductor areas and counts");double used=0;int total=0;for(int i=0;i<as.size();i++){used+=as.get(i)*cs.get(i);total+=cs.get(i);}double allowed=area*pct/100;Map<String,Object>r=b("CONDUIT_FILL",e);r.put("totalConductors",total);r.put("usedArea",rd(used));r.put("allowedArea",rd(allowed));r.put("spareArea",rd(allowed-used));r.put("actualFillPercent",rd(used/area*100));r.put("passes",used<=allowed);r.put("reference","CEC 2024 raceway fill rules/tables using matching raceway and conductor areas");return r;}
   public Map<String,Object> boxFill(double vol,double allow,int conds,int dev,int bonds,String e){ok(e);int eq=conds+dev+bonds;double req=allow*eq;Map<String,Object>r=b("BOX_FILL",e);r.put("totalEquivalents",eq);r.put("requiredVolume",rd(req));r.put("remainingVolume",rd(vol-req));r.put("passes",vol>=req);r.put("reference","CEC 2024 box-fill rules and conductor/device/bond allowances");return r;}
   public Map<String,Object> service(List<Double>loads,List<Double>dfs,double v,int ph,double spare,String e){ok(e);if(loads==null||dfs==null||loads.size()!=dfs.size()||loads.isEmpty())throw new IllegalArgumentException("Provide matching loads and demand factors");double connected=0,demand=0;for(int i=0;i<loads.size();i++){connected+=loads.get(i);demand+=loads.get(i)*dfs.get(i);}double design=demand*(1+spare/100),a=ph==3?design/(Math.sqrt(3)*v):design/v;Map<String,Object>r=b("SERVICE",e);r.put("connectedLoadVA",rd(connected));r.put("demandLoadVA",rd(demand));r.put("designLoadVA",rd(design));r.put("serviceCurrentA",rd(a));r.put("starterConductor",cond(a));r.put("reference","CEC 2024 Section 8 demand calculations; occupancy-specific rules must be applied to each component");r.put("note","This is a component worksheet; dedicated dwelling/apartment/hotel/school/hospital rule engines can populate the factors later.");return r;}
-  private static Map<String,Object>x(String id,String n,String d,String tier,boolean u){return Map.of("id",id,"name",n,"description",d,"minimumTier",tier,"unlocked",u);}private static Map<String,Object>b(String c,String e){Map<String,Object>r=new LinkedHashMap<>();r.put("edition",e);r.put("dataRevision","starter-3");r.put("calculator",c);return r;}private static void ocpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));r.put(p+"OcpdStandardA",next(a));r.put(p+"OcpdFactor",rd(f));}private static void transformerOcpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));Integer standard=standardAtOrBelow(a);r.put(p+"OcpdStandardA",standard);r.put(p+"NoListedStandardWithinLimit",standard==null);r.put(p+"OcpdFactor",rd(f));}private static Integer standardAtOrBelow(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");if(limit<15)return null;return notAbove(limit);}private static Integer nextStandardCandidate(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");for(int rating:O){if(Math.abs(rating-limit)<1e-8)return null;if(rating>limit)return rating;}return null;}private static double checked(double value,String name){if(!Double.isFinite(value)||value<=0)throw new IllegalArgumentException(name+" is outside the supported finite worksheet range");return value;}private static double cur(double kva,double v,int ph){return ph==3?kva*1000/(Math.sqrt(3)*v):kva*1000/v;}private static Map<String,Object>cond(double a){return condMaterial(a,"COPPER");}private static Map<String,Object>condMaterial(double a,String material){Map<String,Double>m="ALUMINUM".equalsIgnoreCase(material)?AL:CU;for(var e:m.entrySet())if(e.getValue()>=a)return Map.of("material","ALUMINUM".equalsIgnoreCase(material)?"Aluminum":"Copper","basis","75°C raceway/cable ampacity","size",e.getKey(),"ampacityA",e.getValue(),"found",true);return Map.of("material","ALUMINUM".equalsIgnoreCase(material)?"Aluminum":"Copper","basis","75°C raceway/cable ampacity","size","Above worksheet dataset","ampacityA",0,"found",false);}private static int next(double a){for(int v:O)if(v>=a)return v;return(int)Math.ceil(a);}private static int notAbove(double a){int b=O[0];for(int v:O){if(v>a)break;b=v;}return b;}private static int nextHigher(int current){for(int v:O)if(v>current)return v;return current;}private static double motorStartingReliefCeiling(double flc,String deviceType,int candidate){return switch(deviceType){case "TIME_DELAY_FUSE"->flc*2.25;case "NON_TIME_DELAY_FUSE"->flc*(candidate<=600?4.0:3.0);case "INVERSE_TIME_BREAKER"->flc*(candidate<=100?4.0:3.0);default->0;};}private static void ok(String e){if(!DEFAULT_EDITION.equals(e))throw new IllegalArgumentException("Unsupported code edition");}private static void pos(double v,String n){if(!Double.isFinite(v)||v<=0)throw new IllegalArgumentException(n+" must be finite and greater than zero");}private static void phase(int p){if(p!=1&&p!=3)throw new IllegalArgumentException("Phases must be 1 or 3");}private static double rd(double v){return Math.round(v*100d)/100d;}private static boolean at(String t,int n){int r="ADMIN".equals(t)||"TIER_3".equals(t)?3:"TIER_2".equals(t)?2:1;return r>=n;}
+  private static Map<String,Object>x(String id,String n,String d,String tier,boolean u){return Map.of("id",id,"name",n,"description",d,"minimumTier",tier,"unlocked",u);}private static Map<String,Object>b(String c,String e){Map<String,Object>r=new LinkedHashMap<>();r.put("edition",e);r.put("dataRevision","starter-3");r.put("calculator",c);return r;}private static void ocpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));r.put(p+"OcpdStandardA",next(a));r.put(p+"OcpdFactor",rd(f));}private static void transformerOcpd(Map<String,Object>r,String p,double a,double f){r.put(p+"OcpdCalculatedA",rd(a));Integer standard=standardAtOrBelow(a);r.put(p+"OcpdStandardA",standard);r.put(p+"NoListedStandardWithinLimit",standard==null);r.put(p+"OcpdFactor",rd(f));}private static Integer standardAtOrBelow(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");if(limit<15)return null;return notAbove(limit);}private static Integer nextStandardCandidate(double limit){if(!Double.isFinite(limit)||limit<=0)throw new IllegalArgumentException("OCPD limit must be finite and positive");for(int rating:O){if(Math.abs(rating-limit)<1e-8)return null;if(rating>limit)return rating;}return null;}private static double checked(double value,String name){if(!Double.isFinite(value)||value<=0)throw new IllegalArgumentException(name+" is outside the supported finite worksheet range");return value;}private static double cur(double kva,double v,int ph){return ph==3?kva*1000/(Math.sqrt(3)*v):kva*1000/v;}private static Map<String,Object>cond(double a){return condMaterial(a,"COPPER");}private static Map<String,Object>condMaterial(double a,String material){Map<String,Double>m="ALUMINUM".equalsIgnoreCase(material)?AL:CU;String name="ALUMINUM".equalsIgnoreCase(material)?"Aluminum":"Copper";for(var entry:m.entrySet())if(entry.getValue()>=a)return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size",entry.getKey(),"ampacityA",entry.getValue(),"found",true,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Confirm applicable 60°C/75°C terminal column, Table 5A/5C corrections, wiring method, and protection.");return Map.of("material",name,"basis","UNADJUSTED 75°C raceway/cable example only — terminal temperature not verified","size","Above worksheet dataset","ampacityA",0,"found",false,"candidateOnly",true,"codeComplianceVerified",false,"requiredReview","Use appropriate CEC conductor tables and verified termination limits.");}private static int next(double a){for(int v:O)if(v>=a)return v;return(int)Math.ceil(a);}private static int notAbove(double a){int b=O[0];for(int v:O){if(v>a)break;b=v;}return b;}private static int nextHigher(int current){for(int v:O)if(v>current)return v;return current;}private static double motorStartingReliefCeiling(double flc,String deviceType,int candidate){return switch(deviceType){case "TIME_DELAY_FUSE"->flc*2.25;case "NON_TIME_DELAY_FUSE"->flc*(candidate<=600?4.0:3.0);case "INVERSE_TIME_BREAKER"->flc*(candidate<=100?4.0:3.0);default->0;};}private static void ok(String e){if(!DEFAULT_EDITION.equals(e))throw new IllegalArgumentException("Unsupported code edition");}private static void pos(double v,String n){if(!Double.isFinite(v)||v<=0)throw new IllegalArgumentException(n+" must be finite and greater than zero");}private static void phase(int p){if(p!=1&&p!=3)throw new IllegalArgumentException("Phases must be 1 or 3");}private static double rd(double v){return Math.round(v*100d)/100d;}private static boolean at(String t,int n){int r="ADMIN".equals(t)||"TIER_3".equals(t)?3:"TIER_2".equals(t)?2:1;return r>=n;}
 }
