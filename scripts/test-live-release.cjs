@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const http=require('node:http');
-const {validateBuild,smoke}=require('./verify-live-portal.cjs');
+const {validateBuild,checkBuild,smoke}=require('./verify-live-portal.cjs');
 const sha='f2a8b786b1f1539c447e44a7b98137eac6a13633';
 const known={
  status:'UP',commit:sha,commitAvailable:true,
@@ -14,7 +14,7 @@ assert.throws(()=>validateBuild({...known,commit:'unknown'},sha),/missing/);
 assert.throws(()=>validateBuild({...known,commit:'0'.repeat(40)},sha),/does not match/);
 assert.throws(()=>validateBuild({...known,numericDatasetVerified:true},sha),/unexpectedly/);
 assert.throws(()=>validateBuild({...known,codeComplianceVerified:true},sha),/unexpectedly/);
-let badHealth=false,badHome=false;
+let badHealth=false,badHome=false,blockedHome=false;
 const server=http.createServer((req,res)=>{
  const endpoint=req.url||'';
  if(endpoint==='/api/public/build-info'){
@@ -27,6 +27,7 @@ const server=http.createServer((req,res)=>{
    res.setHeader('Content-Type','application/json');
    res.end(JSON.stringify({password:true,google:false}));
  }else if(endpoint==='/index.html'){
+   if(blockedHome){res.writeHead(401);res.end('Unauthorized');return;}
    res.setHeader('Content-Type',badHome?'text/plain':'text/html');
    res.end('<title>Electrical Workbench</title>');
  }else{res.writeHead(404);res.end();}
@@ -39,9 +40,13 @@ server.listen(0,'127.0.0.1',async()=>{
    assert.equal(ok.staticLanding,'OK');
    badHealth=true;
    await assert.rejects(()=>smoke(url,sha),/not UP/);
-   badHealth=false;badHome=true;
+   badHealth=false;blockedHome=true;
+   const current=await checkBuild(url,sha);
+   assert.equal(current.commit,sha,'Production commit is live despite 401 on login');
+   await assert.rejects(()=>smoke(url,sha),/HTTP 401 at \/index.html/);
+   blockedHome=false;badHome=true;
    await assert.rejects(()=>smoke(url,sha),/did not return HTML/);
-   console.log('Production smoke verifier tests passed: exact commit, healthy endpoints, no false approval, login page and fail-closed mismatches.');
+   console.log('Production smoke verifier tests passed: exact commit, healthy endpoints, 401 login distinguished from deploy drift, no false approval.');
  }catch(e){console.error(e);process.exitCode=1;}
  finally{server.close();}
 });
