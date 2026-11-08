@@ -61,9 +61,27 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
 <button id="calculate" type="button">Review this circuit</button>
 <div class="card" aria-live="polite"><h2>3. Worked assessment</h2><p id="status" class="warning">Enter your actual values, then calculate.</p>
 <pre id="result">No conductor or device has been approved by this worksheet.</pre></div>
+<div class="card"><h2>4. Save worksheet to a project</h2>
+<p class="note">Every save creates a dated, immutable revision containing all inputs, numeric results, the worked explanation, and unverified Code assumptions. Browser records are saved <strong>on this device only</strong>, not to your cloud account. Export backups before clearing browser data.</p>
+<div class="grid">
+<label>Project name<input id="projectName" maxlength="150" value="Field project" list="projectNames"></label>
+<datalist id="projectNames"></datalist>
+<label>Worksheet title<input id="worksheetTitle" maxlength="150" value="Circuit 1"></label>
+<label>Review / field notes<input id="worksheetNotes" maxlength="2000" value="" placeholder="Equipment, conditions, or outstanding verification"></label>
+</div>
+<button id="saveWorksheet" type="button">Save new revision to project</button>
+<label>Open a previous saved revision
+<select id="savedWorksheet"><option value="">No saved worksheets yet</option></select></label>
+<div class="grid" style="margin-top:10px">
+<button id="loadWorksheet" type="button">Load selected revision</button>
+<button id="exportProject" type="button">Export project JSON backup</button>
+</div>
+<p class="note" id="archiveStatus" aria-live="polite">Local browser archive. Save and export to retain project history.</p>
+</div>
 <div class="card"><h2>Before installation</h2><p class="note">This calculator never certifies compliance or automatically picks an AWG size from unverified data. Confirm the Ontario Electrical Safety Code edition/amendments, actual terminal marking, conductor material and dimensions, CEC Table 1–4, Table 5A/5C, neutral count, wiring method, overcurrent protection, and upstream voltage drop. Any specialty circuit requires its own applicable Code path.</p></div>
 </main>
 <script src="/circuit-review-math.js?v=20261108-v1"></script>
+<script src="/circuit-project-archive.js?v=20261108-v1"></script>
 <script>
 (function(){
  'use strict';
@@ -71,6 +89,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
  const el=id=>document.getElementById(id);
  const num=n=>Number(el(n).value);
  const fmt=n=>Number(n).toFixed(2);
+ let latest=null;
  el('calculate').addEventListener('click',()=>{
   const status=el('status'),out=el('result');
   try {
@@ -101,15 +120,89 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
     'wiring method, circuit-specific protection and upstream VD.'
    ];
    out.textContent=text.join('\n');
+   latest={inputs:{...inputs,conductorDescription:el('conductorDescription').value,
+     tableReference:el('tableReference').value},results:r,report:out.textContent};
    status.textContent=r.ampacityArithmeticFits&&r.voltageDropArithmeticFits&&r.protectionScreenFits
     ?'Arithmetic screens fit — NOT CODE VERIFIED':'One or more arithmetic screens need review — NOT CODE VERIFIED';
    status.style.color=r.ampacityArithmeticFits&&r.voltageDropArithmeticFits&&r.protectionScreenFits?'#9af4bb':'#ffd889';
   }catch(err){
+   latest=null;
    status.textContent='Cannot calculate — check inputs';
    status.style.color='#ffd889';
    out.textContent=err.message;
   }
  });
+ const archiveStatus=el('archiveStatus');
+ const archive=()=>CircuitProjectArchive.read(localStorage);
+ const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID
+    ? crypto.randomUUID() : 'local-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+ function refreshArchive(){
+  const rows=archive(),select=el('savedWorksheet'),prev=select.value;
+  const project=el('projectName').value.trim();
+  select.replaceChildren();
+  const none=new Option('Choose a saved revision','');select.add(none);
+  rows.filter(r=>r.project===project).forEach(r=>{
+    select.add(new Option(r.title+' · rev '+r.revision+' · '+new Date(r.saved).toLocaleString(),r.id));
+  });
+  if([...select.options].some(o=>o.value===prev))select.value=prev;
+  const names=el('projectNames');
+  names.replaceChildren();
+  [...new Set(rows.map(r=>r.project))].sort().forEach(name=>names.append(new Option(name)));
+ }
+ el('saveWorksheet').addEventListener('click',()=>{
+  try{
+   // Always recalculate current live inputs, never archive stale report text.
+   el('calculate').click();
+   if(!latest)throw Error('Calculation invalid. Correct the circuit inputs before saving.');
+   const rec=CircuitProjectArchive.build({
+      project:el('projectName').value,title:el('worksheetTitle').value,
+      notes:el('worksheetNotes').value,
+      referenceTables:el('tableReference').value+'; Tables 5A and 5C (user-entered)'
+    },latest.inputs,latest.results,latest.report,new Date(),id());
+   const saved=CircuitProjectArchive.append(localStorage,rec);
+   refreshArchive();el('savedWorksheet').value=saved.id;
+   archiveStatus.textContent='Saved '+saved.project+' / '+saved.title+' · revision '+saved.revision+
+      ' · '+new Date(saved.saved).toLocaleString()+'. Local-only; export a backup.';
+  }catch(e){archiveStatus.textContent='Not saved: '+e.message;}
+ });
+ el('loadWorksheet').addEventListener('click',()=>{
+  try{
+   const selected=archive().find(r=>r.id===el('savedWorksheet').value);
+   if(!selected)throw Error('Choose a saved revision.');
+   fields.forEach(name=>{
+      if(Object.prototype.hasOwnProperty.call(selected.inputs,name))
+        el(name).value=String(selected.inputs[name]);
+   });
+   el('conductorDescription').value=selected.inputs.conductorDescription||'Selected conductor';
+   el('tableReference').value=selected.inputs.tableReference||'Table 2';
+   el('worksheetTitle').value=selected.title;
+   el('worksheetNotes').value=selected.assumptions?.notes||'';
+   el('projectName').value=selected.project;
+   el('result').textContent=selected.result;
+   el('status').textContent='Loaded saved revision '+selected.revision+' from '+
+      new Date(selected.saved).toLocaleString()+' · NOT CODE VERIFIED. Recalculate to review edits.';
+   latest=null;
+   archiveStatus.textContent='Reopened immutable revision '+selected.revision+'; new saves create a fresh revision.';
+  }catch(e){archiveStatus.textContent='Could not load: '+e.message;}
+ });
+ el('exportProject').addEventListener('click',()=>{
+  try{
+   const project=el('projectName').value.trim();
+   const rows=CircuitProjectArchive.forProject(localStorage,project);
+   if(!rows.length)throw Error('No saved worksheets under this project.');
+   const payload={format:'ElectricalWorkbenchCircuitProject',schemaVersion:1,
+      project,exported:new Date().toISOString(),localOnly:true,worksheets:rows};
+   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+   const url=URL.createObjectURL(blob),link=document.createElement('a');
+   link.href=url;link.download='circuit-project-'+project.replace(/[^a-z0-9_-]/gi,'_').slice(0,60)+'.json';
+   link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   archiveStatus.textContent='Exported '+rows.length+' worksheet revision(s) for '+project+'.';
+  }catch(e){archiveStatus.textContent='Export failed: '+e.message;}
+ });
+ el('projectName').addEventListener('change',()=>{
+   try{refreshArchive()}catch(e){archiveStatus.textContent=e.message}
+ });
+ try{refreshArchive()}catch(e){archiveStatus.textContent=e.message}
 })();
 </script>
 </body>
