@@ -87,7 +87,7 @@ checkFile('android-client/app/src/main/java/com/gfh/electricalworkbench/BenderCa
 checkFile('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileAccountSync.kt',
   ['"minMarkGap"']);
 checkFile('desktop-client/src/main/java/com/example/desktop/QuickConduitBendPane.java',
-  ['shop marks overlap','minMarkGap','Shoe mark gap']);
+  ['shop marks overlap','minMarkGap','BENDS TOO CLOSE']);
 checkFile('desktop-client/src/main/java/com/example/desktop/Conduit3DPreviewPane.java',
   ['has no straight length between bend arcs','Math.abs(bend.angle)<1e-8']);
 checkFile('desktop-client/src/main/java/com/example/desktop/BenderCalibrationPane.java',
