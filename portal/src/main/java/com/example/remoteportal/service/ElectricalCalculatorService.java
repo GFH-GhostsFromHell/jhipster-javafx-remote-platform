@@ -15,7 +15,7 @@ public class ElectricalCalculatorService {
   }
   public List<Map<String,Object>> editions(){return List.of(Map.of(
       "id",DEFAULT_EDITION,"name","Canadian Electrical Code 2024 / Ontario worksheet",
-      "status","WORKSHEET_ONLY","dataRevision",ElectricalCodeReferences.DATASET_REVISION,
+      "status","ACTIVE","useStatus","WORKSHEET_ONLY","dataRevision",ElectricalCodeReferences.DATASET_REVISION,
       "referenceProfileId",ElectricalCodeReferences.PROFILE_ID,
       "numericDatasetVerified",false,
       "numericDatasetVerificationStatus",ElectricalCodeReferences.UNVERIFIED,
