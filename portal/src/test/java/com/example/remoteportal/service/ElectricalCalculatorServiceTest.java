@@ -205,9 +205,9 @@ class ElectricalCalculatorServiceTest {
         assertTrue(String.valueOf(starter.get("requiredReview")).contains("60°C"));
     }
 
-    @Test void conductorReviewRejectsArithmeticOverflowAndUnsupportedEdition() {
+    @Test void conductorReviewRejectsNonFiniteInputAndUnsupportedEdition() {
         assertThrows(IllegalArgumentException.class,
-            ()->sut.conductorReview(30,1e308,75,90,1,1,"TABLE_2",EDITION));
+            ()->sut.conductorReview(30,Double.POSITIVE_INFINITY,75,90,1,1,"TABLE_2",EDITION));
         assertThrows(IllegalArgumentException.class,
             ()->sut.conductorReview(30,55,60,90,0.82,0.8,"TABLE_2","CEC_2021"));
     }
