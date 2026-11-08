@@ -275,8 +275,7 @@ struct UnifiedCircuitSizingView: View {
                 notes:fieldNotes,conductor:conductor,table:table,
                 input:input,result:outputValues,report:output)
             refreshRevisions()
-            archiveStatus="Saved revision "+String(number)+
-                " locally. Account synchronization runs when connected."
+            archiveStatus="Saved revision \(number) locally. Account synchronization runs when connected."
         }catch {
             archiveStatus="Not saved: "+error.localizedDescription
         }
@@ -306,11 +305,9 @@ struct UnifiedCircuitSizingView: View {
         vdTarget=num("maxVoltageDropPercent",vdTarget)
         project=record.project;worksheetTitle=record.title
         fieldNotes=(record.raw["assumptions"] as? [String:Any])?["notes"] as? String ?? ""
-        output=(record.raw["result"] as? String ?? "")+
-            "\\n\\nOpened archived revision. Recalculate to save any changes."
+        output=(record.raw["result"] as? String ?? "") + "\n\nOpened archived revision. Recalculate to save any changes."
         lastInput=nil;lastResult=nil
-        archiveStatus="Loaded "+record.title+" · revision "+String(record.revision)+
-            " · "+record.saved+" (NOT CODE VERIFIED)"
+        archiveStatus="Loaded \(record.title) · revision \(record.revision) · \(record.saved) (NOT CODE VERIFIED)"
     }
 
 }
