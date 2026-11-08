@@ -41,25 +41,27 @@ public final class AmpacityDeratingPane extends BorderPane {
 
         Label title = new Label("Ampacity / Derating — CEC 2024");
         title.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");
-        Label subtitle = new Label("Apply ambient-temperature correction and current-carrying-conductor adjustment together. Use the conductor's applicable Code-table ampacity as the starting value.");
+        Label subtitle = new Label("Rule 4-006: use ampacity AND relevant correction factors from the selected equipment TERMINATION-temperature column, not automatically the wire's higher insulation rating.");
         subtitle.setWrapText(true); subtitle.setStyle("-fx-text-fill:#64748b;");
         page.getChildren().addAll(title,subtitle);
 
         TextField baseAmpacity = field("55");
         ChoiceBox<Integer> insulation = choice(90,60,75,90);
+        ChoiceBox<Integer> termination = choice(60,60,75,90);
         ChoiceBox<String> ambient = choice("50 °C","≤30 °C","35 °C","40 °C","45 °C","50 °C","55 °C","60 °C","65 °C","70 °C","75 °C","80 °C");
         TextField ccc = field("6");
         TextField load = field("40");
         TextField terminalLimit = field("");
 
-        VBox inputs = card("1. Installation conditions", "Enter the starting ampacity from the applicable CEC conductor table, then describe the insulation, ambient temperature and number of current-carrying conductors sharing the raceway/cable.");
+        VBox inputs = card("1. Installation conditions", "Select the equipment's marked termination temperature (or applicable unmarked-equipment default). Enter the CEC Table 1–4 ampacity from THAT 60°C/75°C/90°C column. Verify the conductor insulation can support it.");
         inputs.getChildren().add(grid(
-            row("Starting/table ampacity (A)",baseAmpacity),
+            row("Table ampacity at TERMINATION column (A)",baseAmpacity),
+            row("Verified termination temperature (°C)",termination),
             row("Conductor insulation rating (°C)",insulation),
             row("Ambient temperature",ambient),
             row("Current-carrying conductors",ccc),
             row("Actual/design load (A, optional)",load),
-            row("Termination/equipment ampacity limit (A, optional)",terminalLimit)
+            row("Additional equipment current ceiling (A, optional)",terminalLimit)
         ));
 
         Label countHelp = new Label("Count current-carrying conductors for the ampacity adjustment—not simply every wire physically in the raceway. Bonding conductors are not load conductors; neutral treatment depends on the circuit/loading arrangement. Enter the verified current-carrying count here.");
@@ -79,9 +81,15 @@ public final class AmpacityDeratingPane extends BorderPane {
             try {
                 double base = positive(baseAmpacity,"Starting ampacity");
                 int rating = insulation.getValue();
+                int terminationRating = termination.getValue();
+                if(rating<terminationRating)
+                    throw new IllegalArgumentException("Conductor insulation rating cannot be lower than the selected equipment termination temperature.");
                 int amb = parseAmbient(ambient.getValue());
                 int n = positiveInt(ccc,"Current-carrying conductor count");
-                double tempFactor = ambientFactor(amb,rating);
+                // CEC Rule 4-006 requires applicable corrections to the
+                // selected TERMINATION temperature column, not the wire's
+                // higher 90 °C insulation column.
+                double tempFactor = ambientFactor(amb,terminationRating);
                 double groupFactor = groupingFactor(n);
                 double corrected = base * tempFactor * groupFactor;
                 Double term = optionalPositive(terminalLimit);
@@ -90,12 +98,30 @@ public final class AmpacityDeratingPane extends BorderPane {
                 boolean pass = designLoad == null || designLoad <= finalAllowable + 1e-9;
 
                 String loadLine = designLoad == null ? "Load check: not entered" : String.format(Locale.CANADA,"Load check: %.2f A ≤ %.2f A → %s",designLoad,finalAllowable,pass?"PASS":"FAIL");
-                String terminalLine = term == null ? "Termination/equipment limit: not entered" : String.format(Locale.CANADA,"Termination/equipment limit: %.2f A; final allowable ampacity is the lesser value.",term);
+                String terminalLine = term == null ? "Additional equipment current ceiling: not entered" : String.format(Locale.CANADA,"Additional equipment current ceiling: %.2f A; arithmetic comparison uses the lesser value.",term);
 
                 result.setText(String.format(Locale.CANADA,
-                    "AMPACITY DERATING — %s%n%nStarting/table ampacity: %.2f A%nInsulation rating: %d °C%nAmbient used: %s%nAmbient correction factor: %.2f%nCurrent-carrying conductors: %d%nGrouping factor: %.2f%n%nCombined factor: %.4f%nCorrected ampacity before terminal limit: %.2f A%n%s%nFINAL ALLOWABLE AMPACITY: %.2f A%n%s%n%nFormula:%n  %.2f A × %.2f × %.2f = %.2f A%n%nCEC worksheet references:%n• Table 5A — ambient-temperature correction for conductor ampacity tables.%n• Table 5C — adjustment when more than three current-carrying conductors share a raceway/cable.%n• Verify Rule 4-004, conductor insulation rating, equipment termination temperature limitations, neutral-counting rules and all applicable exceptions before final selection.%n%nExample: a 90 °C conductor at 50 °C ambient uses 0.82. Six current-carrying conductors use 0.80, so the combined multiplier is 0.656.",
-                    pass?"PASS / WITHIN ENTERED LOAD":"FAIL / LOAD EXCEEDS ADJUSTED AMPACITY",base,rating,ambient.getValue(),tempFactor,n,groupFactor,tempFactor*groupFactor,corrected,terminalLine,finalAllowable,loadLine,base,tempFactor,groupFactor,corrected));
-                status.setText(pass?"Calculated — ampacity is adequate for the entered load.":"Calculated — entered load exceeds the adjusted ampacity.");
+                    "RULE 4-006 CONDUCTOR AMPACITY REVIEW%n"
+                    +"Status: %s%n%n"
+                    +"Base ampacity (selected TERMINATION column): %.2f A%n"
+                    +"Equipment termination column: %d °C%n"
+                    +"Conductor insulation rating: %d °C%n"
+                    +"Ambient temperature: %s%n"
+                    +"Ambient factor for TERMINATION column: %.2f%n"
+                    +"Current-carrying conductors: %d%n"
+                    +"Grouping factor: %.2f%n"
+                    +"Combined correction factor: %.4f%n"
+                    +"Corrected ampacity: %.2f A%n"
+                    +"%s%n"
+                    +"Arithmetic comparison available: %.2f A%n"
+                    +"%s%n%n"
+                    +"Calculation: %.2f × %.2f × %.2f = %.2f A%n%n"
+                    +"IMPORTANT: This is NOT a code-compliant conductor selection. Confirm Table 1/2/3/4 size and installation method; equipment marking or Rule 4-006 default, Table 5A/5C factors, current-carrying neutral count, cable/raceway conditions, OCPD and voltage drop. A 90°C-insulated conductor on a 60°C termination uses the 60°C ampacity/correction basis, NOT 90°C.",
+                    pass?"MEETS ENTERED LOAD ARITHMETICALLY — NOT FIELD VERIFIED":"FAIL — ENTERED LOAD EXCEEDS ADJUSTED AMPACITY",
+                    base,terminationRating,rating,ambient.getValue(),tempFactor,n,groupFactor,
+                    tempFactor*groupFactor,corrected,terminalLine,finalAllowable,loadLine,
+                    base,tempFactor,groupFactor,corrected));
+                status.setText(pass?"Arithmetic check complete. Verify the actual terminal and CEC installation rules before use.":"Entered load exceeds the selected termination-column ampacity after corrections.");
             } catch (Exception ex) {
                 status.setText("Check inputs");
                 result.setText(ex.getMessage()==null?ex.toString():ex.getMessage());
@@ -103,12 +129,12 @@ public final class AmpacityDeratingPane extends BorderPane {
         });
 
         copy.setOnAction(e -> { ClipboardContent c = new ClipboardContent(); c.putString(result.getText()); Clipboard.getSystemClipboard().setContent(c); });
-        reset.setOnAction(e -> { baseAmpacity.setText("55"); insulation.setValue(90); ambient.setValue("50 °C"); ccc.setText("6"); load.setText("40"); terminalLimit.clear(); result.setText("Enter the installation, then calculate."); status.setText(""); });
+        reset.setOnAction(e -> { baseAmpacity.setText("55"); insulation.setValue(90); termination.setValue(60); ambient.setValue("50 °C"); ccc.setText("6"); load.setText("40"); terminalLimit.clear(); result.setText("Enter the installation, then calculate."); status.setText(""); });
 
-        VBox factors = card("2. Automatic correction factors", "The app selects the CEC factor from the insulation rating/ambient temperature and the current-carrying-conductor range, then multiplies both factors together.");
+        VBox factors = card("2. Automatic correction factors", "The worksheet selects the ambient factor for the TERMINATION temperature and multiplies it by the number-of-current-carrying-conductors factor. Check Rule 4-004/4-006 applicability and actual code tables.");
         factors.getChildren().add(countHelp);
 
-        VBox outputs = card("3. Adjusted ampacity", "Optionally enter the actual load and an equipment/termination ampacity ceiling for a direct pass/fail check.");
+        VBox outputs = card("3. Adjusted ampacity", "Compare entered load against the adjusted termination-column ampacity. Arithmetic adequacy does NOT establish CEC approval or actual equipment/termination suitability.");
         outputs.getChildren().addAll(new HBox(8,calculate,copy,reset),status,result);
 
         page.getChildren().addAll(inputs,factors,outputs);
