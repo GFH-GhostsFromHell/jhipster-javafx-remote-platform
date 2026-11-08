@@ -14,6 +14,9 @@ on:
       - 'scripts/validate-project-circuit-archive.cjs'
       - 'scripts/validate-circuit-sync-restore.cjs'
       - 'scripts/validate-cec-evidence-and-reports.cjs'
+      - 'scripts/verify-live-portal.cjs'
+      - 'scripts/test-live-release.cjs'
+      - '.github/workflows/verify-production-release.yml'
       - 'docs/CEC2024_TABLE_VERIFICATION_REGISTER.json'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
@@ -29,6 +32,9 @@ on:
       - 'scripts/validate-project-circuit-archive.cjs'
       - 'scripts/validate-circuit-sync-restore.cjs'
       - 'scripts/validate-cec-evidence-and-reports.cjs'
+      - 'scripts/verify-live-portal.cjs'
+      - 'scripts/test-live-release.cjs'
+      - '.github/workflows/verify-production-release.yml'
       - 'docs/CEC2024_TABLE_VERIFICATION_REGISTER.json'
       - 'Dockerfile.portal'
       - '.github/workflows/build-portal.yml'
@@ -56,6 +62,8 @@ jobs:
         run: node scripts/validate-circuit-sync-restore.cjs
       - name: Audit CEC table evidence and printable PDF metadata
         run: node scripts/validate-cec-evidence-and-reports.cjs
+      - name: Test live-deployment smoke verifier (local fixtures)
+        run: node scripts/test-live-release.cjs
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
