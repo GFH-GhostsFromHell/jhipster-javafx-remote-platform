@@ -102,7 +102,7 @@ final class CircuitWorksheetPdf {
         lines.add("REVIEW / SIGN-OFF (NOT AUTOMATICALLY AUTHORIZED)");
         lines.add("Reviewed by: "+blank(reviewer));
         lines.add("Verification date: ______________________");
-        lines.add("Reviewer signature: ____________________");
+        lines.add("Signature: ___________________________");
         lines.add("Installation authorization: NOT PROVIDED BY THIS REPORT");
         lines.add("");
         lines.add("WARNING: Verify current OESC/CEC tables, equipment markings, load");
