@@ -76,6 +76,12 @@ function checkFile(relative,expected){
 }
 checkFile('ios-client/ElectricalWorkbench/QuickBender.swift',
   ['savedMinMarkGapMm','physical bend marks overlap','marks are closer than the verified shoe spacing','10-ft stock']);
+checkFile('ios-client/ElectricalWorkbench/UnifiedCircuitMath.swift',
+  ['minimumCircularMilsForDrop','maximumOneWayLengthM','codeComplianceVerified = false','selectedOcpdA']);
+checkFile('ios-client/ElectricalWorkbench/UnifiedCircuitSizingView.swift',
+  ['UnifiedCircuitMath.calculate(input)','NOT CODE VERIFIED','Ampacity from termination column']);
+checkFile('ios-client/ElectricalWorkbench/WorkbenchTools.swift',
+  ['UnifiedCircuitSizingView()']);
 checkFile('ios-client/ElectricalWorkbench/BenderCalibrationView.swift',
   ['minMarkGap.mm','minimumMarkGap','measuredGap * factor <= 3048']);
 checkFile('ios-client/ElectricalWorkbench/AccountRecordSync.swift',
