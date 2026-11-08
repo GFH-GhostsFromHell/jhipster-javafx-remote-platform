@@ -82,6 +82,14 @@ public final class CircuitReviewPane extends BorderPane {
         setup.addRow(3,row("One-way length (m)",length));
         setup.addRow(4,row("Selected breaker or fuse (A)",device));
         setup.addRow(5,row("General load sizing multiplier",multiplier));
+        Label presetLabel=new Label("Quick electrical system (changes voltage and phase only)");
+        presetLabel.setStyle("-fx-font-size:12px;-fx-text-fill:#527184;");
+        HBox systemPresets=new HBox(7,
+            systemPreset("120 V / 1ph",120,1),
+            systemPreset("208 V / 3ph",208,3),
+            systemPreset("347 V / 1ph",347,1),
+            systemPreset("600 V / 3ph",600,3));
+        systemPresets.setFillHeight(true);
 
         GridPane wire = grid();
         wire.addRow(0,row("Conductor / size label",conductor));
@@ -186,7 +194,7 @@ public final class CircuitReviewPane extends BorderPane {
         footer.setStyle(WARNING);
 
         page.getChildren().addAll(title,sub,
-            card("1 · Circuit conditions",setup),
+            card("1 · Circuit conditions",presetLabel,systemPresets,setup),
             card("2 · Selected conductor and installation",caution,wire,vdOptions),
             calculate,card("3 · Worked calculation",status,report,copy),
             card("4 · Save to project",metadata,saveRevision,archiveStatus,
@@ -336,6 +344,22 @@ public final class CircuitReviewPane extends BorderPane {
                 " · NOT CODE VERIFIED. Recalculate before saving edits.");
             archiveStatus.setText("Reopened "+row.path("title").asText()+" rev "+row.path("revision").asInt());
         }catch(Exception ex){archiveStatus.setText("Could not open revision: "+ex.getMessage());}
+    }
+
+    private Button systemPreset(String label,double volts,int phase){
+        Button button=new Button(label);
+        button.setMinHeight(43);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setStyle("-fx-background-color:#e0f3fa;-fx-text-fill:#164a64;-fx-border-color:#85afbf;-fx-background-radius:8;");
+        HBox.setHgrow(button,Priority.ALWAYS);
+        button.setOnAction(event->{
+            voltage.setText(java.math.BigDecimal.valueOf(volts).stripTrailingZeros().toPlainString());
+            phases.setValue(phase);
+            lastInput=null;
+            lastResult=null;
+            report.setText("System preset selected. Check actual load and conductor data, then recalculate.");
+        });
+        return button;
     }
 
     private static double number(TextField field) {
