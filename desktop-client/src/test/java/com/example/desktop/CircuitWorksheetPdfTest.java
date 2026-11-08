@@ -92,12 +92,11 @@ class CircuitWorksheetPdfTest {
     }
 
     @Test void unsavedOrFalselyCertifiedRecordsAreRejected() throws Exception {
-        ObjectNode r=example();
-        r.put("kind","otherReport");
-        assertThrows(IllegalArgumentException.class,()->CircuitWorksheetPdf.render(r,"","",""));
-        r=example();
-        r.with("results").put("codeComplianceVerified",true);
-        final ObjectNode invalid=r;
-        assertThrows(IllegalArgumentException.class,()->CircuitWorksheetPdf.render(invalid,"","",""));
+        ObjectNode wrongKind=example();
+        wrongKind.put("kind","otherReport");
+        assertThrows(IllegalArgumentException.class,()->CircuitWorksheetPdf.render(wrongKind,"","",""));
+        ObjectNode falseApproval=example();
+        falseApproval.with("results").put("codeComplianceVerified",true);
+        assertThrows(IllegalArgumentException.class,()->CircuitWorksheetPdf.render(falseApproval,"","",""));
     }
 }
