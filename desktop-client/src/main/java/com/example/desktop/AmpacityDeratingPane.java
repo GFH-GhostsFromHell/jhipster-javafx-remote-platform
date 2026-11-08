@@ -19,21 +19,8 @@ public final class AmpacityDeratingPane extends BorderPane {
     private static final String SECONDARY = "-fx-background-color:#f8fafc;-fx-text-fill:#0f4c81;-fx-border-color:#c7d9e8;-fx-border-radius:8;-fx-background-radius:8;-fx-padding:8 11;-fx-font-weight:bold;";
     private static final String CARD = "-fx-background-color:white;-fx-background-radius:14;-fx-border-color:#dfe7ef;-fx-border-radius:14;-fx-padding:16;";
 
-    private static final Map<Integer, double[]> AMBIENT = new LinkedHashMap<>();
-    static {
-        // Columns: 60 C, 75 C, 90 C insulation. NaN means that insulation rating is not valid at that ambient.
-        AMBIENT.put(30, new double[]{1.00,1.00,1.00});
-        AMBIENT.put(35, new double[]{0.91,0.94,0.96});
-        AMBIENT.put(40, new double[]{0.82,0.88,0.91});
-        AMBIENT.put(45, new double[]{0.71,0.82,0.87});
-        AMBIENT.put(50, new double[]{0.58,0.75,0.82});
-        AMBIENT.put(55, new double[]{0.41,0.67,0.76});
-        AMBIENT.put(60, new double[]{Double.NaN,0.58,0.71});
-        AMBIENT.put(65, new double[]{Double.NaN,0.47,0.65});
-        AMBIENT.put(70, new double[]{Double.NaN,0.33,0.58});
-        AMBIENT.put(75, new double[]{Double.NaN,Double.NaN,0.50});
-        AMBIENT.put(80, new double[]{Double.NaN,Double.NaN,0.41});
-    }
+    // Factor presets shared with RacewayAmpacityPane.
+    // Values still require comparison with an authorized CEC/OESC copy.
 
     public AmpacityDeratingPane() {
         VBox page = new VBox(13);
@@ -68,7 +55,7 @@ public final class AmpacityDeratingPane extends BorderPane {
         countHelp.setWrapText(true);
         countHelp.setStyle("-fx-background-color:#f8fafc;-fx-border-color:#dbeafe;-fx-border-radius:9;-fx-background-radius:9;-fx-padding:10;-fx-text-fill:#334155;");
 
-        TextArea result = new TextArea("Enter the installation, then calculate.");
+        TextArea result = new TextArea("Enter verified CEC table and termination data; presets await licensed reference verification.");
         result.setEditable(false); result.setWrapText(true); result.setPrefRowCount(18);
         result.setStyle("-fx-font-family:Consolas;-fx-font-size:12px;-fx-control-inner-background:#0f172a;-fx-text-fill:#e2e8f0;");
         Label status = new Label(); status.setStyle("-fx-text-fill:#64748b;-fx-font-size:12px;");
@@ -142,22 +129,12 @@ public final class AmpacityDeratingPane extends BorderPane {
         setCenter(scroll);
     }
 
-    private static double ambientFactor(int ambient,int rating) {
-        double[] factors = AMBIENT.get(ambient);
-        if (factors == null) throw new IllegalArgumentException("Select a supported ambient-temperature row.");
-        int col = rating==60?0:rating==75?1:rating==90?2:-1;
-        if (col < 0) throw new IllegalArgumentException("Unsupported insulation rating.");
-        double factor = factors[col];
-        if (!Double.isFinite(factor)) throw new IllegalArgumentException("The selected insulation rating has no usable correction factor at that ambient temperature. Select conductors/equipment suitable for the temperature.");
-        return factor;
+    private static double ambientFactor(int ambient,int termination) {
+        return ConductorCorrectionFactors.ambientFactor(ambient,termination);
     }
 
     private static double groupingFactor(int count) {
-        if (count <= 3) return 1.00;
-        if (count <= 6) return 0.80;
-        if (count <= 24) return 0.70;
-        if (count <= 42) return 0.60;
-        return 0.50;
+        return ConductorCorrectionFactors.groupingFactor(count);
     }
 
     private static int parseAmbient(String label) {
