@@ -70,7 +70,7 @@ const html=read('portal/src/main/resources/static/circuit-sizing.html');
 for(const key of ['projectName','worksheetTitle','worksheetNotes','savedWorksheet','saveWorksheet','loadWorksheet','exportProject']){
  assert.ok(html.includes('id="'+key+'"'),'Web project UI missing '+key);
 }
-assert.ok(html.includes('CircuitProjectArchive.append(localStorage,rec)'));
+assert.ok(html.includes('CircuitProjectArchive.append(localStorage,rec,archiveKey)'));
 assert.ok(html.includes("el('calculate').click()"),'Web save must recalculate current inputs');
 assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/CircuitSizingActivity.kt')
  .includes('CircuitWorksheetStore.save('));
