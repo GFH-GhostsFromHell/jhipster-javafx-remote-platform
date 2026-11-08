@@ -84,12 +84,12 @@ public final class CircuitReviewPane extends BorderPane {
         setup.addRow(5,row("General load sizing multiplier",multiplier));
         Label presetLabel=new Label("Quick electrical system (changes voltage and phase only)");
         presetLabel.setStyle("-fx-font-size:12px;-fx-text-fill:#527184;");
-        HBox systemPresets=new HBox(7,
+        FlowPane systemPresets=new FlowPane(7,7,
             systemPreset("120 V / 1ph",120,1),
             systemPreset("208 V / 3ph",208,3),
             systemPreset("347 V / 1ph",347,1),
             systemPreset("600 V / 3ph",600,3));
-        systemPresets.setFillHeight(true);
+        systemPresets.setPrefWrapLength(540);
 
         GridPane wire = grid();
         wire.addRow(0,row("Conductor / size label",conductor));
@@ -351,7 +351,7 @@ public final class CircuitReviewPane extends BorderPane {
         button.setMinHeight(43);
         button.setMaxWidth(Double.MAX_VALUE);
         button.setStyle("-fx-background-color:#e0f3fa;-fx-text-fill:#164a64;-fx-border-color:#85afbf;-fx-background-radius:8;");
-        HBox.setHgrow(button,Priority.ALWAYS);
+        button.setMinWidth(124);
         button.setOnAction(event->{
             voltage.setText(java.math.BigDecimal.valueOf(volts).stripTrailingZeros().toPlainString());
             phases.setValue(phase);
