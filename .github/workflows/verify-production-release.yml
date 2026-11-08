@@ -1,0 +1,62 @@
+name: Verify Live Production Release
+
+on:
+  workflow_run:
+    workflows: [ "Build Web Portal" ]
+    types: [ completed ]
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '21 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release-watch
+  cancel-in-progress: true
+
+jobs:
+  verify-production:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout trusted main branch
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Check latest main commit and production health
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          PRODUCTION_URL: https://remote-javafx-portal.onrender.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(git rev-parse HEAD)"
+          echo "Checking live deployment for commit ${EXPECTED_SHA:0:12}"
+          if node scripts/verify-live-portal.cjs \
+               --base="$PRODUCTION_URL" --expected="$EXPECTED_SHA" \
+               --attempts=4 --delay-ms=15000; then
+            echo "Production is current." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # A deploy hook is an optional, account-owned secret. Never print it.
+          # Omit ref=SHA to avoid disabling Render's normal auto-deploy policy.
+          if [[ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]]; then
+            echo "::error::Production is behind main. Set the GitHub Actions secret RENDER_DEPLOY_HOOK_URL from Render service Settings > Deploy Hook (or repair GitHub integration)."
+            echo "Production deploy drift detected; fallback hook is not configured." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Auto-deploy missed the commit. Triggering the existing Render service hook."
+          curl --fail --silent --show-error --max-time 30 \
+            -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          node scripts/verify-live-portal.cjs \
+            --base="$PRODUCTION_URL" --expected="$EXPECTED_SHA" \
+            --attempts=22 --delay-ms=20000
+          echo "Production matched main after authenticated deploy-hook recovery." >> "$GITHUB_STEP_SUMMARY"
