@@ -70,7 +70,7 @@ class CircuitWorksheetPdfTest {
                 "Hospital renovation","Feeder-A","Revision","unit-123","2026-11-08",
                 "Example client","North panel","Field technician","NOT CODE VERIFIED",
                 "OESC_ON_2024","AUTHORIZED_TABLE_VERIFICATION_REQUIRED",
-                "Termination temperature","Adjusted",
+                "Termination temperature","Corrected conductor ampacity",
                 "Minimum circular mils for VD","Reviewer","Signature"
             })assertTrue(content.contains(phrase),"Missing PDF content: "+phrase);
         }
