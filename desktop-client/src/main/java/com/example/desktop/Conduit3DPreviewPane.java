@@ -246,13 +246,16 @@ public final class Conduit3DPreviewPane extends BorderPane {
         points.add(new Point(position,0));
         for (int i=0;i<bends.size();i++) {
             Operation bend=bends.get(i);
+            if(!Double.isFinite(bend.before)||bend.before<0||bend.before>100000
+                ||!Double.isFinite(bend.angle)||Math.abs(bend.angle)>180||Math.abs(bend.angle)<1e-8
+                ||!Double.isFinite(bend.plane)||Math.abs(bend.plane)>360)
+                throw new IllegalArgumentException("B"+(i+1)+": lead 0–100,000 mm, nonzero angle ±180°, plane ±360°.");
+            if(i>0&&bend.before<=1e-6)
+                throw new IllegalArgumentException("BENDS TOO CLOSE: B"+(i+1)+
+                    " has no straight length between bend arcs. Verify shoe clearance.");
             if(i>0&&clearance!=null&&bend.before+1e-6<clearance)
                 throw new IllegalArgumentException("BENDS TOO CLOSE: B"+(i+1)+" has "+
                     format(bend.before)+" mm between arcs; your shoe requires "+format(clearance)+" mm.");
-            if(!Double.isFinite(bend.before)||bend.before<0||bend.before>100000
-                ||!Double.isFinite(bend.angle)||Math.abs(bend.angle)>180
-                ||!Double.isFinite(bend.plane)||Math.abs(bend.plane)>360)
-                throw new IllegalArgumentException("B"+(i+1)+": lead 0–100,000 mm, angle ±180°, plane ±360°.");
             developed += bend.before + radius * Math.abs(bend.angle) * DEG;
             if(!Double.isFinite(developed)||developed>stock+1e-6)
                 throw new IllegalArgumentException("CALCULATION NOT POSSIBLE on one 10 ft EMT: developed centreline needs "+
