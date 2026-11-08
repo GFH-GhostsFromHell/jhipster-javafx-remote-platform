@@ -61,7 +61,7 @@ assert.throws(()=>A.append(fullStorage,A.build(
  {project:'Mine',title:'Feeder'},data,result,'NOT CODE VERIFIED',
  today,'limit')),/archive has reached/);
 const broken={getItem:()=>'{bad JSON',setItem:()=>{}};
-assert.throws(()=>A.read(broken),/Could not read/);
+assert.throws(()=>A.read(broken),/unreadable/);
 const fakeProjectName='Project-'+'x'.repeat(160);
 assert.throws(()=>save(fakeProjectName,'Feeder A','badname'),/Project name/);
 const root=path.resolve(__dirname,'..');
