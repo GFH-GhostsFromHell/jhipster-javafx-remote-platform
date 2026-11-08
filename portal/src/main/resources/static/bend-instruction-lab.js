@@ -461,7 +461,8 @@ $('loadProfile').onclick=()=>{
  if(!p||!['mm','in'].includes(p.units)){
   $('profileStatus').textContent='No valid saved bender profile. Record one in Bender Calibration first.';return;
  }
- const hasDeduct=typeof p.deduct==='number'&&Number.isFinite(p.deduct)&&p.deduct>=0;
+ const parsedDeduct=p.deduct===null||p.deduct===undefined||String(p.deduct).trim()===''?null:Number(p.deduct);
+ const hasDeduct=parsedDeduct!==null&&Number.isFinite(parsedDeduct)&&parsedDeduct>0&&parsedDeduct<=(p.units==='mm'?3048:120);
  const profileNumber=key=>{
   const raw=p[key];
   if(raw===null||raw===undefined||String(raw).trim()==='')return null;
@@ -475,7 +476,7 @@ $('loadProfile').onclick=()=>{
  const convert=n=>p.units===unit()?n:unit()==='mm'?n*25.4:n/25.4;
  // Clear values absent from this profile, avoiding stale measurements from
  // another shoe. Arc clearance is always expressed in mm in the editor.
- $('deduct').value=hasDeduct?fmt(convert(p.deduct),4):'';
+ $('deduct').value=hasDeduct?fmt(convert(parsedDeduct),4):'';
  $('minMarkGap').value=minGap!==null?fmt(convert(minGap),4):'';
  $('minStraight').value=minStraight!==null?fmt(p.units==='mm'?minStraight:minStraight*25.4,2):'';
  $('profileStatus').textContent='Loaded '+p.name+' ('+p.size+' '+p.material+'). Confirm the exact shoe. Blank clearance fields mean NOT VERIFIED.';
