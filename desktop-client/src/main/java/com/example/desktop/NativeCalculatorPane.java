@@ -52,6 +52,7 @@ public final class NativeCalculatorPane extends BorderPane {
         setTop(bar);
 
         Tab circuit = new Tab("Circuit Review", new CircuitReviewPane(json, username));
+        Tab industrial = new Tab("Industrial CT/PT", new IndustrialFieldPane());
         Tab guided = new Tab("Guided Worksheets", new GuidedWorksheetPane(json, username));
         Tab design = new Tab("Integrated Design", new IntegratedDesignPane(json, username));
         Tab transformerSizer = new Tab("Transformer Sizer", new TransformerLoadSizingPane(json, username));
@@ -68,7 +69,7 @@ public final class NativeCalculatorPane extends BorderPane {
         Tab tools = new Tab("Tools & Presets", new WorkbenchToolsPane(json, username, name -> {
             for (Tab t : tabs.getTabs()) if (t.getText().equals(name)) { tabs.getSelectionModel().select(t); break; }
         }));
-        tabs.getTabs().addAll(circuit, tools, exam, guided, design, transformerSizer, raceway, fill, bender, troubleshooting, derating, reports, sections);
+        tabs.getTabs().addAll(circuit, industrial, tools, exam, guided, design, transformerSizer, raceway, fill, bender, troubleshooting, derating, reports, sections);
         tabs.getSelectionModel().select(circuit);
         setCenter(tabs);
     }

@@ -550,6 +550,9 @@ private fun MobileWorkbenchPage(username: String, onOpenWeb: (String) -> Unit) {
     MWPage("CEC 2024 Workbench", "Fast field tools first. Advanced calculations and exam worksheets are below.") {
         MWHubCard("⚡ Fast Conduit Bender · mark in seconds", "Choose your bend, enter only its required dimensions, then read the tape marks and shoe orientation. Optional 3D preview.") { onOpenWeb("/bend-instruction-lab.html") }
         MWHubCard("Guided C of Q Worksheets", "Default guided workflow with worked steps, Why-this-answer explanations, conductor + voltage drop, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm, service demand, presets and saved solutions") { onOpenWeb("/guided-calculators.html") }
+        MWHubCard("Industrial CT/PT + relay worksheets · offline", "Three inputs: instrument transformer ratios, 3-phase power, specified relay pickup translation, ideal transformer fault estimate and 4–20 mA scaling") {
+            context.startActivity(Intent(context, IndustrialFieldActivity::class.java))
+        }
         MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }

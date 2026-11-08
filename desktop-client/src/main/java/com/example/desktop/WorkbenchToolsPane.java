@@ -50,6 +50,7 @@ public final class WorkbenchToolsPane extends BorderPane {
         new Tool("Exam Simulator","Exam Simulator","timed 100, 50 and 25 question blueprint-balanced practice"),
         new Tool("Guided Worksheets","Guided Worksheets","worked C of Q-style calculations and specialty worksheets"),
         new Tool("Report Center","Report Center","assemble saved work and export a local PDF calculation report"),
+        new Tool("Industrial CT/PT","Industrial Field Worksheets","offline CT/PT ratio, balanced power, relay pickup translation, ideal transformer fault estimate and 4-20mA scaling"),
         new Tool("CEC Sections / Advanced","CEC Sections","direct section-based calculator workspace")
     );
 

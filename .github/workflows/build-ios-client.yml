@@ -50,6 +50,10 @@ jobs:
         run: |
           swiftc ElectricalWorkbench/CircuitProjectReportText.swift Tests/CircuitProjectReportTextSelfTest.swift -o "$RUNNER_TEMP/circuit-pdf-text-tests"
           "$RUNNER_TEMP/circuit-pdf-text-tests"
+      - name: Test industrial field math and safety constraints
+        run: |
+          swiftc ElectricalWorkbench/IndustrialFieldMath.swift Tests/IndustrialFieldMathSelfTest.swift -o "$RUNNER_TEMP/industrial-field-tests"
+          "$RUNNER_TEMP/industrial-field-tests"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
