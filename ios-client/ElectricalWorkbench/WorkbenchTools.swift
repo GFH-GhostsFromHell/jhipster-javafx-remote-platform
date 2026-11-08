@@ -49,7 +49,7 @@ struct WorkbenchTools: View {
         List {
             Section("Offline field calculators") {
                 NavigationLink {
-                    FeatureGate(feature: "ENGINEERING_POWER_SYSTEMS", title: "Industrial Field Worksheets") {
+                    FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Industrial Field Worksheets") {
                         IndustrialFieldView()
                     }
                 } label: {
