@@ -49,6 +49,13 @@ struct WorkbenchTools: View {
         List {
             Section("Offline field calculators") {
                 NavigationLink {
+                    FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Circuit + Conductor Review") {
+                        UnifiedCircuitSizingView()
+                    }
+                } label: {
+                    Label("Circuit + conductor sizing · offline", systemImage: "bolt.circle")
+                }
+                NavigationLink {
                     QuickBenderView()
                 } label: {
                     Label("Conduit bending · all common bends", systemImage: "ruler")
