@@ -264,7 +264,8 @@ struct OfflinePowerCalculatorsView: View {
             let load = try n("load")
             let base = try n("base")
             let terminal = try n("terminalTemp"), insulation = try n("insulationTemp")
-            guard terminal.rounded() == terminal, insulation.rounded() == insulation else {
+            guard [60.0,75.0,90.0].contains(terminal),
+                  [60.0,75.0,90.0].contains(insulation) else {
                 throw CalculationError.bad("Enter a whole-number 60, 75, or 90 °C rating.")
             }
             let ambient = try n("ambientFactor"), grouping = try n("groupingFactor")
