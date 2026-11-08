@@ -66,4 +66,37 @@ if (portal.platform !== 'ios' || !/^\d+\.\d+\.\d+$/.test(portal.latestVersion) |
     (portal.appStoreUrl && !/^https:\/\/apps\.apple\.com\//.test(portal.appStoreUrl))) {
   throw new Error('Invalid iOS release manifest');
 }
+// Safety/field-parity guard: stock and tool-clearance checks must not be
+// silently dropped from one native client or from account profile sync.
+function checkFile(relative,expected){
+  const code=fs.readFileSync(path.join(root,relative),'utf8');
+  for(const literal of expected){
+    if(!code.includes(literal))throw new Error(relative+' missing bender parity feature: '+literal);
+  }
+}
+checkFile('ios-client/ElectricalWorkbench/QuickBender.swift',
+  ['savedMinMarkGapMm','physical bend marks overlap','marks are closer than the verified shoe spacing','10-ft stock']);
+checkFile('ios-client/ElectricalWorkbench/BenderCalibrationView.swift',
+  ['minMarkGap.mm','minimumMarkGap','measuredGap * factor <= 3048']);
+checkFile('ios-client/ElectricalWorkbench/AccountRecordSync.swift',
+  ['"minMarkGap":defaults.double','match["minMarkGap"]']);
+checkFile('android-client/app/src/main/java/com/gfh/electricalworkbench/ConduitFabricationMobile.kt',
+  ['CALCULATION NOT POSSIBLE on one 10 ft EMT stick','maxStock','marks.all']);
+checkFile('android-client/app/src/main/java/com/gfh/electricalworkbench/BenderCalibrationMobile.kt',
+  ['minMarkGap','gapValid']);
+checkFile('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileAccountSync.kt',
+  ['"minMarkGap"']);
+checkFile('desktop-client/src/main/java/com/example/desktop/QuickConduitBendPane.java',
+  ['shop marks overlap','minMarkGap','Shoe mark gap']);
+checkFile('desktop-client/src/main/java/com/example/desktop/Conduit3DPreviewPane.java',
+  ['has no straight length between bend arcs','Math.abs(bend.angle)<1e-8']);
+checkFile('desktop-client/src/main/java/com/example/desktop/BenderCalibrationPane.java',
+  ['minMarkGap','Verified minimum shoe mark spacing']);
+checkFile('desktop-client/src/main/java/com/example/desktop/DesktopAccountSync.java',
+  ['"minMarkGap"']);
+checkFile('portal/src/main/resources/static/bender-calibration.html',
+  ['id="minMarkGap"','id="minStraight"','Verified shoe clearance']);
+checkFile('portal/src/main/resources/static/bend-instruction-lab.js',
+  ['profileNumber(\'minMarkGap\')','profileNumber(\'minStraight\')']);
+console.log('Cross-platform bender safety contract passed: 10 ft stock, same-datum spacing and measured shoe profile sync.');
 console.log('iOS parity validation passed: 25 questions across five categories, native safety/field/account/ChatGPT/enterprise links, release manifest valid.');
