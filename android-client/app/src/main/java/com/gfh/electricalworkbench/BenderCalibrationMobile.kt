@@ -21,7 +21,9 @@ internal object LocalBenderCalibration {
     }
     fun measured(context: Context, key: String, destinationUnits: String): Double? {
         val stored = read(context, key).toDoubleOrNull() ?: return null
+        if (!stored.isFinite() || stored < 0) return null
         val sourceUnits = read(context, "units")
+        if (sourceUnits !in listOf("mm", "in") || destinationUnits !in listOf("mm", "in")) return null
         return if (sourceUnits == destinationUnits) stored
             else if (destinationUnits == "mm") stored * 25.4 else stored / 25.4
     }
@@ -43,6 +45,7 @@ internal fun BenderCalibrationMobile() {
     var stock by remember { mutableStateOf(LocalBenderCalibration.read(context, "stock")) }
     var first by remember { mutableStateOf(LocalBenderCalibration.read(context, "first")) }
     var second by remember { mutableStateOf(LocalBenderCalibration.read(context, "second")) }
+    var minimumMarkGap by remember { mutableStateOf(LocalBenderCalibration.read(context, "minMarkGap")) }
     var result by remember { mutableStateOf("Measure a scrap bend and save this shoe before using its deduct or gain.") }
 
     val markValue = mark.toDoubleOrNull()
@@ -76,18 +79,29 @@ internal fun BenderCalibrationMobile() {
     OutlinedTextField(value = first, onValueChange = { first = it }, label = { Text("First finished leg (" + units + ")") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(value = second, onValueChange = { second = it }, label = { Text("Second finished leg (" + units + ")") }, modifier = Modifier.fillMaxWidth())
     Text("Gain = finished leg A + finished leg B − original stock. " + (gain?.let { String.format(Locale.ROOT, "Gain: %.3f %s", it, units) } ?: "Enter all three valid measurements."))
+    HorizontalDivider()
+    Text("3 · Verified shoe mark spacing (optional)", style = MaterialTheme.typography.titleMedium)
+    OutlinedTextField(value = minimumMarkGap, onValueChange = { minimumMarkGap = it },
+        label = { Text("Minimum mark spacing for this exact shoe (" + units + ")") },
+        modifier = Modifier.fillMaxWidth())
+    Text("Enter only a manufacturer-confirmed or safely measured minimum for the same make, model, trade size and material. Mark spacing is NOT a full shoe-head clearance check.", style = MaterialTheme.typography.bodySmall)
     Button(onClick = {
+        val gap = minimumMarkGap.trim().toDoubleOrNull()
+        val gapValid = minimumMarkGap.isBlank() ||
+            (gap != null && gap.isFinite() && gap > 0 && gap <= if (units == "mm") 3048.0 else 120.0)
         val deductStarted = mark.isNotBlank() || stub.isNotBlank()
         val gainStarted = stock.isNotBlank() || first.isNotBlank() || second.isNotBlank()
         if (name.isBlank() || model.isBlank() || size.isBlank() || material.isBlank() ||
-            (!deductStarted && !gainStarted) || (deductStarted && deduct == null) || (gainStarted && gain == null)) {
-            result = "Enter a profile name, model, size, material, and at least one COMPLETE valid measurement set."
+            (!deductStarted && !gainStarted) || (deductStarted && deduct == null) ||
+            (gainStarted && gain == null) || !gapValid) {
+            result = "Enter model, size, material and a complete deduct/gain test. Optional measured mark spacing must be positive and within 10 ft."
         } else {
             LocalBenderCalibration.save(context, mapOf(
                 "name" to name, "model" to model, "material" to material, "size" to size,
                 "units" to units, "mark" to mark, "stub" to stub, "stock" to stock,
                 "first" to first, "second" to second,
-                "deduct" to (deduct?.toString() ?: ""), "gain" to (gain?.toString() ?: "")
+                "deduct" to (deduct?.toString() ?: ""), "gain" to (gain?.toString() ?: ""),
+                "minMarkGap" to (gap?.toString() ?: "")
             ))
             MobileAccountSync.schedule(context)
             result = "Calibration saved locally: " + name + ". Account sync runs when online. In Conduit bender or Gain & racks, tap Use saved calibration."
