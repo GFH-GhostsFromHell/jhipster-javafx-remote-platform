@@ -51,7 +51,7 @@ const html=Print.html(report,{client:'<client>',site:'Distribution <bay>',review
 for(const phrase of ['PRELIMINARY','NOT CODE VERIFIED','OESC_ON_2024',
  'AUTHORIZED_TABLE_VERIFICATION_REQUIRED',
  'Substation &lt;img','&lt;script&gt;','600V','Revision 2',
- '2026-11-08','Actual load','Terminal temperature','Corrected conductor ampacity',
+ '2026-11-08','Actual load','Equipment termination temperature','Corrected conductor ampacity',
  'Minimum circular mils','Field notes','Signature']){
  assert.ok(html.includes(phrase),'Missing report field '+phrase);
 }
