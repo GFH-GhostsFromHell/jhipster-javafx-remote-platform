@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import javafx.stage.FileChooser;
+import java.nio.file.Files;
+import java.io.File;
 import java.time.Instant;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -135,10 +138,44 @@ public final class CircuitReviewPane extends BorderPane {
         Button openRevision = new Button("Reopen selected revision");
         openRevision.setMinHeight(42);
         openRevision.setOnAction(event->reopenRevision());
+        TextField pdfClient=field("");
+        TextField pdfSite=field("");
+        TextField pdfReviewer=field("");
+        Button exportPdf=new Button("Export selected revision as PDF");
+        exportPdf.setMinHeight(44);
+        exportPdf.setMaxWidth(Double.MAX_VALUE);
+        exportPdf.setOnAction(event->{
+            try {
+                SavedRevision selection=saved.getSelectionModel().getSelectedItem();
+                if(selection==null)
+                    throw new IllegalArgumentException("Select a saved revision before exporting.");
+                byte[] pdf=CircuitWorksheetPdf.render(selection.record(),
+                    pdfClient.getText(),pdfSite.getText(),pdfReviewer.getText());
+                FileChooser chooser=new FileChooser();
+                chooser.setTitle("Save verified-input circuit worksheet PDF");
+                chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("PDF document","*.pdf"));
+                String clean=(selection.record().path("project").asText("project")+"-"+
+                    selection.record().path("title").asText("circuit")).replaceAll("[^A-Za-z0-9._-]","-");
+                chooser.setInitialFileName(clean+"-rev"+
+                    selection.record().path("revision").asInt(1)+".pdf");
+                File file=chooser.showSaveDialog(getScene().getWindow());
+                if(file==null)return;
+                Files.write(file.toPath(),pdf);
+                archiveStatus.setText("PDF saved: "+file.getAbsolutePath()+
+                    " (preliminary, not Code verified)");
+            }catch(Exception ex){
+                archiveStatus.setText("PDF export failed: "+ex.getMessage());
+            }
+        });
         GridPane metadata=grid();
         metadata.addRow(0,row("Project name",project));
         metadata.addRow(1,row("Worksheet title",worksheetTitle));
         metadata.addRow(2,row("Verification / field notes",notes));
+        GridPane pdfMeta=grid();
+        pdfMeta.addRow(0,row("Client / employer",pdfClient));
+        pdfMeta.addRow(1,row("Site / location",pdfSite));
+        pdfMeta.addRow(2,row("Reviewer (optional)",pdfReviewer));
 
         Label footer = new Label(
             "NOT CODE VERIFIED. Confirm licensed CEC 2024 and Ontario amendments, conductor material/size, " +
@@ -153,7 +190,8 @@ public final class CircuitReviewPane extends BorderPane {
             card("2 · Selected conductor and installation",caution,wire,vdOptions),
             calculate,card("3 · Worked calculation",status,report,copy),
             card("4 · Save to project",metadata,saveRevision,archiveStatus,
-                new Label("Previous revisions for this project"),saved,openRevision),
+                new Label("Previous revisions for this project"),saved,openRevision,
+                new Label("PDF report details"),pdfMeta,exportPdf),
             footer);
         refreshRevisions();
         ScrollPane scroll = new ScrollPane(page);
