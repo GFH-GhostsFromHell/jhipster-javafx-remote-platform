@@ -36,6 +36,7 @@ public final class WorkbenchToolsPane extends BorderPane {
 
     private final List<Tool> tools = List.of(
         new Tool("Integrated Design","Circuit Designer","conductor sizing, ampacity, derating, voltage drop, OCPD, bonding and raceway"),
+        new Tool("Circuit Review","Circuit + Conductor Review","offline unified load, termination-temperature ampacity, voltage drop and general OCPD check"),
         new Tool("Integrated Design","Panel Schedule","phase balancing, VA totals and panel current"),
         new Tool("Integrated Design","Transformer → Panel","transformer FLA, impedance fault current, OCPD and panel loading"),
         new Tool("Integrated Design","Motor Circuit","motor conductors, voltage drop, overload, fuse/breaker and disconnect screening"),
