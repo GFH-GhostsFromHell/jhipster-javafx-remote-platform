@@ -64,7 +64,7 @@ enum CircuitProjectPDF {
                                   options:.regularExpression)
         let revision=String(describing:record["revision"] ?? "1")
         let filename=String(project.prefix(40))+"-"+String(title.prefix(40))+
-            "-rev"+revision+"-"+UUID().uuidString.prefix(8)+".pdf"
+            "-rev"+revision+"-"+String(UUID().uuidString.prefix(8))+".pdf"
         let url=FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         try pdf.write(to:url,options:.atomic)
         return url
