@@ -17,7 +17,10 @@ label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:650;
 input,select{min-height:46px;width:100%;background:#0a1a2b;color:#f4fcff;border:1px solid #54718a;border-radius:9px;padding:10px 12px;font:inherit;font-size:16px}
 button{min-height:48px;padding:12px 18px;border:0;border-radius:11px;color:#051522;background:#22d3ee;font:inherit;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin:4px 0 13px}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #f6ca63;outline-offset:2px}
-.note{color:#c1d0df;font-size:14px;line-height:1.5}.warning{color:#ffd889}.subtle{color:#acc3d3;font-size:13px}
+.note{color:#c1d0df;font-size:14px;line-height:1.5}
+.quick-presets{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0 15px}
+.quick-presets button{flex:1 1 120px;width:auto;min-height:48px;font-size:13px;padding:9px 10px;background:#194158;color:#ecfaff;border:1px solid #6092ae}
+.quick-presets button:focus-visible{outline:3px solid #f6ca63}.warning{color:#ffd889}.subtle{color:#acc3d3;font-size:13px}
 details{margin-top:13px;border:1px solid #3b586b;border-radius:10px;padding:12px}
 summary{cursor:pointer;font-weight:750;margin-bottom:9px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Consolas,monospace;color:#e8f5ff}
@@ -52,7 +55,14 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
 <nav><a href="/calculators.html">CEC calculators</a><a href="/cec-reference-status.html">CEC data status</a><a href="/guided-calculators.html">Guided worksheets</a><a href="/portal.html">Account portal</a></nav>
 </header>
 <main>
-<div class="card"><h2>1. Circuit</h2><div class="grid">
+<div class="card"><h2>1. Circuit</h2>
+<p class="subtle">Quick system setup (only changes voltage and phase; all conductor figures still need verification)</p>
+<div class="quick-presets" role="group" aria-label="Common electrical system presets">
+<button type="button" data-system-volts="120" data-system-phases="1">120 V · 1φ</button>
+<button type="button" data-system-volts="208" data-system-phases="3">208 V · 3φ</button>
+<button type="button" data-system-volts="347" data-system-phases="1">347 V · 1φ</button>
+<button type="button" data-system-volts="600" data-system-phases="3">600 V · 3φ</button>
+</div><div class="grid">
 <label>Actual load (A)<input id="loadA" type="number" min="0" step="any" value="40"></label>
 <label>System voltage (V)<input id="voltageV" type="number" min="0" step="any" value="600"></label>
 <label>System<select id="phases"><option value="1">1φ two-wire</option><option value="3" selected>3φ balanced</option></select></label>
@@ -125,6 +135,16 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 ui-monospace,Conso
  const num=n=>Number(el(n).value);
  const fmt=n=>Number(n).toFixed(2);
  let latest=null;
+ document.querySelectorAll('[data-system-volts]').forEach(button=>{
+   button.addEventListener('click',()=>{
+     el('voltageV').value=button.dataset.systemVolts;
+     el('phases').value=button.dataset.systemPhases;
+     latest=null;
+     el('status').textContent='System selected: '+button.dataset.systemVolts+
+       ' V. Review actual load and conductor conditions, then recalculate.';
+     el('result').textContent='Previous result cleared. No automatic conductor/device approval.';
+   });
+ });
  el('calculate').addEventListener('click',()=>{
   const status=el('status'),out=el('result');
   try {
