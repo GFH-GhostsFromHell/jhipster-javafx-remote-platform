@@ -319,8 +319,7 @@ struct UnifiedCircuitSizingView: View {
         do {
             preparedPDF=try CircuitProjectPDF.prepare(
                 record:revision.raw,client:pdfClient,site:pdfSite,reviewer:pdfReviewer)
-            pdfStatus="PDF created for "+revision.title+" · revision "+String(revision.revision)+
-                ". Select Share / save PDF to export the file."
+            pdfStatus="PDF created for \(revision.title) · revision \(revision.revision). Select Share / save PDF to export the file."
         } catch {
             preparedPDF=nil
             pdfStatus="PDF could not be generated: "+error.localizedDescription
@@ -337,8 +336,7 @@ struct UnifiedCircuitSizingView: View {
         }
         selectedPDFRevision=record
         preparedPDF=nil
-        pdfStatus="Selected "+record.title+" · revision "+String(record.revision)+
-            " for PDF export."
+        pdfStatus="Selected \(record.title) · revision \(record.revision) for PDF export."
         loadA=num("loadA",loadA);voltageV=num("voltageV",voltageV)
         phases=(data["phases"] as? NSNumber)?.intValue ?? phases
         lengthM=num("oneWayLengthM",lengthM)
