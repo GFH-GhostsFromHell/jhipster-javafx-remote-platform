@@ -56,3 +56,7 @@ This is a new product, not a rebranding or direct deployment of Electrical Workb
 
 ## Cloud demo deployment
 See [the cloud Kepware showcase guide](docs/CLOUD_KEPWARE_SHOWCASE.md). Windows VM / Kepware installation and licensing are separate prerequisites; this GitHub branch contains no running cloud Kepware service.
+
+## Public industrial HMI showcase
+
+The independent read-only public showroom at `/showcase.html` demonstrates three simulated monitoring stations: underground dewatering, ore conveyor, and 600 V substation. It fetches `GET /api/studio/showcase` every two seconds. **This feed never queries Kepware, real OPC UA, site configuration, the workstation registry, or the database.** All readings are synthetic and visibly marked SIMULATED. The cloud showcase page is distinct from the authenticated administrator's per-PC HMI screen designer.
