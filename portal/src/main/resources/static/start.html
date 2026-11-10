@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Find a Tool — Electrical Workbench</title>
+<style>
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#102338;background:#edf3f8;--navy:#092138;--line:#cbdbe8;--cyan:#0e7490}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#eef4f9}
+header{background:#082239;color:#f5fbff;padding:14px max(16px,calc((100vw - 1160px)/2));display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+header strong{font-size:18px}header nav{display:flex;flex-wrap:wrap;gap:10px}a{color:#075985}header a{color:white;text-decoration:none;font-weight:700;padding:9px;border:1px solid #36637e;border-radius:9px}
+main{max-width:1160px;margin:auto;padding:24px 16px 64px}.lead{font-size:16px;color:#39546b;line-height:1.5}
+h1{font-size:clamp(23px,4.4vw,32px);margin:0 0 8px}h2{font-size:20px;margin:0 0 14px}.panel{background:#fff;border:1px solid #cbdbe8;border-radius:17px;padding:20px;margin-bottom:18px;box-shadow:0 8px 25px #0921380a}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:16px 0}
+.step{border:1px solid #cbdbe8;background:#f7fbff;border-radius:12px;padding:11px;font-size:13px;font-weight:750}
+.step b{display:block;color:#075985;margin-bottom:4px}.step.active{background:#e8f8fc;border-color:#0891b2}
+label{font-weight:750;display:block;margin:8px 0}input[type=search]{min-height:49px;width:100%;border:1px solid #899eaf;border-radius:10px;padding:11px;font:inherit}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #0e7490;outline-offset:2px}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}button{cursor:pointer;font:inherit;min-height:44px}button.filter{padding:8px 12px;border:1px solid #adc4d6;background:#f5f9fc;color:#153d55;border-radius:999px;font-weight:750}button.filter[aria-pressed=true]{background:#0c506c;color:white;border-color:#0c506c}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.task{border:1px solid #cfdee9;background:white;border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:9px;min-width:0}.task h3{font-size:17px;margin:0}.task p{margin:0;line-height:1.45;color:#455a6f;font-size:13px;flex:1}.task .tag{font-size:11px;color:#08627d;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.task .buttons{display:flex;align-items:center;gap:9px}.task .open{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#075985;color:white;padding:11px 14px;border-radius:9px;font-weight:800;min-height:44px;flex:1}.task .star{background:white;border:1px solid #a8becd;border-radius:9px;min-width:46px;padding:9px;color:#305065;font-size:18px}.task .star[aria-pressed=true]{color:#995c00;background:#fff4d5;border-color:#d1a741}
+.shortlists{display:grid;grid-template-columns:1fr 1fr;gap:15px}.shortlists h2{margin-bottom:7px}.shortlists ul{padding-left:18px;margin:6px 0}.shortlists li{margin:8px 0}.muted{color:#536779;font-size:13px}.secondary{background:white;border:1px solid #9cbbcf;border-radius:9px;padding:8px 12px;color:#174962;font-weight:700}
+.selected{border-left:4px solid #0e7490;padding-left:16px}.selected ol{padding-left:19px}.selected li{margin:7px 0}.selected .open{display:inline-block;background:#075985;color:white;border-radius:9px;padding:12px 16px;text-decoration:none;font-weight:800}
+#none[hidden],#selectedTask[hidden]{display:none}#none{padding:18px;background:white;border:1px dashed #7d9bae;border-radius:9px}
+footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:590px){main{padding:15px 12px 42px}.cards,.shortlists{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}.step{min-height:73px}}
+</style>
+</head>
+<body>
+<header><strong>⚡ Electrical Workbench</strong><nav><a href="/portal.html">Dashboard</a><a href="/account-records.html">Saved cloud records</a></nav></header>
+<main>
+<h1>What do you need to do?</h1>
+<p class="lead">Search by a jobsite task, not by Code section or app name. Open the right tool, enter its inputs, verify the result and save your work.</p>
+<div class="steps" aria-label="Recommended work sequence">
+<div class="step active"><b>1 · Find a task</b>Search or choose below</div>
+<div class="step"><b>2 · Enter values</b>Only the required measurements</div>
+<div class="step"><b>3 · Review result</b>Confirm rules and equipment data</div>
+<div class="step"><b>4 · Save or export</b>Keep a record of your work</div>
+</div>
+<section class="panel">
+<label for="query">Find an electrical tool</label><input id="query" type="search" placeholder="Try offset bend, motor fuse, voltage drop or hospital service" autocomplete="off">
+<div class="filters" role="group" aria-label="Task category">
+<button type="button" class="filter" data-category="all" aria-pressed="true">All tools</button>
+<button type="button" class="filter" data-category="installation" aria-pressed="false">Bending & layout</button>
+<button type="button" class="filter" data-category="calculations" aria-pressed="false">Calculations</button>
+<button type="button" class="filter" data-category="engineering" aria-pressed="false">Power & protection</button>
+<button type="button" class="filter" data-category="troubleshooting" aria-pressed="false">Troubleshooting</button>
+<button type="button" class="filter" data-category="projects" aria-pressed="false">Projects</button>
+<button type="button" class="filter" data-category="reference" aria-pressed="false">Code updates</button>
+</div>
+<div id="count" class="muted" role="status" aria-live="polite"></div>
+</section>
+<section class="panel shortlists" aria-label="Your tools">
+<div><h2>★ Favourites</h2><p id="accountStatus" class="muted">Checking your account…</p><ul id="favourites"></ul></div>
+<div><h2>Recently opened</h2><ul id="recent"></ul><button id="clearRecent" class="secondary" type="button">Clear recent tools</button></div>
+</section>
+<section id="selectedTask" class="panel selected" hidden aria-live="polite"></section>
+<section aria-label="Available electrical tools"><h2>Choose a tool</h2><div id="catalog" class="cards"></div><div id="none" hidden>No matching tools. Try a simpler task name or select All tools.</div></section>
+<footer>Favourites and recently opened tools use only task identifiers and are stored on this device, separately for each signed-in account. They are not cloud-synced. Electrical calculations remain advisory: confirm the applicable CEC/OESC edition, equipment ratings and site requirements.</footer>
+</main>
+<script src="/tool-catalog.js"></script><script src="/tool-state.js"></script>
+<script>
+(function(){
+ 'use strict';
+ var tasks=window.EWBTaskCatalog||[];
+ var store=window.EWBToolState;
+ var input=document.getElementById('query'), category='all', current=null;
+ var filters=Array.from(document.querySelectorAll('button.filter'));
+ function el(name,cls,txt){var n=document.createElement(name);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;}
+ function link(item,txt){var a=el('a',null,txt||item.name);a.href=item.path;a.addEventListener('click',function(){store.visit(item.id);});return a;}
+ function match(item,query){var words=query.trim().toLowerCase().split(/\s+/).filter(Boolean);return words.every(function(word){return (item.name+' '+item.description+' '+item.keywords).toLowerCase().includes(word);});}
+ function rows(target,ids){
+  target.replaceChildren();
+  ids.forEach(function(id){var item=tasks.find(function(x){return x.id===id;});if(!item)return;var li=el('li');li.append(link(item));target.append(li);});
+  if(!target.children.length)target.append(el('li','muted','No tools yet.'));
+ }
+ function renderShortlists(){
+  var state=store.snapshot();
+  rows(document.getElementById('favourites'),state.favourites.slice(0,5));
+  rows(document.getElementById('recent'),state.recent.slice(0,5));
+  document.getElementById('clearRecent').disabled=!state.ready||!state.recent.length;
+ }
+ function choose(item){
+  current=item;
+  var box=document.getElementById('selectedTask');box.replaceChildren();
+  box.append(el('h2',null,item.name),el('p','muted',item.description));
+  var h=el('strong',null,'Your workflow');box.append(h);
+  var ol=el('ol');
+  [item.steps[0],item.steps[1],item.steps[2]].forEach(function(step,i){ol.append(el('li',null,(i===0?'Enter inputs: ':i===1?'Verify: ':'Finish: ')+step));});
+  box.append(ol);
+  var go=link(item,'Open '+item.name);go.className='open';box.append(go);
+  box.hidden=false;
+ }
+ function render(){
+  var q=input.value,shown=0,zone=document.getElementById('catalog');
+  zone.replaceChildren();
+  var state=store.snapshot();
+  tasks.filter(function(task){return(category==='all'||task.category===category)&&match(task,q);}).sort(function(a,b){
+   var af=state.favourites.includes(a.id)?0:1,bf=state.favourites.includes(b.id)?0:1;
+   return af-bf||a.name.localeCompare(b.name);
+  }).forEach(function(item){
+   shown++;
+   var card=el('article','task'),heading=el('h3',null,item.name),desc=el('p',null,item.description);
+   card.append(el('div','tag',item.category),heading,desc);
+   var buttons=el('div','buttons'),open=link(item,'Open tool'),star=el('button','star',state.favourites.includes(item.id)?'★':'☆');
+   open.className='open';star.type='button';star.setAttribute('aria-pressed',String(state.favourites.includes(item.id)));
+   star.setAttribute('aria-label',(state.favourites.includes(item.id)?'Remove from':'Add to')+' favourites: '+item.name);
+   star.title='Favourite tool';
+   star.disabled=!state.ready;
+   star.addEventListener('click',function(){store.favourite(item.id);renderShortlists();render();});
+   buttons.append(open,star);card.append(buttons);
+   var explain=el('button','secondary','How to use');explain.type='button';
+   explain.addEventListener('click',function(){choose(item);document.getElementById('selectedTask').scrollIntoView({behavior:'smooth',block:'start'});});
+   card.append(explain);zone.append(card);
+  });
+  document.getElementById('none').hidden=shown!==0;
+  document.getElementById('count').textContent=shown+' available tool'+(shown===1?'':'s');
+ }
+ filters.forEach(function(btn){btn.addEventListener('click',function(){category=btn.dataset.category;filters.forEach(function(b){b.setAttribute('aria-pressed',String(b===btn));});render();});});
+ input.addEventListener('input',render);
+ document.getElementById('clearRecent').addEventListener('click',function(){store.clearRecent();renderShortlists();});
+ window.addEventListener('ewb-tool-state-change',function(){renderShortlists();render();});
+ render();renderShortlists();
+ fetch('/api/profile',{credentials:'same-origin'}).then(function(res){if(!res.ok)throw Error('Sign in first');return res.json();}).then(function(profile){
+  store.init(profile.username);
+  document.getElementById('accountStatus').textContent='Saved for '+profile.username+' on this device';
+  renderShortlists();render();
+ }).catch(function(){document.getElementById('accountStatus').textContent='Sign in to use favourites and recent tools.';render();});
+})();
+</script>
+</body>
+</html>
