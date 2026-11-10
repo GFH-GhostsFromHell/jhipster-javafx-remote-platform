@@ -58,7 +58,9 @@ public final class IndustrialHmiApp extends Application {
         pairingHelp.setWrapText(true);
         Label setupTitle=new Label("Set up this PC");
         setupTitle.setStyle("-fx-font-size:22px;-fx-font-weight:bold");
-        pairPanel=new VBox(9,setupTitle,pairingHelp,pairingCode,pairButton);
+        Hyperlink webPortal=new Hyperlink("Open the web configurator to get a setup code");
+        webPortal.setOnAction(e->getHostServices().showDocument("https://industrial-control-studio-demo.onrender.com"));
+        pairPanel=new VBox(9,setupTitle,pairingHelp,webPortal,pairingCode,pairButton);
         pairPanel.setPadding(new Insets(15));
         pairPanel.setStyle("-fx-background-color:#1a3952;-fx-background-radius:10;");
         pairPanel.setMaxWidth(720);
