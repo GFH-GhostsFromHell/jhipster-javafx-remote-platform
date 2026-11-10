@@ -70,7 +70,7 @@ for(const [platform,source,screen] of [
  assert.ok(ui.includes('NOT CODE VERIFIED'),platform+' missing Code warning');
 }
 assert.ok(read('android-client/app/src/main/AndroidManifest.xml').includes('IndustrialFieldActivity'));
-assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt').includes('IndustrialFieldActivity::class.java'));
+assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileToolFinder.kt').includes('IndustrialFieldActivity::class.java'));
 assert.ok(read('ios-client/ElectricalWorkbench/WorkbenchTools.swift').includes('IndustrialFieldView()'));
 assert.ok(read('desktop-client/src/main/java/com/example/desktop/NativeCalculatorPane.java').includes('new IndustrialFieldPane()'));
 const circuitWeb=read('portal/src/main/resources/static/circuit-sizing.html');

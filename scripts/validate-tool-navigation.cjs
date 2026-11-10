@@ -42,4 +42,45 @@ for (const area of ['LEARN','FIELD','PROJECTS','CAREER']) {
 }
 includes(ios, 'name: "Step-by-Step Calculators"', 'iOS tool naming');
 includes(desktop, 'navButton("🧮  Electrical Calculators")', 'Desktop tool naming');
+const mobileCatalog = read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileToolFinder.kt');
+includes(mobileCatalog, 'Search tools by job or calculation', 'Native Android task search');
+includes(mobileCatalog, 'getSharedPreferences("ewb.tool.shortcuts.v1."', 'Account-scoped Android favourites');
+includes(mobileCatalog, 'CircuitSizingActivity::class.java', 'Native circuit shortcut');
+includes(mobileCatalog, 'IndustrialFieldActivity::class.java', 'Native relay shortcut');
+includes(ios, '.searchable(text: $searchText', 'Native iOS tool search');
+includes(ios, 'toggleFavourite(tool.id)', 'Native iOS favourites');
+includes(desktop, 'Search by job:', 'Windows task search');
+includes(desktop, 'toolPreferenceKey(', 'Windows account-scoped favourites');
+const vm = require('node:vm');
+for (const file of ['tool-catalog.js','tool-state.js','dashboard-tools.js','worksheet-actions.js']) {
+  new vm.Script(read(root+file), {filename:file});
+}
+const catalogContext = {window:{}};
+vm.runInNewContext(read(root+'tool-catalog.js'),catalogContext);
+const tasks = catalogContext.window.EWBTaskCatalog;
+assert.ok(Array.isArray(tasks) && tasks.length>=20, 'Universal catalog has 20+ named tasks');
+assert.equal(new Set(tasks.map(t=>t.id)).size,tasks.length,'Tool IDs must be unique');
+const knownWebRoutes = ['engineering-power.html'];
+for(const task of tasks) {
+  assert.ok(task.id && task.name && task.path.startsWith('/'), 'Every task has a stable identity and local path');
+  assert.ok(Array.isArray(task.steps)&&task.steps.length===3, 'Each task has a usable 3-step action guide');
+  const base = task.path.slice(1).split(/[?#]/)[0];
+  if(!knownWebRoutes.includes(base))assert.ok(require('node:fs').existsSync(root+base), 'Missing tool destination '+task.path);
+}
+const start = read(root+'start.html');
+for(const token of ['id="query"','id="catalog"','id="favourites"','id="recent"','tool-catalog.js','tool-state.js','Save or export'])includes(start,token,'Task launcher');
+const script= start.match(/<script>([\s\S]*?)<\/script>/);
+assert.ok(script,'Task launcher requires a real script');
+new vm.Script(script[1],{filename:'start-inline.js'});
+includes(guided,"get('tool')",'Guided deep links');
+includes(field,"show(location.hash.slice(1)||'home')",'Jobsite task deep links');
+for(const file of ['guided-calculators.html','calculators.html','advanced-calculations.html']){
+  includes(read(root+file),'worksheet-actions.js','Worksheet save/restore workflow mounted');
+}
+const helper=read(root+'worksheet-actions.js');
+for(const text of ['Save input draft','Restore inputs','Export selected JSON','Copy visible result','password|token|secret|email|address','device','Save or export']){
+  assert.ok(helper.toLowerCase().includes(text.toLowerCase()),'Worksheet workflow missing '+text);
+}
+console.log('Task-first workflow validation passed: catalog links, deep links, native navigation and safe local drafts.');
+
 console.log('Task-first navigation labels, routes, search controls, and Android section shortcuts verified.');
