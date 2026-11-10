@@ -26,8 +26,8 @@ class StudioSecurity {
         }
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         return new InMemoryUserDetailsManager(
-            User.withUsername(admin).password(encoder.encode(adminPassword)).roles("ADMIN", "VIEWER").build(),
-            User.withUsername(viewer).password(encoder.encode(viewerPassword)).roles("VIEWER").build()
+            User.withUsername(admin).password("{bcrypt}"+encoder.encode(adminPassword)).roles("ADMIN", "VIEWER").build(),
+            User.withUsername(viewer).password("{bcrypt}"+encoder.encode(viewerPassword)).roles("VIEWER").build()
         );
     }
 
