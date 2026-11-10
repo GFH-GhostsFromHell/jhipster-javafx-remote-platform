@@ -29,6 +29,8 @@ includes(dashboard, "function update()", 'Task filtering enabled');
 assert.ok(!dashboard.includes('<h2>Reports & statistics</h2>'), 'Do not bring back empty dashboard placeholders');
 includes(calc, 'id="sectionFinder"', 'Section-based calculator search');
 includes(guided, '<h1>Step-by-Step Electrical Calculators</h1>', 'Guided calculator title');
+includes(guided, 'id="findCalculator"', 'Guided task search');
+includes(guided, 'function filterCalculators()', 'Guided filters wired');
 includes(field, '<h1>Jobsite Tools</h1>', 'Field tools title');
 for (const title of ['Electrical Calculators','Step-by-Step Calculators','Jobsite Tools','Equipment Troubleshooting']) {
   includes(dashboard, '<span class="label">' + title + '</span>', 'Portal navigation');
