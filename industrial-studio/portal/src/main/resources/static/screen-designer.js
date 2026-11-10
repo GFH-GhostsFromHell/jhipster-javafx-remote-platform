@@ -171,6 +171,15 @@ function renderDeviceEditor(){
                         '. Its JavaFX client will fetch the assigned screen on its next refresh.');
                 }catch(e){status(e.message,true)}
             }));
+        row.append(button('Download PC setup ZIP',async()=>{
+            try{
+                await window.studioAdminDownload(
+                    '/api/studio/workstations/'+encodeURIComponent(device.id)+'/setup-package',
+                    'IndustrialHMI-'+device.id+'-Setup.zip');
+                status('Downloaded setup package for '+device.id+
+                    '. Install the generic HMI MSI separately, then import the ZIP into that PC.');
+            }catch(e){status('Setup package failed: '+e.message,true)}
+        }));
         out.append(row);
     }
 }
