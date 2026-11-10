@@ -35,7 +35,7 @@ jobs:
       - name: Build/test and gather JavaFX runtime dependencies
         shell: pwsh
         run: |
-          mvn -B clean verify dependency:copy-dependencies -DoutputDirectory=target/jpackage-input -DincludeScope=runtime
+          mvn -B clean verify dependency:copy-dependencies -DoutputDirectory=target/jpackage-input -DincludeScope=runtime -Dhmi.build.version=0.1.${{ github.run_number }}
           if ($LASTEXITCODE -ne 0) { throw 'Maven build or tests failed' }
           Copy-Item target/industrial-studio-hmi-0.1.0-SNAPSHOT.jar target/jpackage-input/
 
