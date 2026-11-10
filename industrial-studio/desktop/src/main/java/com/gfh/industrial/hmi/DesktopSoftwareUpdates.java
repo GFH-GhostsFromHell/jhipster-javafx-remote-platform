@@ -51,7 +51,7 @@ final class DesktopSoftwareUpdates {
             if(!"https".equals(url.getScheme()) || !"github.com".equals(url.getHost()) ||
                url.getPort()!=-1 || url.getUserInfo()!=null || url.getRawQuery()!=null ||
                url.getFragment()!=null || !url.getPath().endsWith(".msi") ||
-               url.getPath().contains("..") || url.getPath().contains("%"))return null;
+               url.getPath().contains("..") || url.getRawPath().contains("%"))return null;
             return new Release(version,url,hash.toLowerCase(java.util.Locale.ROOT),publisher);
         }catch(IllegalArgumentException ignored){return null;}
     }
