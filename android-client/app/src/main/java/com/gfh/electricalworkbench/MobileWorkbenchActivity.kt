@@ -418,6 +418,7 @@ private fun MobileShell(
     onOpenWeb: (String) -> Unit,
     onLogout: () -> Unit
 ) {
+    var initialMoreArea by remember { mutableStateOf(MoreArea.HUB) }
     Scaffold(
         containerColor = MobileNavy,
         contentWindowInsets = WindowInsets.navigationBars,
@@ -441,7 +442,7 @@ private fun MobileShell(
                 MobileNavItem(selected == MobileTab.Home, { onSelected(MobileTab.Home) }, Icons.Default.Dashboard, "Home")
                 MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Tools")
                 MobileNavItem(selected == MobileTab.Safety, { onSelected(MobileTab.Safety) }, Icons.Default.ElectricBolt, "Safety")
-                MobileNavItem(selected == MobileTab.More, { onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
+                MobileNavItem(selected == MobileTab.More, { initialMoreArea = MoreArea.HUB; onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
                 MobileNavItem(selected == MobileTab.Profile, { onSelected(MobileTab.Profile) }, Icons.Default.Person, "Profile")
             }
         }
@@ -452,11 +453,14 @@ private fun MobileShell(
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (selected) {
-                    MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
+                    MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb) { area ->
+                        initialMoreArea = area
+                        onSelected(MobileTab.More)
+                    }
                     MobileTab.Workbench -> MobileWorkbenchPage(session.username, onOpenWeb)
                     MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
                     MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
-                    MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
+                    MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb, initialMoreArea)
                     MobileTab.Profile -> MobileProfile(
                         session, onOpenWeb, onLogout, availableUpdate,
                         updateChecking, updateStatus, onCheckUpdates, onReviewUpdate
@@ -510,7 +514,7 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
 }
 
 @Composable
-private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit) {
+private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit, onOpenMore: (MoreArea) -> Unit) {
     val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -525,10 +529,10 @@ private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, 
         }
         MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
         MobileFeatureCard("🤖 Ask ChatGPT", "Connect an eligible ChatGPT account and ask questions directly inside Electrical Workbench") { onSelected(MobileTab.ChatGPT) }
-        MobileFeatureCard("🎓 Red Seal Study", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onSelected(MobileTab.More) }
-        MobileFeatureCard("🛠 Jobsite Tools", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onSelected(MobileTab.More) }
-        MobileFeatureCard("📁 Saved Projects", "Project log, material takeoff, records and cable planning") { onSelected(MobileTab.More) }
-        MobileFeatureCard("📈 Career & Trade Hours", "Trade hours, credentials, wage estimate and official trade/job resources") { onSelected(MobileTab.More) }
+        MobileFeatureCard("🎓 Red Seal Study", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onOpenMore(MoreArea.LEARN) }
+        MobileFeatureCard("🛠 Jobsite Tools", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onOpenMore(MoreArea.FIELD) }
+        MobileFeatureCard("📁 Saved Projects", "Project log, material takeoff, records and cable planning") { onOpenMore(MoreArea.PROJECTS) }
+        MobileFeatureCard("📈 Career & Trade Hours", "Trade hours, credentials, wage estimate and official trade/job resources") { onOpenMore(MoreArea.CAREER) }
         MobileFeatureCard("⚡ CEC / OESC Code News", "ESA/OESC public bulletins and code notices") { onOpenWeb("/news.html") }
     }
 }
