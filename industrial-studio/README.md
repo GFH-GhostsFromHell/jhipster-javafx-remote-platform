@@ -6,6 +6,7 @@ Separate Java 21 / Spring Boot / JavaFX application modelled on the existing Ele
 - Web portal to configure endpoint metadata, OPC UA node mappings, display names, engineering units and alarm limits.
 - Web-based HMI screen designer (Text, Value, Gauge and Status widgets) with revisioned screens and per-workstation assignments.
 - Independently enrolled JavaFX PCs download their assigned screen definitions and scoped simulator readings using a workstation secret plus viewer login.
+- Admin-only **Download PC setup ZIP** for each enrolled workstation: prefills portal URL, workstation identity and screen reference in the JavaFX client; the package contains no credentials. The standard Windows MSI is built separately by a dedicated GitHub workflow.
 - Revisioned, persistent configuration using optimistic concurrency (H2 local or PostgreSQL).
 - Browser-editable **Java source drafts** for a future isolated rules worker. Drafts are stored but **never compiled or executed** by the portal.
 - JavaFX desktop HMI reads the service, automatically refreshes values, exposes connection/quality/staleness, and keeps credentials in memory.
@@ -27,7 +28,18 @@ JavaFX desktop HMI -> authenticated /api/studio/live (currently simulation)
 
 Run the **portal** on a designated test/edge PC (not Render): `cd industrial-studio/portal && mvn spring-boot:run`. Set `STUDIO_ADMIN_PASSWORD` and `STUDIO_VIEWER_PASSWORD` to different high-entropy passwords of 12+ characters. Visit http://127.0.0.1:8090/ and sign in using the portal's in-page form. Its REST API uses HTTP Basic over the local machine only. For remote use, put it behind TLS, network isolation/VPN, formal RBAC, and a CSRF-resistant authentication approach.
 
-Run the **desktop** with `cd industrial-studio/desktop && mvn javafx:run`. Provide the portal URL, viewer credentials, registered workstation ID and one-time enrollment secret. In the portal, open **HMI screens & PCs**, create screen layouts and register each PC. The JavaFX app downloads the layout assigned to that specific PC; editing the layout does not require rebuilding its installer. Current snapshots are **simulated**. See [per-PC HMI setup](docs/PER_WORKSTATION_HMI.md).
+Run the **desktop** with `cd industrial-studio/desktop && mvn javafx:run` (or use the separately built Windows MSI from GitHub Actions). Provide the portal URL, viewer credentials, registered workstation ID and one-time enrollment secret. In the portal, open **HMI screens & PCs**, create screen layouts and register each PC. The JavaFX app downloads the layout assigned to that specific PC; editing the layout does not require rebuilding its installer. Current snapshots are **simulated**. See [per-PC HMI setup](docs/PER_WORKSTATION_HMI.md).
+
+## Preconfigured workstation setup packages
+
+1. Set `STUDIO_CLIENT_BASE_URL` to the secure address that client PCs will use (HTTPS is mandatory for remote hosts; default loopback works only on the same PC).
+2. In **HMI screens & PCs** register and assign the device. Save its separately delivered one-time-displayed workstation secret.
+3. Click **Download PC setup ZIP** in the workstation row. This package includes workstation.json, a settings-only PowerShell copier and instructions. It intentionally excludes credentials, executable Java and the MSI.
+4. Download the common **IndustrialControlStudioHMI-Windows-UNSIGNED** build artifact from the experimental `Build Industrial Studio HMI Windows MSI` GitHub Actions workflow, where available. It is unsigned and only for isolated testing; verify hashes and obtain a signed approved build before any industrial deployment.
+5. Install the generic MSI, then choose **Import PC setup ZIP** in the JavaFX app (or copy its workstation.json using the included script). The server, workstation ID and user name are pre-filled; the server remains authoritative for screen assignment.
+6. Enter the separately issued viewer password and workstation enrollment secret. Reassign or edit the layout in the portal; the client will download the new screen without rebuilding the MSI.
+
+See [per-PC setup package design](docs/PER_PC_SETUP_PACKAGE.md).
 
 ## Important safety boundary
 This is a non-production, read-only prototype. Do **not** use the sample data for operation, alarms, trips, interlocks, personnel safety, or any live control decision. Never use user-supplied Java in the portal JVM: a Java `SecurityManager` is not an acceptable isolation mechanism. Before commissioning, create a separate low-privilege, resource-limited and network-denied rules-worker process, signed deployment packages, two-person approvals, event audit trails, alarm validation, and a safety review. PLC writes must require explicit allowlisted points, limits, authorization, confirmation, quality validation, and a fail-safe edge policy. Safety logic remains in the PLC/safety system.
