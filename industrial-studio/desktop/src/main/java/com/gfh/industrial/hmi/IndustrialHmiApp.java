@@ -104,7 +104,7 @@ public final class IndustrialHmiApp extends Application {
             new Label("Viewer password"),password,
             new Label("Workstation ID"),workstationId,
             new Label("Workstation secret"),workstationSecret,
-            new HBox(9,manualConnect,importSetup));
+            new FlowPane(9,9,manualConnect,importSetup));
         advancedFields.setPadding(new Insets(10));
         advanced=new TitledPane("Advanced: manual connection or older setup ZIP",advancedFields);
         advanced.setExpanded(false);
@@ -157,7 +157,7 @@ public final class IndustrialHmiApp extends Application {
         HBox.setHgrow(titles,Priority.ALWAYS);
         Label demoBadge=new Label("READ-ONLY DEMO");
         demoBadge.getStyleClass().add("hmi-demo-badge");
-        HBox header=new HBox(14,titles,demoBadge);
+        FlowPane header=new FlowPane(12,8,titles,demoBadge);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("hmi-header");
 
