@@ -3,7 +3,7 @@ server:
   port: ${PORT:8090}
 spring:
   datasource:
-    url: ${STUDIO_DB_URL:jdbc:h2:file:./data/industrial-studio;DB_CLOSE_ON_EXIT=FALSE}
+    url: ${STUDIO_DB_URL:jdbc:h2:file:./industrial-studio-db;DB_CLOSE_ON_EXIT=FALSE}
     username: ${STUDIO_DB_USER:sa}
     password: ${STUDIO_DB_PASSWORD:}
 studio:
