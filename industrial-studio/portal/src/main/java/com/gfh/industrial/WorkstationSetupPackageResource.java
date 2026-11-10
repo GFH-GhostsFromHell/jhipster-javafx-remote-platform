@@ -34,7 +34,7 @@ public final class WorkstationSetupPackageResource {
     private final String viewerUser;
 
     public WorkstationSetupPackageResource(ScreenApi screens,ObjectMapper json,
-        @Value("${studio.client-base-url:http://127.0.0.1:8090}") String baseUrl,
+        @Value("${STUDIO_CLIENT_BASE_URL:http://127.0.0.1:8090}") String baseUrl,
         @Value("${studio.viewer-user:studio-viewer}") String viewerUser) {
         this.screens=screens;
         this.json=json;
