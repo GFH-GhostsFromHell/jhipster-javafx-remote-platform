@@ -188,14 +188,20 @@ function renderDeviceEditor(){
             update.updatePending?'Update available — waiting for PC':'Up to date';
         row.append(updateLabel);
         row.append(button('Pair / reconnect PC',()=>showPairing(device)));
-        row.append(button('Advanced: download setup ZIP',async()=>{
+        // Legacy per-PC ZIP is deliberately hidden behind an expandable option.
+        // Normal PC setup needs only the common MSI and one secure pairing code.
+        const legacy=document.createElement('details');
+        const summary=document.createElement('summary');
+        summary.textContent='Advanced / older ZIP setup';
+        legacy.append(summary,button('Download legacy PC setup ZIP',async()=>{
             try{
                 await window.studioAdminDownload(
                     '/api/studio/workstations/'+encodeURIComponent(device.id)+'/setup-package',
                     'IndustrialHMI-'+device.id+'-Setup.zip');
-                status('Downloaded optional setup ZIP for '+device.id+'. The easier setup uses Pair / reconnect PC.');
-            }catch(e){status('Setup ZIP failed: '+e.message,true)}
+                status('Legacy configuration ZIP downloaded. New PCs need only the MSI and a pairing code.');
+            }catch(e){status('Legacy ZIP failed: '+e.message,true)}
         }));
+        row.append(legacy);
         out.append(row);
     }
 }
@@ -256,7 +262,7 @@ async function showPairing(device){
         const intro=document.createElement('strong');
         intro.textContent='Desktop setup code for '+device.name+' ('+device.id+')';
         const instructions=document.createElement('p');
-        instructions.textContent='On the JavaFX PC, select Set up this PC, paste the full code below, then click Connect this PC. No separate viewer password is needed. This code expires in 15 minutes and can only be used once.';
+        instructions.textContent='Install the common Industrial Control Studio Windows MSI (no config ZIP needed). On the desktop, paste the full code into Set up this PC and click Connect this PC. The PC will download its assigned HMI screen from the cloud. This code is one-use and expires in 15 minutes.';
         const code=document.createElement('textarea');
         code.value=pairing.setupCode;code.readOnly=true;code.rows=3;
         code.style.height='auto';code.style.width='100%';
