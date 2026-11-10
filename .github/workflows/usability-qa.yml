@@ -1,0 +1,41 @@
+name: Responsive Usability QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'portal/src/main/resources/static/**'
+      - 'scripts/qa-workflow-browser.cjs'
+      - '.github/workflows/usability-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-workflow-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless browser driver
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.57.0
+      - name: Use runner Chrome
+        run: |
+          set -e
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          echo "CHROME_BIN=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+      - name: Test real browser workflows at mobile and desktop widths
+        run: node scripts/qa-workflow-browser.cjs
+      - name: Upload responsive screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-usability-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
+          retention-days: 7

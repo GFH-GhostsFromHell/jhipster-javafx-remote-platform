@@ -418,6 +418,7 @@ private fun MobileShell(
     onOpenWeb: (String) -> Unit,
     onLogout: () -> Unit
 ) {
+    var initialMoreArea by remember { mutableStateOf(MoreArea.HUB) }
     Scaffold(
         containerColor = MobileNavy,
         contentWindowInsets = WindowInsets.navigationBars,
@@ -441,7 +442,7 @@ private fun MobileShell(
                 MobileNavItem(selected == MobileTab.Home, { onSelected(MobileTab.Home) }, Icons.Default.Dashboard, "Home")
                 MobileNavItem(selected == MobileTab.Workbench, { onSelected(MobileTab.Workbench) }, Icons.Default.Calculate, "Tools")
                 MobileNavItem(selected == MobileTab.Safety, { onSelected(MobileTab.Safety) }, Icons.Default.ElectricBolt, "Safety")
-                MobileNavItem(selected == MobileTab.More, { onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
+                MobileNavItem(selected == MobileTab.More, { initialMoreArea = MoreArea.HUB; onSelected(MobileTab.More) }, Icons.Default.Launch, "More")
                 MobileNavItem(selected == MobileTab.Profile, { onSelected(MobileTab.Profile) }, Icons.Default.Person, "Profile")
             }
         }
@@ -452,11 +453,21 @@ private fun MobileShell(
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (selected) {
-                    MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb)
-                    MobileTab.Workbench -> MobileWorkbenchPage(session.username, onOpenWeb)
+                    MobileTab.Home -> MobileHome(session, onSelected, onOpenWeb) { area ->
+                        initialMoreArea = area
+                        onSelected(MobileTab.More)
+                    }
+                    MobileTab.Workbench -> MobileWorkbenchPage(
+                        session.username, onOpenWeb,
+                        onOpenMore = { area ->
+                            initialMoreArea = area
+                            onSelected(MobileTab.More)
+                        },
+                        onOpenSafety = { onSelected(MobileTab.Safety) }
+                    )
                     MobileTab.Safety -> SafetyWorkspaceScreen(session.username)
                     MobileTab.ChatGPT -> AskChatGptWorkspace(session.username)
-                    MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb)
+                    MobileTab.More -> MoreWorkspaceScreen(session.username, onOpenWeb, initialMoreArea)
                     MobileTab.Profile -> MobileProfile(
                         session, onOpenWeb, onLogout, availableUpdate,
                         updateChecking, updateStatus, onCheckUpdates, onReviewUpdate
@@ -510,25 +521,25 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
 }
 
 @Composable
-private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit) {
+private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit, onOpenMore: (MoreArea) -> Unit) {
     val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Welcome, ${session.displayName}", color = MobileText, fontSize = 26.sp, fontWeight = FontWeight.Black)
-        Text("Full electrician workspace", color = MobileCyan, fontWeight = FontWeight.Bold)
-        Text("The Android app now includes the major desktop workspaces instead of only calculators/profile.", color = MobileMuted)
-        MobileFeatureCard("🧮 CEC 2024 Workbench", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
-        MobileFeatureCard("⚙ Engineering Power Systems", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
+        Text("Choose a task to get started", color = MobileCyan, fontWeight = FontWeight.Bold)
+        Text("Start with the job you need to do. Open Tools for calculations or More for projects, learning and field records.", color = MobileMuted)
+        MobileFeatureCard("🧮 Electrical Calculators", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
+        MobileFeatureCard("⚙ Power System Analysis", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
         MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
         MobileFeatureCard("🤖 Ask ChatGPT", "Connect an eligible ChatGPT account and ask questions directly inside Electrical Workbench") { onSelected(MobileTab.ChatGPT) }
-        MobileFeatureCard("🎓 Learn", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onSelected(MobileTab.More) }
-        MobileFeatureCard("🛠 Field", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onSelected(MobileTab.More) }
-        MobileFeatureCard("📁 Projects", "Project log, material takeoff, records and cable planning") { onSelected(MobileTab.More) }
-        MobileFeatureCard("📈 Career", "Trade hours, credentials, wage estimate and official trade/job resources") { onSelected(MobileTab.More) }
+        MobileFeatureCard("🎓 Red Seal Study", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onOpenMore(MoreArea.LEARN) }
+        MobileFeatureCard("🛠 Jobsite Tools", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onOpenMore(MoreArea.FIELD) }
+        MobileFeatureCard("📁 Saved Projects", "Project log, material takeoff, records and cable planning") { onOpenMore(MoreArea.PROJECTS) }
+        MobileFeatureCard("📈 Career & Trade Hours", "Trade hours, credentials, wage estimate and official trade/job resources") { onOpenMore(MoreArea.CAREER) }
         MobileFeatureCard("⚡ CEC / OESC Code News", "ESA/OESC public bulletins and code notices") { onOpenWeb("/news.html") }
     }
 }
@@ -545,35 +556,11 @@ private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit
 }
 
 @Composable
-private fun MobileWorkbenchPage(username: String, onOpenWeb: (String) -> Unit) {
-    val context = LocalContext.current
-    MWPage("CEC 2024 Workbench", "Fast field tools first. Advanced calculations and exam worksheets are below.") {
-        MWHubCard("⚡ Fast Conduit Bender · mark in seconds", "Choose your bend, enter only its required dimensions, then read the tape marks and shoe orientation. Optional 3D preview.") { onOpenWeb("/bend-instruction-lab.html") }
-        MWHubCard("Guided C of Q Worksheets", "Default guided workflow with worked steps, Why-this-answer explanations, conductor + voltage drop, D3/K, grounding/bonding, transformer, motor taps, refrigeration, fire pump, neutral, fire alarm, service demand, presets and saved solutions") { onOpenWeb("/guided-calculators.html") }
-        MWHubCard("Industrial CT/PT + relay worksheets · offline", "Three inputs: instrument transformer ratios, 3-phase power, specified relay pickup translation, ideal transformer fault estimate and 4–20 mA scaling") {
-            context.startActivity(Intent(context, IndustrialFieldActivity::class.java))
-        }
-        MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
-            context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
-        }
-        MWHubCard("Circuit + Conductor Review · native offline", "One set of inputs for termination-column ampacity, ambient/grouping, voltage drop, maximum length and an OCPD arithmetic screen") {
-            context.startActivity(Intent(context, CircuitSizingActivity::class.java)
-                .putExtra("accountUsername", username))
-        }
-        MWHubCard("Transformer Size Selector · native", "Offline load-by-load transformer sizing including calculated residential, apartment, commercial, school, hospital, hotel and industrial service demands") {
-            context.startActivity(Intent(context, TransformerSizingActivity::class.java))
-        }
-        MWHubCard("Motor & protection wizard", "Motor type, starting method, time-delay/non-time-delay fuse, inverse-time breaker, overload and disconnect selections") { onOpenWeb("/calculators.html?section=s28") }
-        MWHubCard("Multiple refrigeration motors", "Multiple hermetic/semi-hermetic compressors with RLA/LRA, failed-start 50/65% protection, overload type, equipment MCA/MOCP and group conductor sizing") { onOpenWeb("/calculators.html?section=s28&tab=6") }
-        MWHubCard("CEC calculator workspace", "Selection-driven services, conductors, transformers, motors, refrigeration, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
-        MWHubCard("Advanced calculation pack", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
-        MWHubCard("Pull-box sizing + conduit bender · native", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
-        MWHubCard("Visual conduit bender · diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
-         MWHubCard("Bender calibration · saved profiles", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }
-         MWHubCard("Field Suite · installations and projects", "Blueprint takeoff, 3D bends, motor-control logic, one-line diagrams, estimating, commissioning and camera nameplates") { onOpenWeb("/field-suite.html") }
-         MWHubCard("Industrial troubleshooting knowledge base", "23 structured Epiroc-style diagnostics covering motors, VFDs, PLCs, mining vehicles, protection, HVAC and site safety") { onOpenWeb("/troubleshooting-kb.html") }
-         MWHubCard("Troubleshooting KB · native offline", "Safety-first checklists, fault decision methods and locally saved work orders without internet") { context.startActivity(Intent(context, FieldSizingActivity::class.java).putExtra("toolTab", "Troubleshooting")) }
-    }
+private fun MobileWorkbenchPage(
+    username: String, onOpenWeb: (String) -> Unit,
+    onOpenMore: (MoreArea) -> Unit, onOpenSafety: () -> Unit
+) {
+    MobileToolFinder(username, onOpenWeb, onOpenMore, onOpenSafety)
 }
 
 @Composable

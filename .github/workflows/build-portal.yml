@@ -8,6 +8,7 @@ on:
     paths:
       - 'portal/**'
       - 'scripts/validate-field-tools.cjs'
+      - 'scripts/validate-tool-navigation.cjs'
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
       - 'scripts/validate-circuit-sizing.cjs'
@@ -27,6 +28,7 @@ on:
     paths:
       - 'portal/**'
       - 'scripts/validate-field-tools.cjs'
+      - 'scripts/validate-tool-navigation.cjs'
       - 'scripts/validate-account-sync.cjs'
       - 'scripts/validate-conductor-data-audit.cjs'
       - 'scripts/validate-circuit-sizing.cjs'
@@ -52,6 +54,8 @@ jobs:
         uses: actions/checkout@v5
       - name: Validate static field tools and troubleshooting KB
         run: node scripts/validate-field-tools.cjs
+      - name: Validate clear cross-platform tool names and quick links
+        run: node scripts/validate-tool-navigation.cjs
       - name: Validate account sync and offline conflict handling
         run: node scripts/validate-account-sync.cjs
       - name: Audit conductor source-data parity and offline formula wiring

@@ -60,6 +60,6 @@ assert.ok(ui.includes('CircuitReviewMath.circuitReview(inputs)'));
 assert.ok(android.includes('CircuitReviewMath.calculate(inputs)'));
 assert.ok(tests.includes('1.76746')&&tests.includes('25.52'));
 assert.ok(read('android-client/app/src/main/AndroidManifest.xml').includes('CircuitSizingActivity'));
-assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileWorkbenchActivity.kt').includes('CircuitSizingActivity::class.java'));
+assert.ok(read('android-client/app/src/main/java/com/gfh/electricalworkbench/MobileToolFinder.kt').includes('CircuitSizingActivity::class.java'));
 assert.ok(read('portal/src/main/resources/static/calculators.html').includes('/circuit-sizing.html'));
 console.log('Unified circuit sizing regression passed: web arithmetic, invalid inputs, Android wiring and navigation.');
