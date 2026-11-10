@@ -46,7 +46,9 @@ class StudioSecurity {
                 .requestMatchers(HttpMethod.POST, "/api/studio/pair").permitAll()
                 // Workstation layout/data endpoints authorize the registered device secret
                 // in ScreenApi; shared viewer credentials are no longer required.
-                .requestMatchers(HttpMethod.GET, "/api/studio/client-screen", "/api/studio/client-live").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/studio/client-screen", "/api/studio/client-live",
+                    "/api/studio/client-update-status").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/studio/client-update-ack").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/studio/live").hasRole("ADMIN")
                 .requestMatchers("/api/studio/screens", "/api/studio/screens/**", "/api/studio/workstations", "/api/studio/workstations/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/studio/status", "/api/studio/update-manifest").hasAnyRole("ADMIN", "VIEWER")
