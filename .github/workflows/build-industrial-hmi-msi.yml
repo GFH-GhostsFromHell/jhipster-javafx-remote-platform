@@ -43,18 +43,21 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force target/installer | Out-Null
+          $version = "0.1.${{ github.run_number }}"
           jpackage `
             --type msi `
             --name IndustrialControlStudioHMI `
-            --app-version 0.1.0 `
+            --app-version $version `
             --vendor "Industrial Control Studio" `
             --description "Read-only configurable industrial HMI (prototype)" `
             --input target/jpackage-input `
             --main-jar industrial-studio-hmi-0.1.0-SNAPSHOT.jar `
             --main-class com.gfh.industrial.hmi.HmiLauncher `
             --dest target/installer `
+            --win-upgrade-uuid "f8fdf28e-4812-4f86-9a50-ae0b1b3a9dce" `
             --win-menu `
             --win-shortcut `
+            --win-per-user-install `
             --win-dir-chooser
           if ($LASTEXITCODE -ne 0) { throw 'jpackage failed' }
           $msi = Get-ChildItem target/installer/*.msi | Select-Object -First 1
