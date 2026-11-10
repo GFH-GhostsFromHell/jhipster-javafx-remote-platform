@@ -42,10 +42,14 @@ class StudioSecurity {
                 .requestMatchers(HttpMethod.PUT, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/screen-designer.js").permitAll()
                 // The administrative preview exposes all sample tags. Workstation endpoints are separately scoped.
+                // Pairing code is 256-bit, short-lived, one-use and is validated in the endpoint.
+                .requestMatchers(HttpMethod.POST, "/api/studio/pair").permitAll()
+                // Workstation layout/data endpoints authorize the registered device secret
+                // in ScreenApi; shared viewer credentials are no longer required.
+                .requestMatchers(HttpMethod.GET, "/api/studio/client-screen", "/api/studio/client-live").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/studio/live").hasRole("ADMIN")
                 .requestMatchers("/api/studio/screens", "/api/studio/screens/**", "/api/studio/workstations", "/api/studio/workstations/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/studio/client-screen", "/api/studio/client-live",
-                    "/api/studio/status", "/api/studio/update-manifest").hasAnyRole("ADMIN", "VIEWER")
+                .requestMatchers(HttpMethod.GET, "/api/studio/status", "/api/studio/update-manifest").hasAnyRole("ADMIN", "VIEWER")
                 .anyRequest().denyAll())
             .httpBasic(Customizer.withDefaults());
         return http.build();
