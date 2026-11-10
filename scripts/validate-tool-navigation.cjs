@@ -78,7 +78,7 @@ for(const file of ['guided-calculators.html','calculators.html','advanced-calcul
   includes(read(root+file),'worksheet-actions.js','Worksheet save/restore workflow mounted');
 }
 const helper=read(root+'worksheet-actions.js');
-for(const text of ['Save input draft','Restore inputs','Export selected JSON','Copy visible result','password|token|secret|email|address','device','Save or export']){
+for(const text of ['Save input draft','Restore inputs','Export selected JSON','Copy visible result','password|token|secret|email|address','device','Save / export']){
   assert.ok(helper.toLowerCase().includes(text.toLowerCase()),'Worksheet workflow missing '+text);
 }
 console.log('Task-first workflow validation passed: catalog links, deep links, native navigation and safe local drafts.');
