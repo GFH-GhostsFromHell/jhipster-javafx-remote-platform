@@ -1,7 +1,35 @@
-.root { -fx-background-color: #12253a; -fx-font-family: "Segoe UI", Arial, sans-serif; }
-.label { -fx-text-fill: #e8f3fc; }
-.text-field, .password-field { -fx-background-color: #eaf2fa; -fx-text-fill: #102535; -fx-prompt-text-fill: #6c7787; }
-.button { -fx-background-color: #27678d; -fx-text-fill: white; -fx-background-radius: 8; -fx-padding: 9 13 9 13; }
-.button:hover { -fx-background-color: #377ea8; }
-.button:focused { -fx-border-color: #ffdb82; -fx-border-width: 2; }
-.scroll-pane, .scroll-pane .viewport { -fx-background-color: transparent; }
+/* Industrial Control Studio: high-contrast, responsive, read-only field demo. */
+.root, .hmi-app { -fx-background-color: #0d1c2d; -fx-font-family: "Segoe UI", Arial, sans-serif; -fx-font-size: 13.5px; }
+.label { -fx-text-fill: #e9f3fa; }
+.hmi-title { -fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: #ffffff; }
+.hmi-subtitle { -fx-font-size: 13px; -fx-text-fill: #b6cfdf; }
+.hmi-header { -fx-padding: 13 14 13 14; -fx-background-color: #18334a; -fx-background-radius: 12; }
+.hmi-demo-badge { -fx-padding: 6 10 6 10; -fx-font-size: 11px; -fx-font-weight: bold;
+                  -fx-background-color: #4d3c1e; -fx-background-radius: 7; -fx-text-fill: #ffe2ac; }
+.hmi-setup-panel { -fx-padding: 15; -fx-background-color: #1d4160; -fx-background-radius: 12; }
+.hmi-info-panel { -fx-background-color: #173147; -fx-border-color: #315c76;
+                  -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 14 12 14; }
+.hmi-info-panel > .label { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #9ed3eb; }
+.hmi-summary { -fx-font-weight: bold; -fx-text-fill: #c5ecf7; }
+.hmi-status { -fx-text-fill: #bbdbeb; }
+.hmi-quality { -fx-text-fill: #ffc98c; -fx-font-weight: bold; }
+.hmi-support { -fx-background-color: #173147; -fx-font-size: 13px; }
+.titled-pane > .title { -fx-background-color: #213c52; -fx-background-radius: 8; }
+.titled-pane > .title > .text { -fx-fill: #e5f2fd; }
+.titled-pane > *.content { -fx-background-color: #142e43; -fx-border-color: #31546c; }
+.button { -fx-background-color: #226b91; -fx-text-fill: white; -fx-background-radius: 8;
+          -fx-padding: 9 13 9 13; -fx-font-weight: bold; }
+.button:hover { -fx-background-color: #3285b2; }
+.button:pressed { -fx-background-color: #175574; }
+.button:disabled { -fx-opacity: .65; }
+.button:focused, .text-field:focused, .text-area:focused {
+    -fx-border-color: #ffe394; -fx-border-width: 2; -fx-border-radius: 8;
+}
+.text-field, .password-field, .text-area {
+    -fx-background-color: #f1f6fa; -fx-text-fill: #142c3f; -fx-prompt-text-fill: #5b6d7d;
+    -fx-background-radius: 7; -fx-padding: 9;
+}
+.text-area .content { -fx-background-color: #f1f6fa; }
+.scroll-pane, .scroll-pane .viewport, .tile-pane { -fx-background-color: transparent; }
+.hyperlink { -fx-text-fill: #9fe3ff; }
+.hyperlink:hover { -fx-text-fill: #d4f6ff; }
