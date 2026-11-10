@@ -21,7 +21,7 @@ public final class HmiScreenRenderer {
         tiles.setPrefTileWidth(230);
         Map<String,JsonNode> readings = new HashMap<>();
         for (JsonNode sample : samples) {
-            if (sample.path("id").isTextual() && "SIMULATED".equals(sample.path("quality").asText())) {
+            if (sample.path("id").isTextual() && ("SIMULATED".equals(sample.path("quality").asText()) || "GOOD".equals(sample.path("quality").asText()))) {
                 readings.put(sample.path("id").asText(),sample);
             }
         }
@@ -89,7 +89,7 @@ public final class HmiScreenRenderer {
                     card.getChildren().add(reading);
                 }
             }
-            Label meta=new Label("Quality: SIMULATED");
+            Label meta=new Label("Quality: "+value.path("quality").asText());
             meta.setStyle("-fx-text-fill:#ffd49b");
             card.getChildren().add(meta);
             tiles.getChildren().add(card);

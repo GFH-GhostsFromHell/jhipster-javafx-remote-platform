@@ -115,7 +115,8 @@ public final class IndustrialHmiApp extends Application {
             // A PC name by itself is not sufficient to retrieve another station's screen.
             JsonNode screen = getForWorkstation(localUrl + "/api/studio/client-screen", token, id, secret);
             JsonNode snapshot = getForWorkstation(localUrl + "/api/studio/client-live", token, id, secret);
-            if (!"SIMULATION".equals(snapshot.path("mode").asText()) ||
+            if (!("SIMULATION".equals(snapshot.path("mode").asText()) ||
+                "KEPWARE".equals(snapshot.path("mode").asText())) ||
                 !id.equals(screen.path("workstationId").asText()) ||
                 !id.equals(snapshot.path("workstationId").asText()) ||
                 !screen.path("screenId").asText().equals(snapshot.path("screenId").asText()) ||
@@ -158,7 +159,9 @@ public final class IndustrialHmiApp extends Application {
             " · screen " + screen.path("screenId").asText() +
             " rev " + screen.path("revision").asText() +
             " · " + packet.path("serverTime").asText());
-        quality.setText("READ ONLY · CUSTOM PC SCREEN · ALL VALUES SIMULATED");
+        quality.setText("READ ONLY · " + ("KEPWARE".equals(packet.path("mode").asText()) ?
+            (packet.path("connected").asBoolean() ? "Kepware OPC UA connected" : "Kepware OPC UA disconnected") :
+            "ALL VALUES SIMULATED"));
         HmiScreenRenderer.render(tiles, screen.path("layout"), packet.path("samples"));
     }
 

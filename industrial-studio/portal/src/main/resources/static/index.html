@@ -89,17 +89,17 @@ function collect(){
 }
 async function load(){
  const x=await api('/api/studio/config');revision=x.revision;config=x.configuration;render();el('app').classList.remove('hidden');
- const s=await api('/api/studio/status');el('sys').textContent='Mode '+s.mode+' · PLC connection '+s.opcUaConnected+' · Java execution '+s.javaDraftExecution;
+ const s=await api('/api/studio/status');el('sys').textContent='Source '+s.mode+' · Kepware '+s.opcUaState+' · Java execution '+s.javaDraftExecution;
  report('Connected. Configuration revision '+revision);window.dispatchEvent(new Event('studio:connected'));await refresh()
 }
 async function refresh(){
  if(!auth)return;
  try{
- const x=await api('/api/studio/live');el('snapshot').textContent='Mode '+x.mode+' · '+x.serverTime+' · Config revision '+x.configurationRevision;
+ const x=await api('/api/studio/live');el('snapshot').textContent='Mode '+x.mode+' · '+(x.connected?'OPC ONLINE':'OPC OFFLINE / SIMULATOR')+' · '+x.serverTime+' · Config revision '+x.configurationRevision;
  el('cards').replaceChildren();
  x.samples.forEach(t=>{const box=document.createElement('div');box.className='card';
  const name=document.createElement('h3'),value=document.createElement('div'),sub=document.createElement('div');
- name.textContent=t.label;value.className='value';value.textContent=t.value+' '+t.unit;
+ name.textContent=t.label;value.className='value';value.textContent=(t.quality==='GOOD'||t.quality==='SIMULATED')?(t.value+' '+t.unit):'DATA UNAVAILABLE';
  sub.className='sub';sub.textContent=t.quality+' · '+t.nodeId+(t.alarm?' · SIMULATED LIMIT EXCEEDED':'');
  box.append(name,value,sub);el('cards').append(box)})
  }catch(e){el('snapshot').textContent='DATA UNAVAILABLE — '+e.message;el('cards').replaceChildren()}

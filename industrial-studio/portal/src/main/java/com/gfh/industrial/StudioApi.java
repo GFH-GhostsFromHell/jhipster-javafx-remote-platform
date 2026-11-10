@@ -16,7 +16,10 @@ import java.util.*;
 public class StudioApi {
     private final JdbcTemplate db;
     private final ObjectMapper json;
-    public StudioApi(JdbcTemplate db, ObjectMapper json) { this.db = db; this.json = json; }
+    private final KepwareOpcClient opc;
+    public StudioApi(JdbcTemplate db, ObjectMapper json, KepwareOpcClient opc) {
+        this.db=db; this.json=json; this.opc=opc;
+    }
 
     @PostConstruct
     public void init() {
@@ -55,28 +58,41 @@ public class StudioApi {
         catch (Exception e) { throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to save configuration"); }
     }
 
+
     @GetMapping("/live")
     public Map<String,Object> live() {
-        Versioned c = getConfig();
-        long now = System.currentTimeMillis();
-        List<Sample> samples = new ArrayList<>();
-        for (int i=0;i<c.configuration().tags().size();i++) {
-            StudioConfig.Tag t = c.configuration().tags().get(i);
-            double raw = 50 + 30*Math.sin(now/8500d+i*1.31);
-            double value = Math.round(raw*10.0)/10.0;
-            boolean alarm = (t.lowAlarm()!=null && value<t.lowAlarm()) ||
+        Versioned c=getConfig();
+        if(opc.enabled()){
+            // The Kepware read is cached by one server-side polling worker.
+            // Disconnected and bad-quality values never fall back to synthetic data.
+            boolean connected="CONNECTED".equals(opc.state());
+            return Map.of("mode","KEPWARE","connected",connected,"readOnly",true,
+                "configurationRevision",c.revision(),"serverTime",Instant.now().toString(),
+                "lastSampleTime",opc.lastRead(),"samples",opc.readings(),
+                "message",connected?"Read-only Kepware OPC UA bridge":"OPC UA unavailable — values not valid");
+        }
+        long now=System.currentTimeMillis();
+        List<Sample> samples=new ArrayList<>();
+        for(int i=0;i<c.configuration().tags().size();i++){
+            StudioConfig.Tag t=c.configuration().tags().get(i);
+            double value=Math.round((50+30*Math.sin(now/8500d+i*1.31))*10.0)/10.0;
+            boolean alarm=(t.lowAlarm()!=null && value<t.lowAlarm()) ||
                 (t.highAlarm()!=null && value>t.highAlarm());
             samples.add(new Sample(t.id(),t.label(),t.unit(),value,"SIMULATED",t.nodeId(),alarm));
         }
-        return Map.of("mode","SIMULATION", "readOnly",true, "configurationRevision",c.revision(),
-            "serverTime",Instant.ofEpochMilli(now).toString(),"samples",samples,
-            "message","Not connected to Kepware or any PLC");
+        return Map.of("mode","SIMULATION","connected",false,"readOnly",true,
+            "configurationRevision",c.revision(),
+            "serverTime",Instant.ofEpochMilli(now).toString(),
+            "lastSampleTime",Instant.ofEpochMilli(now).toString(),
+            "samples",samples,"message","Kepware not connected; synthetic demonstration values");
     }
 
     @GetMapping("/status")
     public Map<String,Object> status() {
-        return Map.of("version","0.1.0-SNAPSHOT","mode","SIMULATION","readOnly",true,
-            "javaDraftExecution","DISABLED","opcUaConnected",false, "configurationRevision",getConfig().revision());
+        return Map.of("version","0.1.0-SNAPSHOT","mode",opc.mode(),"readOnly",true,
+            "javaDraftExecution","DISABLED","opcUaConnected","CONNECTED".equals(opc.state()),
+            "opcUaState",opc.state(),"lastSampleTime",opc.lastRead(),
+            "configurationRevision",getConfig().revision());
     }
 
     @GetMapping("/update-manifest")

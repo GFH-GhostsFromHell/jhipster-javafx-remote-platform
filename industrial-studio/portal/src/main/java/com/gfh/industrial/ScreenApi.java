@@ -210,7 +210,7 @@ public final class ScreenApi {
         var selected=new ArrayList<ClientSample>();
         for (var sample:all) if(used.contains(sample.id()))
             selected.add(new ClientSample(sample.id(),sample.unit(),sample.value(),sample.quality(),sample.alarm()));
-        return Map.of("mode","SIMULATION","readOnly",true,"workstationId",d.id(),
+        return Map.of("mode",base.get("mode"),"connected",base.get("connected"),"readOnly",true,"workstationId",d.id(),
             "screenId",screen.id(),"screenRevision",screen.revision(),"serverTime",base.get("serverTime"),
             "samples",selected);
     }
