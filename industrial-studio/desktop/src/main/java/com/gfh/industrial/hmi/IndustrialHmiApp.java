@@ -59,7 +59,9 @@ public final class IndustrialHmiApp extends Application {
         root.setStyle("-fx-background-color:#12253a; -fx-font-size:14px");
         VBox.setVgrow(scroll,Priority.ALWAYS);
         stage.setTitle("Industrial Control Studio · Read-only HMI Simulator");
-        stage.setScene(new Scene(root,1000,700));
+        Scene scene = new Scene(root,1000,700);
+        scene.getStylesheets().add(getClass().getResource("/hmi.css").toExternalForm());
+        stage.setScene(scene);
         stage.show();
         worker.scheduleWithFixedDelay(this::poll,0,3,TimeUnit.SECONDS);
     }
