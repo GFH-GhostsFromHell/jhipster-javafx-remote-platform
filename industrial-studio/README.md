@@ -2,6 +2,18 @@
 
 Separate Java 21 / Spring Boot / JavaFX application modelled on the existing Electrical Workbench portal and desktop structure. It is deliberately isolated under `industrial-studio/`; it does not alter the production electrician app.
 
+## Simple Windows setup and update checks (current approach)
+
+1. Download the one common Windows test MSI from the **Build Industrial Studio HMI Windows MSI** GitHub Actions run. **No per-PC configuration ZIP is required.**
+2. In the cloud configurator, register an individual workstation, assign its HMI screen, and copy the single-use pairing code.
+3. Open the installed desktop app, paste the code, and select **Connect this PC**. The app stores the token with Windows DPAPI and reconnects automatically for that Windows account.
+4. HMI screen/configuration updates are **checked at startup and every 3 seconds while paired**. After initial pairing, changed screen definitions require the operator to approve **Update now**. Stale readings are withheld pending that approval.
+5. **Software installer release checks run on startup even before pairing and every 15 minutes while open.** A release notification appears only if a higher version is published with approved GitHub Releases URL, SHA-256 and publisher metadata. The app **never downloads, executes or installs an MSI automatically**; admins must verify Windows Authenticode and the checksum independently.
+
+The portal does not currently publish a signed production MSI, so the desktop will normally show **No newer approved signed release**. Its auto-update capability is a *notification and version-check mechanism*, not a silent binary updater.
+
+For an older workstation the **Advanced** section still supports manual credentials and legacy ZIP import, but neither is part of normal setup. The portal is currently a simulated cloud demo, with **no running licensed Kepware server or real PLC connection**.
+
 ## Starter capabilities
 - Web portal to configure endpoint metadata, OPC UA node mappings, display names, engineering units and alarm limits.
 - Web-based HMI screen designer (Text, Value, Gauge and Status widgets) with revisioned screens and per-workstation assignments.
