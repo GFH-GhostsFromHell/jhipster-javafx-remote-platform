@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Industrial Control Studio — Live Product Showcase</title>
+<meta name="description" content="Explore industrial HMI dashboards for mining, conveyor systems and substations. All demonstration values are simulated.">
+<style>
+:root{font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf6fe;background:#091523;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse 90% 55% at 78% -15%,#1d5270 0,transparent 66%),#091523}
+a{color:#91dfff;text-decoration:none}a:hover{text-decoration:underline}a:focus-visible,button:focus-visible{outline:3px solid #fbda8f;outline-offset:3px}
+button{font:inherit;cursor:pointer}
+header{border-bottom:1px solid #30516b;background:#0b1d2dce}
+.bar{max-width:1450px;margin:auto;padding:17px 28px;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;gap:11px;align-items:center;font-weight:800;letter-spacing:.02em}
+.mark{width:32px;height:32px;display:grid;place-items:center;border:1px solid #4eafd1;border-radius:9px;color:#8be2ff;font-size:22px}
+.actions{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.actions a{font-size:14px}
+main{max-width:1450px;padding:34px 28px 60px;margin:0 auto}
+.eyebrow{display:inline-block;color:#94dcee;font-size:12px;letter-spacing:.16em;font-weight:750;text-transform:uppercase}
+h1{font-size:clamp(30px,4.6vw,60px);line-height:1.08;letter-spacing:-.035em;margin:14px 0 16px;max-width:850px}
+.intro{font-size:17px;color:#bbd2e1;max-width:790px;line-height:1.7}
+.hero{margin-bottom:35px}
+.alert{display:flex;gap:13px;align-items:flex-start;color:#f4d9ae;border:1px solid #876d39;border-radius:12px;padding:15px 18px;background:#302b1d;margin:28px 0;max-width:970px}
+.alert strong{display:block;color:#ffe4ae}
+.alert span{font-size:14px}
+.layout{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:20px;align-items:start}
+.side,.screen{border:1px solid #30526e;background:#10273a;border-radius:17px;overflow:hidden}
+.side{padding:20px}
+.side h2{font-size:17px;margin:0 0 12px}
+.side p{color:#b6cad7;font-size:13px;margin:4px 0 18px}
+.areaButtons{display:grid;gap:9px}
+.areaButtons button{background:#18364c;border:1px solid #3b607b;border-radius:11px;padding:16px;text-align:left;color:#dcebf4;transition:background .15s}
+.areaButtons button:hover{background:#234c65}
+.areaButtons button[aria-pressed="true"]{border:1px solid #7ac7e9;background:#164866;box-shadow:inset 4px 0 #72cdf3}
+.areaButtons button strong{display:block;font-size:15px}
+.areaButtons button span{display:block;font-size:12px;color:#b5ccdc;margin-top:3px}
+.sideBottom{margin-top:26px;padding-top:16px;border-top:1px solid #36536b}
+.bullet{display:flex;gap:9px;align-items:center;color:#c4d7e4;font-size:13px;margin:9px 0}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;background:#4ec6ad;box-shadow:0 0 0 3px #154339}
+.dot.warn{background:#eab86c;box-shadow:0 0 0 3px #574020}
+.screen{min-height:490px}
+.screenTop{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;padding:18px 22px;background:#162f43;border-bottom:1px solid #335771}
+.screenTop h2{font-size:20px;margin:2px 0 3px}
+.screenTop p{margin:0;color:#bdd0de;font-size:13px}
+.sync{font-size:12px;border:1px solid #517e92;border-radius:99px;padding:7px 12px;white-space:nowrap;color:#c0f5e9}
+.sync.offline{border-color:#b28b4d;color:#ffe0ae}
+.grid{padding:19px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.metric{background:#142f46;border:1px solid #3d617e;border-radius:12px;padding:15px;min-width:0;min-height:176px;display:flex;flex-direction:column}
+.metric .name{color:#c3d7e5;font-weight:650;font-size:13px}
+.metric .number{font-size:clamp(20px,2.5vw,33px);line-height:1.3;font-weight:780;letter-spacing:-.03em;margin:8px 0;white-space:nowrap;font-variant-numeric:tabular-nums}
+.metric .unit{font-size:13px;color:#92aebc;font-weight:500;letter-spacing:0}
+.gauge{background:#28495d;height:7px;border-radius:8px;overflow:hidden;margin:5px 0 13px}
+.fill{height:100%;background:linear-gradient(90deg,#3c9ec5,#6ce6c3);border-radius:8px;width:0;transition:width .3s}
+.fill.warn{background:#ecb36a}
+.spark{width:100%;height:35px;margin-top:auto}
+.meta{margin-top:6px;font-size:11px;color:#9db9cc}
+.meta.warn{color:#ffd195}
+.controls{border-top:1px solid #355671;padding:15px 20px;display:flex;gap:15px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:#adc6d4;font-size:12px}
+.controls strong{color:#c8e5f4}
+.foot{color:#92aebe;font-size:13px;padding-top:26px;line-height:1.8;max-width:970px}
+@media(max-width:1030px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){main{padding:24px 15px 42px}.bar{padding:13px 16px}.layout{grid-template-columns:1fr}.side{padding:14px}.areaButtons{grid-template-columns:repeat(3,minmax(0,1fr))}.areaButtons button{padding:12px}.areaButtons button strong{font-size:12px}.areaButtons button span{display:none}.grid{padding:12px}.screenTop{padding:16px}}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.areaButtons{grid-template-columns:1fr}.areaButtons button span{display:block}.metric{min-height:145px}.actions{gap:10px}}
+@media(prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+</head><body>
+<header><div class="bar"><div class="brand"><span class="mark" aria-hidden="true">⌁</span>Industrial Control Studio <span style="color:#9ac5d9;font-weight:450;font-size:12px">SHOWCASE</span></div>
+<nav class="actions" aria-label="Site navigation"><a href="/index.html">Open cloud configurator</a><a href="https://github.com/GFH-GhostsFromHell/jhipster-javafx-remote-platform/pull/34" target="_blank" rel="noopener noreferrer">Development repository</a></nav></div></header>
+<main>
+<section class="hero"><span class="eyebrow">Cloud-designed industrial HMI · Working simulation</span>
+<h1>Design in the cloud. Display on any workstation.</h1>
+<p class="intro">Explore three example monitoring screens for underground mining, material handling and electrical distribution. Industrial Control Studio assigns each JavaFX PC its own cloud-managed layout, with read-only telemetry and quality monitoring.</p>
+<div class="alert" role="note"><strong aria-hidden="true">⚠</strong><div><strong>Simulation only — not connected to equipment</strong><span>Every reading below is synthetic. This public showroom is independent of site configuration, Kepware and PLCs. Do not use it for equipment operation or safety decisions.</span></div></div>
+</section>
+<div class="layout">
+<aside class="side" aria-label="Choose demonstration screen"><h2>Choose a workstation screen</h2><p>Different PCs can receive different layouts from the configurator.</p>
+<div id="areas" class="areaButtons"><button type="button" data-id="dewatering" aria-pressed="true"><strong>PC 01 · Underground pumps</strong><span>Wet well, VFD and motor monitoring</span></button>
+<button type="button" data-id="conveyor" aria-pressed="false"><strong>PC 02 · Ore conveyor</strong><span>Belt drive, throughput and vibration</span></button>
+<button type="button" data-id="substation" aria-pressed="false"><strong>PC 03 · Substation</strong><span>Feeder, transformer and power factor</span></button></div>
+<div class="sideBottom"><strong style="font-size:14px">Showcase capabilities</strong>
+<div class="bullet"><span class="dot"></span>Cloud-configurable layouts</div>
+<div class="bullet"><span class="dot"></span>Independent workstation assignments</div>
+<div class="bullet"><span class="dot"></span>Live-refreshing sample telemetry</div>
+<div class="bullet"><span class="dot"></span>Read-only OPC UA connector option</div>
+<div class="bullet"><span class="dot warn"></span>Kepware not hosted in this demo</div>
+</div></aside>
+<section class="screen" aria-label="HMI screen">
+<div class="screenTop"><div><span class="eyebrow">Industrial Workstation / <span id="pcLabel">PC 01</span></span>
+<h2 id="panelTitle">Underground dewatering</h2><p id="panelDesc">Loading simulation…</p></div>
+<div id="sync" class="sync offline" role="status">Waiting for cloud data</div></div>
+<div class="grid" id="metricGrid" aria-live="off"></div>
+<div class="controls"><span>MODE: <strong>SIMULATION · READ ONLY</strong></span><span id="lastUpdate" role="status">Awaiting sample</span><span>Update interval: 2 seconds</span></div>
+</section>
+</div>
+<p class="foot">This page illustrates the product's cloud-to-browser data path. Full JavaFX workstation screen downloads, secure device enrollment and HMI design are managed in the configurator, not in this public preview. Real Kepware connectivity requires an approved Windows environment, licensed software and a private OPC UA network.</p>
+</main>
+<script defer src="/showcase.js"></script>
+</body></html>
