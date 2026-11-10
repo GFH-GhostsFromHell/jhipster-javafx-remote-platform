@@ -57,6 +57,13 @@ class WorkstationUpdateTest {
             .andExpect(status().isForbidden());
         mvc.perform(get("/api/studio/client-update-status"))
             .andExpect(status().isForbidden());
+        mvc.perform(get("/api/studio/client-app-manifest"))
+            .andExpect(status().isForbidden());
+        mvc.perform(get("/api/studio/client-app-manifest")
+            .header("X-Studio-Device-Id","updatepc1")
+            .header("X-Studio-Device-Token",a.oneTimeToken()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.released").value(false));
 
         String original=deviceStatus("updatepc1",a.oneTimeToken()).path("fingerprint").asText();
         assertTrue(deviceStatus("updatepc1",a.oneTimeToken()).path("updatePending").asBoolean());
