@@ -60,3 +60,9 @@ See [the cloud Kepware showcase guide](docs/CLOUD_KEPWARE_SHOWCASE.md). Windows 
 ## Public industrial HMI showcase
 
 The independent read-only public showroom at `/showcase.html` demonstrates three simulated monitoring stations: underground dewatering, ore conveyor, and 600 V substation. It fetches `GET /api/studio/showcase` every two seconds. **This feed never queries Kepware, real OPC UA, site configuration, the workstation registry, or the database.** All readings are synthetic and visibly marked SIMULATED. The cloud showcase page is distinct from the authenticated administrator's per-PC HMI screen designer.
+
+## Safeguard your HMI designs before the demo database expires
+
+In the cloud administrator's **System and releases** page, select **Download design backup (.json)**. This records tag mappings, inert Java source drafts, screen definitions and workstation IDs/assignments, but **never** includes passwords, pairing codes, device secret hashes, or credentials. Store this file in a protected location; these configuration details may be sensitive. The **Restore designs** action can recreate screen/tag definitions on a new instance. On a new database, enroll PCs again; their previous secrets are not portable. Restoring layouts is not transactional and needs administrative review.
+
+This application-level design backup is **not** a PostgreSQL dump. For a complete migration, use a full `pg_dump` export and `pg_restore` on a staging database, with verified versions, TLS, and restricted source access. See `industrial-studio/docs/RENDER_DATABASE_MIGRATION.md`.
