@@ -5,7 +5,7 @@ header{padding:18px 4vw;border-bottom:1px solid #385469;display:flex;justify-con
 h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 13px}h3{margin:0}p{color:#b4c9d9}
 main{max-width:1350px;margin:25px auto;padding:0 22px}
 .panel{background:#1b3045;border-radius:12px;border:1px solid #39566c;padding:20px;margin-bottom:20px}
-input,textarea{font:inherit;color:#effaff;background:#101f30;border:1px solid #557289;border-radius:7px;padding:9px}
+input,select,textarea{font:inherit;color:#effaff;background:#101f30;border:1px solid #557289;border-radius:7px;padding:9px}
 textarea{width:100%;height:275px;font:13px/1.5 Consolas,monospace}
 button{font:inherit;background:#266187;color:white;border:1px solid #559ec1;padding:9px 13px;border-radius:8px;cursor:pointer}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #ffd47e}
@@ -22,16 +22,37 @@ nav button{background:#213f57}nav button[aria-current=page]{background:#307ead}
 td input{width:100%;min-width:80px}td input.node{min-width:240px}th{font-size:12px;color:#c7daeb}
 #status{min-height:24px}small{color:#aac2d2}
 @media(max-width:600px){header{padding:16px}main{padding:0 12px}.panel{padding:14px}.row{display:grid;grid-template-columns:1fr 1fr}.row label{min-width:0}}
+.widgetEdit{border:1px solid #45637c;background:#162b3f;border-radius:8px;padding:12px;margin:10px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));align-items:end;gap:10px}
+.widgetEdit label{min-width:0}.widgetEdit button{font-size:13px}.widgetEdit select{max-width:100%}
+.deviceRow{border-bottom:1px solid #48657b;padding:14px 0;display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.deviceRow label{min-width:190px}.deviceRow input[type=checkbox]{width:20px;height:20px}
+#screenPreview .card{min-height:100px;min-width:0;overflow-wrap:anywhere}
 </style></head><body>
 <header><div><h1>Industrial Control Studio</h1><small>OPC UA middleware configuration &amp; desktop HMI</small></div><strong>READ-ONLY SIMULATOR</strong></header>
 <main>
 <section class="panel"><h2>Configurator sign-in</h2><div class="row"><label>Admin username<input id="user" autocomplete="username" value="studio-admin"></label><label>Password<input id="pass" type="password" autocomplete="current-password"></label><button id="connect">Sign in</button><button id="logout">Disconnect</button></div><p id="status" role="status">Enter the administrator credentials set on this machine. Credentials are held only in memory.</p></section>
-<div id="app" class="hidden"><nav aria-label="Application pages"><button data-page="dashboard" aria-current="page">Live preview</button><button data-page="tags">PLC tag mappings</button><button data-page="logic">Java logic drafts</button><button data-page="system">System and releases</button></nav>
+<div id="app" class="hidden"><nav aria-label="Application pages"><button data-page="dashboard" aria-current="page">Live preview</button><button data-page="tags">PLC tag mappings</button><button data-page="logic">Java logic drafts</button><button data-page="screens">HMI screens &amp; PCs</button><button data-page="system">System and releases</button></nav>
 <section id="dashboard" class="page panel"><h2>Desktop HMI preview</h2><div class="warn">Demonstration only: synthetic readings. No connection to a PLC or Kepware. Do not operate equipment from these values.</div><p id="snapshot">No data received</p><div id="cards" class="cards"></div></section>
 <section id="tags" class="page panel hidden"><h2>OPC UA connection and tag configuration</h2><p>The endpoint is a saved setting only; this prototype does not open a connection.</p><label>OPC UA server endpoint<input id="endpoint"></label>
 <div class="tableWrap"><table><thead><tr><th>Tag ID</th><th>Label</th><th>OPC NodeId</th><th>Unit</th><th>Low limit</th><th>High limit</th><th>Action</th></tr></thead><tbody id="tagbody"></tbody></table></div>
 <div class="row"><button id="add">Add tag</button><button class="save">Save configuration</button><small id="revision"></small></div></section>
 <section id="logic" class="page panel hidden"><h2>Java rules editor</h2><div class="warn">Source-code drafts cannot execute in this application. Execution will require an isolated, signed and approved rules runtime.</div><label for="java">Java source (stored as a draft)</label><textarea id="java" spellcheck="false"></textarea><button class="save">Save draft</button></section>
+<section id="screens" class="page panel hidden">
+<h2>HMI screen designer</h2><p>Build read-only dashboards in the web portal and assign them to individual Windows PCs. Layouts are downloaded by the JavaFX client; the application installer remains the same.</p>
+<div class="row"><label>Screen<select id="screenSelect" aria-label="Select HMI screen"></select></label>
+<label>New screen ID<input id="newScreenId" placeholder="motor-room"></label>
+<button id="newScreen">Create screen</button></div>
+<div class="row"><label>Screen title<input id="screenName"></label><label>Columns<select id="screenColumns"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><button id="addWidget">Add widget</button><button id="saveScreen">Save screen</button><small id="screenRevision"></small></div>
+<p>Widgets: choose a type and a PLC tag. Use Move up/down to arrange the desktop display. No executable Java, FXML, HTML or raw CSS is downloaded.</p>
+<div id="widgetsEditor"></div>
+<h3>Screen preview</h3><div id="screenPreview" class="cards" style="margin-top:14px"></div>
+<hr style="border:0;border-top:1px solid #48667e;margin:30px 0">
+<h2>PC / workstation assignments</h2><p>Every PC gets an administrator-provisioned ID and one-time enrollment secret. Only its assigned HMI layout can be downloaded with those credentials.</p>
+<div class="row"><label>New PC ID<input id="newDeviceId" placeholder="control-room-1"></label>
+<label>PC name<input id="newDeviceName" placeholder="Control room PC"></label><label>Assigned screen<select id="newDeviceScreen"></select></label>
+<button id="provisionDevice">Register PC</button></div>
+<div id="newDeviceSecret" class="warn hidden" role="status"></div>
+<div id="deviceEditor"></div><p id="designerStatus" role="status"></p></section>
 <section id="system" class="page panel hidden"><h2>Middleware and update status</h2><p id="sys"></p><button id="reload">Reload configuration</button> <button id="check">Check releases</button><p id="updates"></p></section></div>
 <small>Prototype is not intended for safety systems, control decisions, alarm annunciation or production deployment.</small>
 </main><script>
@@ -46,6 +67,7 @@ async function api(path,method='GET',body){
  if(!res.ok)throw Error('HTTP '+res.status+' '+raw.slice(0,160));
  return JSON.parse(raw)
 }
+window.studioAdminApi=api;
 function input(value,type='text'){const e=document.createElement('input');e.type=type;e.value=value??'';if(type==='number')e.step='any';return e}
 function tagRow(t){
  const row=document.createElement('tr'),vals=[t.id,t.label,t.nodeId,t.unit,t.lowAlarm,t.highAlarm];
@@ -68,7 +90,7 @@ function collect(){
 async function load(){
  const x=await api('/api/studio/config');revision=x.revision;config=x.configuration;render();el('app').classList.remove('hidden');
  const s=await api('/api/studio/status');el('sys').textContent='Mode '+s.mode+' · PLC connection '+s.opcUaConnected+' · Java execution '+s.javaDraftExecution;
- report('Connected. Configuration revision '+revision);await refresh()
+ report('Connected. Configuration revision '+revision);window.dispatchEvent(new Event('studio:connected'));await refresh()
 }
 async function refresh(){
  if(!auth)return;
@@ -89,7 +111,7 @@ el('connect').onclick=async()=>{
  try{await load();if(poller)clearInterval(poller);poller=setInterval(refresh,2500)}
  catch(e){auth='';el('app').classList.add('hidden');report(e.message,true)}
 };
-el('logout').onclick=()=>{auth='';if(poller)clearInterval(poller);poller=null;el('app').classList.add('hidden');el('pass').value='';report('Disconnected')};
+el('logout').onclick=()=>{auth='';if(poller)clearInterval(poller);poller=null;el('app').classList.add('hidden');el('pass').value='';report('Disconnected');window.dispatchEvent(new Event('studio:disconnected'))};
 document.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{
  document.querySelectorAll('.page').forEach(s=>s.classList.toggle('hidden',s.id!==button.dataset.page));
  document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b===button?'page':'false'))
@@ -103,4 +125,4 @@ el('add').onclick=()=>el('tagbody').append(tagRow({id:'newTag'+(el('tagbody').ch
 el('reload').onclick=()=>load().catch(e=>report(e.message,true));
 el('check').onclick=()=>api('/api/studio/update-manifest').then(x=>el('updates').textContent=x.released?'Version '+x.version:'No signed desktop release yet (development '+x.version+')').catch(e=>el('updates').textContent=e.message);
 })();
-</script></body></html>
+</script><script src="/screen-designer.js"></script></body></html>
