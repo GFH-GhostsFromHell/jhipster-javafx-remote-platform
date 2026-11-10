@@ -1,0 +1,219 @@
+// Declarative HMI designer for the isolated, read-only simulator.
+// No dynamic Java, FXML, HTML, CSS, or third-party scripts are run from screen definitions.
+(() => {
+'use strict';
+const el = id => document.getElementById(id);
+let screens=[], devices=[], tags=[], current=null, draft=null, dirty=false;
+const api=(path,method,body)=>window.studioAdminApi(path,method,body);
+const status=(message,error=false)=>{
+    const node=el('designerStatus');node.textContent=message;node.style.color=error?'#ffb1b1':'#9feacb';
+};
+const safeId=id=>/^[A-Za-z][A-Za-z0-9_-]{1,47}$/.test(id);
+const field=(tag,value,placeholder)=>{
+    const element=document.createElement(tag);
+    if(tag==='input')element.value=value??'';
+    if(placeholder)element.placeholder=placeholder;
+    return element;
+};
+const button=(title,callback)=>{
+    const b=document.createElement('button');b.textContent=title;b.type='button';b.onclick=callback;return b;
+};
+function option(value,text){
+    const o=document.createElement('option');o.value=value;o.textContent=text;return o;
+}
+function reset(){
+    screens=[];devices=[];tags=[];current=null;draft=null;dirty=false;
+    el('widgetsEditor').replaceChildren();el('screenPreview').replaceChildren();
+    el('deviceEditor').replaceChildren();el('newDeviceSecret').replaceChildren();
+    el('newDeviceSecret').classList.add('hidden');
+}
+function selectScreen(id){
+    if(dirty && !window.confirm('Discard unsaved HMI screen changes?')){
+        el('screenSelect').value=current?.id||'';return;
+    }
+    current=screens.find(s=>s.id===id)||null;
+    draft=current?JSON.parse(JSON.stringify(current.layout)):null;dirty=false;
+    renderEditor();
+}
+function renderScreenList(){
+    const screenSelect=el('screenSelect'),newDevice=el('newDeviceScreen');
+    const previous=current?.id;
+    screenSelect.replaceChildren();newDevice.replaceChildren();
+    for(const s of screens){
+        screenSelect.append(option(s.id,s.layout.name+' ('+s.id+')'));
+        newDevice.append(option(s.id,s.layout.name));
+    }
+    const next=screens.find(x=>x.id===previous)?.id||screens[0]?.id||null;
+    current=null;dirty=false;
+    selectScreen(next);
+}
+function tagSelect(value,callback){
+    const select=document.createElement('select');
+    select.append(option('','Choose tag'));
+    for(const t of tags) select.append(option(t.id,t.label+' / '+t.id));
+    select.value=value||'';
+    select.onchange=()=>callback(select.value);
+    return select;
+}
+function labelField(text,control){
+    const label=document.createElement('label');
+    label.append(document.createTextNode(text));label.append(control);return label;
+}
+function editWidget(w,index){
+    const row=document.createElement('div');row.className='widgetEdit';
+    const type=document.createElement('select');
+    for(const t of ['TEXT','VALUE','GAUGE','STATUS'])type.append(option(t,t));
+    type.value=w.type;
+    type.onchange=()=>{
+        w.type=type.value;
+        if(w.type==='TEXT')w.tagId=null;
+        if(w.type!=='TEXT' && !w.tagId)w.tagId=tags[0]?.id||'';
+        if(w.type==='GAUGE'){w.minimum=0;w.maximum=100}
+        dirty=true;renderEditor();
+    };
+    const title=field('input',w.title);
+    title.oninput=()=>{w.title=title.value;dirty=true;renderPreview()};
+    row.append(labelField('Type',type),labelField('Title',title));
+    if(w.type!=='TEXT'){
+        row.append(labelField('PLC tag',tagSelect(w.tagId,value=>{w.tagId=value;dirty=true;renderPreview()})));
+    }
+    if(w.type==='GAUGE'){
+        for(const key of ['minimum','maximum']){
+            const control=field('input',w[key]);control.type='number';control.step='any';
+            control.oninput=()=>{w[key]=control.value===''?null:Number(control.value);dirty=true;renderPreview()};
+            row.append(labelField(key==='minimum'?'Gauge minimum':'Gauge maximum',control));
+        }
+    }
+    const move=document.createElement('div');move.className='row';
+    move.append(
+        button('↑ Up',()=>{if(index>0){[draft.widgets[index-1],draft.widgets[index]]=[draft.widgets[index],draft.widgets[index-1]];dirty=true;renderEditor()}}),
+        button('↓ Down',()=>{if(index<draft.widgets.length-1){[draft.widgets[index],draft.widgets[index+1]]=[draft.widgets[index+1],draft.widgets[index]];dirty=true;renderEditor()}}),
+        button('Remove',()=>{if(draft.widgets.length>1){draft.widgets.splice(index,1);dirty=true;renderEditor()}else status('Keep at least one widget',true)})
+    );
+    row.append(move);return row;
+}
+function renderPreview(){
+    const preview=el('screenPreview');preview.replaceChildren();if(!draft)return;
+    preview.style.gridTemplateColumns='repeat('+draft.columns+', minmax(0,1fr))';
+    for(const w of draft.widgets){
+        const card=document.createElement('div');card.className='card';
+        const heading=document.createElement('strong');heading.textContent=w.title;
+        const value=document.createElement('div');value.className='value';
+        value.textContent=w.type==='TEXT'?'Static label':w.type==='STATUS'?'SIMULATED STATUS':w.type==='GAUGE'?'▰▰▰▱▱':'00.0';
+        const sub=document.createElement('div');sub.className='sub';sub.textContent=w.type+' · '+(w.tagId||'No tag');
+        card.append(heading,value,sub);preview.append(card);
+    }
+}
+function renderEditor(){
+    el('widgetsEditor').replaceChildren();
+    if(!current || !draft){
+        el('screenName').value='';el('screenRevision').textContent='No screen';return;
+    }
+    el('screenSelect').value=current.id;
+    el('screenName').value=draft.name;el('screenColumns').value=String(draft.columns);
+    el('screenRevision').textContent='Revision '+current.revision+(dirty?' · unsaved edits':'');
+    draft.widgets.forEach((w,i)=>el('widgetsEditor').append(editWidget(w,i)));
+    renderPreview();
+}
+function newWidgetId(){
+    let n=1;while(draft.widgets.some(w=>w.id==='widget'+n))n++;
+    return 'widget'+n;
+}
+async function save(){
+    if(!current||!draft)return;
+    if(dirty===false){status('No changes to save');return}
+    try{
+        const result=await api('/api/studio/screens/'+encodeURIComponent(current.id),'PUT',{
+            expectedRevision:current.revision,layout:draft
+        });
+        screens=screens.map(s=>s.id===current.id?result:s);
+        current=result;draft=JSON.parse(JSON.stringify(current.layout));dirty=false;
+        renderEditor();renderDeviceEditor();status('Saved HMI screen '+current.id+' revision '+current.revision);
+    }catch(e){status(e.message+'. Your local edits are still in the editor.',true)}
+}
+async function create(){
+    const id=el('newScreenId').value.trim();
+    if(!safeId(id)){status('Screen ID must have 2-48 alphanumeric, hyphen or underscore characters, starting with a letter',true);return}
+    if(dirty&&!window.confirm('Discard unsaved screen changes?'))return;
+    const layout={name:'New HMI screen',columns:2,widgets:[{
+        id:'title',type:'TEXT',title:'New HMI screen',tagId:null,minimum:null,maximum:null
+    }]};
+    try{
+        const result=await api('/api/studio/screens','POST',{id,layout});
+        screens.push(result);screens.sort((a,b)=>a.id.localeCompare(b.id));
+        current=result;draft=JSON.parse(JSON.stringify(result.layout));dirty=false;
+        renderScreenList();selectScreen(id);renderDeviceEditor();
+        el('newScreenId').value='';status('Created screen '+id);
+    }catch(e){status(e.message,true)}
+}
+function renderDeviceEditor(){
+    const out=el('deviceEditor');out.replaceChildren();
+    const heading=document.createElement('h3');heading.textContent='Registered PCs';out.append(heading);
+    if(devices.length===0){
+        const note=document.createElement('p');note.textContent='No PCs registered. Register a PC above to generate its enrollment secret.';out.append(note);
+    }
+    for(const device of devices){
+        const row=document.createElement('div');row.className='deviceRow';
+        const name=field('input',device.name);
+        const assigned=document.createElement('select');
+        for(const s of screens)assigned.append(option(s.id,s.layout.name+' ('+s.id+')'));
+        assigned.value=device.screenId;
+        const enabled=field('input','');enabled.type='checkbox';enabled.checked=device.enabled;
+        row.append(labelField('PC '+device.id,name),labelField('Assigned HMI screen',assigned),
+            labelField('Enabled',enabled),
+            button('Update assignment',async()=>{
+                try{
+                    const result=await api('/api/studio/workstations/'+encodeURIComponent(device.id),'PUT',{
+                        name:name.value.trim(),screenId:assigned.value,enabled:enabled.checked
+                    });
+                    devices=devices.map(d=>d.id===result.id?result:d);
+                    renderDeviceEditor();status('Updated '+result.id+' to '+result.screenId+
+                        '. Its JavaFX client will fetch the assigned screen on its next refresh.');
+                }catch(e){status(e.message,true)}
+            }));
+        out.append(row);
+    }
+}
+async function provision(){
+    const id=el('newDeviceId').value.trim(),name=el('newDeviceName').value.trim();
+    const screenId=el('newDeviceScreen').value;
+    if(!safeId(id)||!name){status('Enter a valid unique PC ID and a friendly name',true);return}
+    try{
+        const x=await api('/api/studio/workstations','POST',{id,name,screenId});
+        devices.push(x.workstation);devices.sort((a,b)=>a.id.localeCompare(b.id));
+        renderDeviceEditor();el('newDeviceSecret').classList.remove('hidden');
+        const line=document.createElement('div'),secret=document.createElement('code');
+        secret.textContent=x.oneTimeToken;
+        line.append(document.createTextNode('PC '+x.workstation.id+' enrollment secret (shown once): '),secret);
+        el('newDeviceSecret').replaceChildren(line,
+            document.createTextNode('Copy the secret into the JavaFX client on that PC. Keep it private; the portal will not display it again.'));
+        el('newDeviceId').value='';el('newDeviceName').value='';
+        status('Registered PC '+id+' with screen '+screenId);
+    }catch(e){status(e.message,true)}
+}
+async function loadAll(){
+    try{
+        const [s,d,c]=await Promise.all([
+            api('/api/studio/screens'),api('/api/studio/workstations'),api('/api/studio/config')
+        ]);
+        screens=s;devices=d;tags=c.configuration.tags;
+        renderScreenList();renderDeviceEditor();
+        status('Screen designer ready. Choose a screen or register a workstation.');
+    }catch(e){status('Unable to load HMI designer: '+e.message,true)}
+}
+el('screenSelect').onchange=e=>selectScreen(e.target.value);
+el('screenName').oninput=e=>{if(!draft)return;draft.name=e.target.value;dirty=true;renderPreview()};
+el('screenColumns').onchange=e=>{if(!draft)return;draft.columns=Number(e.target.value);dirty=true;renderPreview()};
+el('addWidget').onclick=()=>{
+    if(!draft)return;
+    if(draft.widgets.length>=40){status('Maximum 40 widgets per screen',true);return}
+    draft.widgets.push({id:newWidgetId(),type:'VALUE',title:'New value',tagId:tags[0]?.id||'',
+        minimum:null,maximum:null});
+    dirty=true;renderEditor();
+};
+el('saveScreen').onclick=save;
+el('newScreen').onclick=create;
+el('provisionDevice').onclick=provision;
+window.addEventListener('studio:connected',loadAll);
+window.addEventListener('studio:disconnected',reset);
+})();
