@@ -1,0 +1,52 @@
+# Local laboratory / offline showroom; not a production OT deployment.
+# Run from repository root:
+# docker compose --env-file industrial-studio/deployment/.env.local \
+#   -f industrial-studio/deployment/docker-compose.local.yml up --build -d
+services:
+  studio-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${STUDIO_DB_NAME:-industrial_studio}
+      POSTGRES_USER: ${STUDIO_DB_USER:-studio}
+      POSTGRES_PASSWORD: ${STUDIO_DB_PASSWORD:?Set STUDIO_DB_PASSWORD in .env.local}
+    volumes:
+      - studio-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${STUDIO_DB_USER:-studio} -d ${STUDIO_DB_NAME:-industrial_studio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [studio-private]
+
+  studio-portal:
+    build:
+      context: ../..
+      dockerfile: industrial-studio/portal/Dockerfile.render
+    restart: unless-stopped
+    depends_on:
+      studio-db:
+        condition: service_healthy
+    environment:
+      PORT: "10000"
+      STUDIO_BIND: "0.0.0.0"
+      STUDIO_CLOUD_CONFIG_ONLY: "false"
+      STUDIO_SOURCE_MODE: "SIMULATION"
+      STUDIO_DB_HOST: studio-db
+      STUDIO_DB_PORT: "5432"
+      STUDIO_DB_NAME: ${STUDIO_DB_NAME:-industrial_studio}
+      STUDIO_DB_USER: ${STUDIO_DB_USER:-studio}
+      STUDIO_DB_PASSWORD: ${STUDIO_DB_PASSWORD:?Set STUDIO_DB_PASSWORD in .env.local}
+      STUDIO_ADMIN_PASSWORD: ${STUDIO_ADMIN_PASSWORD:?Set STUDIO_ADMIN_PASSWORD in .env.local}
+      STUDIO_VIEWER_PASSWORD: ${STUDIO_VIEWER_PASSWORD:?Set STUDIO_VIEWER_PASSWORD in .env.local}
+      STUDIO_CLIENT_BASE_URL: "http://127.0.0.1:8090"
+    ports:
+      - "127.0.0.1:8090:10000"
+    networks: [studio-private]
+
+volumes:
+  studio-pgdata:
+
+networks:
+  studio-private:
+    driver: bridge
