@@ -39,3 +39,17 @@ On subsequent launches on the **same Windows user profile**, the HMI reconnects 
 - Pairing codes should be delivered only to approved physical PCs and operators. This is **not** hardware-bound attestation; copied device tokens remain sensitive. Production OT deployments require mTLS machine certificates, identity lifecycle management, audit trails, rate limiting, SSO/MFA, replay protection and independent safety reviews.
 - On macOS and Linux the current prototype does not store secrets between launches; use Windows for the test HMI.
 - The cloud deployment is an experimental configurator / read-only simulator, not a certified SCADA or safety system. Keep PLCs and Kepware on an isolated OT network.
+
+
+## Per-PC configuration updates (new)
+
+1. In **HMI screens & PCs**, choose a PC from **Manage a registered PC**.
+2. Its status displays **Update available** or **Up to date**, with the last applied time.
+3. Saving a screen layout, changing the global tag configuration or editing a PC's assignment automatically changes its desired revision. The app checks on startup and roughly every three seconds while connected.
+4. An administrator may also click **Request update for this PC** to ask a single selected PC to refresh, without changing any other PCs.
+5. On the desktop, the operator sees **Update available** and clicks **Update now**. The app downloads the declarative layout and tag readings, checks matching revisions and acknowledges successful application to the portal.
+6. The portal updates the per-PC status to **Up to date** after the authenticated desktop's acknowledgement.
+
+For a previously registered Windows PC, the last accepted configuration fingerprint is saved locally without device credentials. After restart, the app compares it against the server **before** displaying readings. It never silently installs a new revision. At first pairing only, the initial assigned screen loads automatically to keep setup simple.
+
+**Safety:** Whenever a configuration change is awaiting acceptance, the prototype clears old readings rather than showing values under an outdated layout. There is no automatic PLC write, HMI script execution, remote process restart or MSI binary auto-installer. Software installer upgrades remain separate from revisioned configuration updates.
