@@ -11,7 +11,8 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 RUN useradd --create-home --uid 10001 studio
 COPY --from=build /source/target/industrial-studio-portal-*.jar /app/studio.jar
-RUN chown 10001:10001 /app/studio.jar
+COPY industrial-studio/portal/start-render.sh /app/start-render.sh
+RUN chmod +x /app/start-render.sh && chown 10001:10001 /app/studio.jar /app/start-render.sh
 USER studio
 ENV STUDIO_BIND=0.0.0.0 \
     STUDIO_CLOUD_CONFIG_ONLY=true \
@@ -19,4 +20,4 @@ ENV STUDIO_BIND=0.0.0.0 \
     PORT=10000 \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=65.0 -XX:+ExitOnOutOfMemoryError"
 EXPOSE 10000
-ENTRYPOINT ["java","-jar","/app/studio.jar"]
+ENTRYPOINT ["/app/start-render.sh"]
