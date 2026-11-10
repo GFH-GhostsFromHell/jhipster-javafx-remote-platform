@@ -27,6 +27,15 @@ class WorkstationSecurityTest {
                 new ScreenLayout.Widget("motor","VALUE","Motor current","motorCurrent",null,null)))));
         var a=screens.provision(new ScreenApi.NewWorkstation("operatorpc","Operator PC","overview"));
         var b=screens.provision(new ScreenApi.NewWorkstation("engineerpc","Engineer PC","motorroom"));
+        mvc.perform(get("/api/studio/workstations/operatorpc/setup-package")
+                .with(httpBasic("studio-viewer","Viewer-Test-Pass-2026")))
+            .andExpect(status().isForbidden());
+        byte[] setupZip=mvc.perform(get("/api/studio/workstations/operatorpc/setup-package")
+                .with(httpBasic("studio-admin","Admin-Test-Pass-2026")))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("application/zip"))
+            .andReturn().getResponse().getContentAsByteArray();
+        assert setupZip.length>200;
         mvc.perform(get("/api/studio/client-screen").with(httpBasic("studio-viewer","Viewer-Test-Pass-2026"))
                 .header("X-Studio-Device-Id","operatorpc").header("X-Studio-Device-Token",a.oneTimeToken()))
             .andExpect(status().isOk()).andExpect(jsonPath("$.screenId").value("overview"));
