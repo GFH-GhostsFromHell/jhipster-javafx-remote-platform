@@ -52,7 +52,11 @@ const server = http.createServer((req, res) => {
   try{
     await goto('/start.html');
     await page.waitForFunction(()=>document.getElementById('accountStatus').textContent.includes('qa-account-a'));
-    assert.equal(await page.locator('.task').count(),24,'Web catalog count');
+    assert.equal(await page.locator('.task').count(),8,'Only common tasks should show initially');
+    await page.locator('#showAllTools').click();
+    assert.equal(await page.locator('.task').count(),24,'Show all tools reveals full catalog');
+    await page.locator('#showAllTools').click();
+    assert.equal(await page.locator('.task').count(),8,'Show common tools reduces screen length');
     await visible('#query');
     await page.locator('#query').fill('hospital');
     await visible('.task:has(h3:text-is("Service Load Calculations"))');

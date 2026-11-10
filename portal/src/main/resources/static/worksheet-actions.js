@@ -43,7 +43,7 @@
  '#ewbWorksheetAssist button:disabled{opacity:.5;cursor:not-allowed}#ewbWorksheetAssist button:focus-visible,#ewbWorksheetAssist input:focus-visible,#ewbWorksheetAssist select:focus-visible{outline:3px solid #67e8f9;outline-offset:2px}'+
  '@media(max-width:650px){#ewbWorksheetAssist .ewb-controls>button{flex:1 1 135px}#ewbWorksheetAssist .ewb-steps span{flex:1 1 130px}}';
  document.head.append(style);
- root.prepend(box);
+ root.append(box);
  var save=document.getElementById('ewbSave'),pick=document.getElementById('ewbSaved'),restore=document.getElementById('ewbRestore'),exp=document.getElementById('ewbExport'),del=document.getElementById('ewbDelete');
  function status(msg){document.getElementById('ewbStatus').textContent=msg;}
  function fields(){

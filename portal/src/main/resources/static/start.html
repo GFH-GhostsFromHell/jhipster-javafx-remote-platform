@@ -16,7 +16,7 @@ h1{font-size:clamp(23px,4.4vw,32px);margin:0 0 8px}h2{font-size:20px;margin:0 0 
 label{font-weight:750;display:block;margin:8px 0}input[type=search]{min-height:49px;width:100%;border:1px solid #899eaf;border-radius:10px;padding:11px;font:inherit}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #0e7490;outline-offset:2px}
 .filters{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}button{cursor:pointer;font:inherit;min-height:44px}button.filter{padding:8px 12px;border:1px solid #adc4d6;background:#f5f9fc;color:#153d55;border-radius:999px;font-weight:750}button.filter[aria-pressed=true]{background:#0c506c;color:white;border-color:#0c506c}
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.task{border:1px solid #cfdee9;background:white;border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:9px;min-width:0}.task h3{font-size:17px;margin:0}.task p{margin:0;line-height:1.45;color:#455a6f;font-size:13px;flex:1}.task .tag{font-size:11px;color:#08627d;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.task .buttons{display:flex;align-items:center;gap:9px}.task .open{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#075985;color:white;padding:11px 14px;border-radius:9px;font-weight:800;min-height:44px;flex:1}.task .star{background:white;border:1px solid #a8becd;border-radius:9px;min-width:46px;padding:9px;color:#305065;font-size:18px}.task .star[aria-pressed=true]{color:#995c00;background:#fff4d5;border-color:#d1a741}
-.shortlists{display:grid;grid-template-columns:1fr 1fr;gap:15px}.shortlists h2{margin-bottom:7px}.shortlists ul{padding-left:18px;margin:6px 0}.shortlists li{margin:8px 0}.muted{color:#536779;font-size:13px}.secondary{background:white;border:1px solid #9cbbcf;border-radius:9px;padding:8px 12px;color:#174962;font-weight:700}
+.shortlists{display:grid;grid-template-columns:1fr 1fr;gap:15px}.shortlists h2{margin-bottom:7px}.shortlists ul{padding-left:18px;margin:6px 0}.shortlists li{margin:8px 0}.muted{color:#536779;font-size:13px}.secondary{background:white;border:1px solid #9cbbcf;border-radius:9px;padding:8px 12px;color:#174962;font-weight:700}#showAllTools{display:block;width:100%;margin-top:14px}#showAllTools[hidden]{display:none}
 .selected{border-left:4px solid #0e7490;padding-left:16px}.selected ol{padding-left:19px}.selected li{margin:7px 0}.selected .open{display:inline-block;background:#075985;color:white;border-radius:9px;padding:12px 16px;text-decoration:none;font-weight:800}
 #none[hidden],#selectedTask[hidden]{display:none}#none{padding:18px;background:white;border:1px dashed #7d9bae;border-radius:9px}
 footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
@@ -53,7 +53,7 @@ footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
 <div><h2>Recently opened</h2><ul id="recent"></ul><button id="clearRecent" class="secondary" type="button">Clear recent tools</button></div>
 </section>
 <section id="selectedTask" class="panel selected" hidden aria-live="polite"></section>
-<section aria-label="Available electrical tools"><h2>Choose a tool</h2><div id="catalog" class="cards"></div><div id="none" hidden>No matching tools. Try a simpler task name or select All tools.</div></section>
+<section aria-label="Available electrical tools"><h2>Choose a tool</h2><div id="catalog" class="cards"></div><button class="secondary" id="showAllTools" type="button">Show all tools</button><div id="none" hidden>No matching tools. Try a simpler task name or select All tools.</div></section>
 <footer>Favourites and recently opened tools use only task identifiers and are stored on this device, separately for each signed-in account. They are not cloud-synced. Electrical calculations remain advisory: confirm the applicable CEC/OESC edition, equipment ratings and site requirements.</footer>
 </main>
 <script src="/tool-catalog.js"></script><script src="/tool-state.js"></script>
@@ -62,7 +62,8 @@ footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
  'use strict';
  var tasks=window.EWBTaskCatalog||[];
  var store=window.EWBToolState;
- var input=document.getElementById('query'), category='all', current=null;
+ var input=document.getElementById('query'), category='all', current=null, viewAll=false;
+ var featured=['conduit-marks','conductor-drop','motor','service-demand','pull-box','fault','jobsite','saved'];
  var filters=Array.from(document.querySelectorAll('button.filter'));
  function el(name,cls,txt){var n=document.createElement(name);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;}
  function link(item,txt){var a=el('a',null,txt||item.name);a.href=item.path;a.addEventListener('click',function(){store.visit(item.id);});return a;}
@@ -93,10 +94,13 @@ footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
   var q=input.value,shown=0,zone=document.getElementById('catalog');
   zone.replaceChildren();
   var state=store.snapshot();
-  tasks.filter(function(task){return(category==='all'||task.category===category)&&match(task,q);}).sort(function(a,b){
+  var filtered=tasks.filter(function(task){return(category==='all'||task.category===category)&&match(task,q);}).sort(function(a,b){
    var af=state.favourites.includes(a.id)?0:1,bf=state.favourites.includes(b.id)?0:1;
    return af-bf||a.name.localeCompare(b.name);
-  }).forEach(function(item){
+  });
+  var compact=category==='all'&&!q.trim()&&!viewAll;
+  var display=compact?filtered.filter(function(task){return state.favourites.includes(task.id)||featured.includes(task.id);}).slice(0,8):filtered;
+  display.forEach(function(item){
    shown++;
    var card=el('article','task'),heading=el('h3',null,item.name),desc=el('p',null,item.description);
    card.append(el('div','tag',item.category),heading,desc);
@@ -112,10 +116,14 @@ footer{font-size:12px;color:#496174;margin-top:24px;line-height:1.5}
    card.append(explain);zone.append(card);
   });
   document.getElementById('none').hidden=shown!==0;
-  document.getElementById('count').textContent=shown+' available tool'+(shown===1?'':'s');
+  document.getElementById('count').textContent=shown+' of '+filtered.length+' tools shown';
+  var showAll=document.getElementById('showAllTools');
+  showAll.hidden=category!=='all'||!!q.trim();
+  showAll.textContent=viewAll?'Show common tools':'Show all '+tasks.length+' tools';
  }
  filters.forEach(function(btn){btn.addEventListener('click',function(){category=btn.dataset.category;filters.forEach(function(b){b.setAttribute('aria-pressed',String(b===btn));});render();});});
  input.addEventListener('input',render);
+ document.getElementById('showAllTools').addEventListener('click',function(){viewAll=!viewAll;render();});
  document.getElementById('clearRecent').addEventListener('click',function(){store.clearRecent();renderShortlists();});
  window.addEventListener('ewb-tool-state-change',function(){renderShortlists();render();});
  render();renderShortlists();
