@@ -34,7 +34,7 @@ td input{width:100%;min-width:80px}td input.node{min-width:240px}th{font-size:12
 <header><div><h1>Industrial Control Studio</h1><small>OPC UA middleware configuration &amp; desktop HMI</small></div><strong>READ-ONLY SIMULATOR</strong></header><div style="padding:11px 4vw;background:#133b52;border-bottom:1px solid #3d6d86;color:#d8eefb">New: <a href="/showcase.html" style="color:#94ebff;font-weight:650">Open the public industrial HMI showcase</a> — simulated mine, conveyor and substation screens. No sign-in required.</div>
 <main>
 <section class="panel"><h2>Configurator sign-in</h2><div class="row"><label>Admin username<input id="user" autocomplete="username" value="studio-admin"></label><label>Password<input id="pass" type="password" autocomplete="current-password"></label><button id="connect">Sign in</button><button id="logout">Disconnect</button></div><p id="status" role="status">Enter the administrator credentials set on this machine. Credentials are held only in memory.</p></section>
-<div id="app" class="hidden"><nav aria-label="Application pages"><button data-page="dashboard" aria-current="page">Live preview</button><button data-page="tags">PLC tag mappings</button><button data-page="logic">Java logic drafts</button><button data-page="screens">HMI screens &amp; PCs</button><button data-page="system">System and releases</button></nav>
+<div id="app" class="hidden"><nav aria-label="Application pages"><button data-page="dashboard" aria-current="page">Live preview</button><button data-page="tags">PLC tag mappings</button><button data-page="logic">Java logic drafts</button><button data-page="screens">HMI screens &amp; PCs</button><button data-page="headless">Headless data collectors</button><button data-page="system">System and releases</button></nav>
 <section id="dashboard" class="page panel"><h2>Desktop HMI preview</h2><div class="warn">Demonstration only: synthetic readings. No connection to a PLC or Kepware. Do not operate equipment from these values.</div><p id="snapshot">No data received</p><div id="cards" class="cards"></div></section>
 <section id="tags" class="page panel hidden"><h2>OPC UA connection and tag configuration</h2><p>The endpoint is a saved setting only; this prototype does not open a connection.</p><label>OPC UA server endpoint<input id="endpoint"></label>
 <div class="tableWrap"><table><thead><tr><th>Tag ID</th><th>Label</th><th>OPC NodeId</th><th>Unit</th><th>Low limit</th><th>High limit</th><th>Action</th></tr></thead><tbody id="tagbody"></tbody></table></div>
@@ -69,6 +69,52 @@ td input{width:100%;min-width:80px}td input.node{min-width:240px}th{font-size:12
 </div>
 <p id="selectedPcStatus" role="status">Select a registered PC to see its update status.</p>
 <div id="deviceEditor"></div><p id="designerStatus" role="status"></p></section>
+<section id="headless" class="page panel hidden">
+<h2>Headless collectors &amp; per-client business logic</h2>
+<div class="warn"><strong>Laboratory / simulation only.</strong> Each collector runs without a JavaFX window and can read approved local Kepware OPC UA tags. The cloud processes restricted SIM_WRITE rules as dry-run output proposals. <strong>Actual PLC writes and arbitrary Java execution are disabled.</strong> Do not use this to control equipment or safety systems.</div>
+<p>Register a separate edge client ID for each Windows service, mine location, pump station or simulator. Each agent has its own data source, tags and cloud-hosted rule draft; the collector contacts the cloud outbound over HTTPS.</p>
+<div class="row">
+<label>New collector ID<input id="edgeNewId" placeholder="mine-pump-collector"></label>
+<label>Collector name<input id="edgeNewName" placeholder="Underground pump station"></label>
+<button id="edgeCreate" type="button">Create headless collector</button>
+</div>
+<div id="edgeSecretPanel" class="panel hidden" style="margin-top:15px;background:#243a4c">
+<strong>One-time edge secret — save now</strong><p>Install this in a protected service secret store on the approved edge PC. It will not be shown again. Never include it in an installer or ZIP file.</p>
+<div class="row"><label style="flex:1">Edge token<input id="edgeSecret" type="password" readonly autocomplete="off"></label><button id="edgeCopySecret" type="button">Copy secret</button></div>
+</div>
+<div class="row" style="margin-top:18px">
+<label>Choose existing collector<select id="edgeSelect"></select></label>
+<button id="edgeRefresh" type="button">Refresh collectors</button>
+</div>
+<div id="edgeEditor" class="hidden" style="margin-top:15px">
+<div class="row">
+<label>Name<input id="edgeName"></label>
+<label>Data source<select id="edgeMode"><option value="SIMULATION">Demo simulator</option><option value="KEPWARE_READ">Local Kepware (READ ONLY)</option></select></label>
+<label>Enabled<input type="checkbox" id="edgeEnabled" checked></label>
+<small id="edgeRevision"></small>
+</div>
+<h3 style="margin-top:23px">Local read-only PLC tags</h3>
+<p>The site computer's own OPC UA certificate, username, endpoint and NodeId allowlist must approve every real tag. A cloud editor cannot override that allowlist.</p>
+<div id="edgeTags"></div><button type="button" id="edgeAddTag">Add input tag</button>
+<h3 style="margin-top:24px">Business logic for this client ID</h3>
+<p>For this first version, enter bounded math using the safe SIM_WRITE syntax. Cloud rules calculate proposed outputs but never issue PLC commands. Example:</p>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere;background:#11273b;padding:13px;border-radius:8px">SIM_WRITE desiredOutput = CLAMP(tankLevel * 1.2 + 0, 0, 100)</pre>
+<label>Rule draft<textarea id="edgeScript" spellcheck="false" style="height:175px"></textarea></label>
+<div class="row" style="margin-top:14px">
+<button type="button" id="edgeSave">Save collector configuration</button>
+<button type="button" id="edgeRotate">Rotate edge secret</button>
+</div>
+<h3 style="margin-top:25px">Test script with simulated readings</h3>
+<button type="button" id="edgeTestPrepare">Prepare sample inputs</button>
+<div class="row" id="edgePreviewInputs"></div>
+<button type="button" id="edgeTestRun">Run dry-run test</button>
+<div id="edgeDryRun" class="card" style="margin-top:12px">No test run yet.</div>
+<h3 style="margin-top:23px">Last readings from this collector</h3>
+<div id="edgeTelemetry" class="card" role="status">No data received yet.</div>
+</div>
+<p id="edgeStatus" role="status">Sign in to manage collectors.</p>
+<p><small>Start the separate `industrial-studio/edge-agent` Java 21 headless process with STUDIO_EDGE_CLOUD_URL, STUDIO_EDGE_ID and STUDIO_EDGE_TOKEN. The agent only uploads verified input data. It does not pull or execute your script locally, accept cloud control commands or perform OPC UA writes.</small></p>
+</section>
 <section id="system" class="page panel hidden"><h2>Middleware and update status</h2><p id="sys"></p><button id="reload">Reload configuration</button> <button id="check">Check releases</button><p id="updates"></p>
 <hr style="border:0;border-top:1px solid #48657d;margin:24px 0">
 <h3>Back up saved HMI designs</h3>
@@ -161,4 +207,4 @@ el('add').onclick=()=>el('tagbody').append(tagRow({id:'newTag'+(el('tagbody').ch
 el('reload').onclick=()=>load().catch(e=>report(e.message,true));
 el('check').onclick=()=>api('/api/studio/update-manifest').then(x=>el('updates').textContent=x.released?'Version '+x.version:'No signed desktop release yet (development '+x.version+')').catch(e=>el('updates').textContent=e.message);
 })();
-</script><script src="/screen-designer.js"></script><script src="/design-backup.js"></script></body></html>
+</script><script src="/screen-designer.js"></script><script src="/design-backup.js"></script><script src="/headless-clients.js"></script></body></html>
