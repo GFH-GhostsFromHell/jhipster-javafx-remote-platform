@@ -29,27 +29,27 @@ services:
         generateValue: true
       - key: STUDIO_DB_HOST
         fromDatabase:
-          name: industrial-studio-demo-db
+          name: industrial-control-studio-demo-db
           property: host
       - key: STUDIO_DB_PORT
         fromDatabase:
-          name: industrial-studio-demo-db
+          name: industrial-control-studio-demo-db
           property: port
       - key: STUDIO_DB_NAME
         fromDatabase:
-          name: industrial-studio-demo-db
+          name: industrial-control-studio-demo-db
           property: database
       - key: STUDIO_DB_USER
         fromDatabase:
-          name: industrial-studio-demo-db
+          name: industrial-control-studio-demo-db
           property: user
       - key: STUDIO_DB_PASSWORD
         fromDatabase:
-          name: industrial-studio-demo-db
+          name: industrial-control-studio-demo-db
           property: password
 
 databases:
-  - name: industrial-studio-demo-db
+  - name: industrial-control-studio-demo-db
     region: ohio
     plan: free
-    databaseName: industrialstudio
+    databaseName: industrial_control_studio_demo_db
