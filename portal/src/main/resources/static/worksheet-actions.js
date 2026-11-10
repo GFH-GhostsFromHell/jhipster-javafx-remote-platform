@@ -19,7 +19,7 @@
  function allRecords(){if(!storeKey)return[];try{var a=JSON.parse(localStorage.getItem(storeKey)||'[]');return Array.isArray(a)?a:[];}catch(_){return[];}}
  function put(items){try{localStorage.setItem(storeKey,JSON.stringify(items.slice(0,24)));return true;}catch(_){return false;}}
  var box=document.createElement('section');box.id='ewbWorksheetAssist';
- box.innerHTML='<h2>Worksheet workflow</h2><div class="ewb-steps"><span><b>1</b> Enter values</span><span><b>2</b> Calculate</span><span><b>3</b> Check result</span><span><b>4</b> Save / export</span></div>'+
+ box.innerHTML='<div class="ewb-links"><a href="/start.html">← Find another tool</a> · <a href="/portal.html">Dashboard</a></div><h2>Worksheet workflow</h2><div class="ewb-steps"><span><b>1</b> Enter values</span><span><b>2</b> Calculate</span><span><b>3</b> Check result</span><span><b>4</b> Save / export</span></div>'+
  '<p class="ewb-note">Confirm the CEC/OESC rules, table values and equipment markings before using a result in the field.</p>'+
  '<div class="ewb-controls"><label for="ewbDraftName">Worksheet name <input id="ewbDraftName" maxlength="100" placeholder="Example: Motor feeder 600 V"></label>'+
  '<button id="ewbSave" type="button">Save input draft</button>'+
