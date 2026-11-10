@@ -99,8 +99,13 @@ class WorkstationUpdateTest {
         studio.putConfig(new StudioApi.Update(current.revision(),current.configuration()));
         assertTrue(deviceStatus("updatepc1",a.oneTimeToken()).path("updatePending").asBoolean());
 
+        // Editing a workstation label/assignment is also server-side configuration.
+        String priorToRename=deviceStatus("updatepc1",a.oneTimeToken()).path("fingerprint").asText();
+        screens.updateWorkstation("updatepc1",new ScreenApi.ChangeWorkstation("Panel 1 updated","overview",true));
+        assertNotEquals(priorToRename,deviceStatus("updatepc1",a.oneTimeToken()).path("fingerprint").asText());
+
         // Disabling a workstation revokes its ability to see updates.
-        screens.updateWorkstation("updatepc1",new ScreenApi.ChangeWorkstation("Panel 1","overview",false));
+        screens.updateWorkstation("updatepc1",new ScreenApi.ChangeWorkstation("Panel 1 updated","overview",false));
         mvc.perform(get("/api/studio/client-update-status")
             .header("X-Studio-Device-Id","updatepc1")
             .header("X-Studio-Device-Token",a.oneTimeToken()))
