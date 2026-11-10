@@ -53,3 +53,19 @@ On subsequent launches on the **same Windows user profile**, the HMI reconnects 
 For a previously registered Windows PC, the last accepted configuration fingerprint is saved locally without device credentials. After restart, the app compares it against the server **before** displaying readings. It never silently installs a new revision. At first pairing only, the initial assigned screen loads automatically to keep setup simple.
 
 **Safety:** Whenever a configuration change is awaiting acceptance, the prototype clears old readings rather than showing values under an outdated layout. There is no automatic PLC write, HMI script execution, remote process restart or MSI binary auto-installer. Software installer upgrades remain separate from revisioned configuration updates.
+
+## Automatic software-update check (November 2026)
+
+The JavaFX client checks the **public, metadata-only** `GET /api/studio/public-app-manifest` endpoint **on startup even before a PC is paired**, again when a paired PC connects, and **every 15 minutes while the app stays open**. No API keys or device tokens are required for release metadata. The check is also available under **Connection settings and help → Check software updates now**.
+
+Each MSI embeds the full `0.1.<GitHub Actions build number>` version into its Java application resource. The client compares all three version components numerically. It only advertises a newer release when the server explicitly declares a signed MSI and provides a SHA-256 digest, publisher name, and approved URL under this repository's GitHub Releases path. These are publisher assertions, not cryptographic validation by the client. The client opens the release's GitHub page for a person to review, but **never downloads or silently installs executables**. Verify Authenticode publisher and SHA-256 before installing. The repository's CI-built MSI is **unsigned** and is not a publicly approved update.
+
+To publish a legitimate signed release later, an administrator must deliver a properly signed MSI to this repository's GitHub Releases and configure these Render environment variables:
+
+- `STUDIO_DESKTOP_RELEASE_PUBLISHED=true`
+- `STUDIO_DESKTOP_RELEASE_VERSION=0.1.<build>`
+- `STUDIO_DESKTOP_RELEASE_URL=https://github.com/GFH-GhostsFromHell/jhipster-javafx-remote-platform/releases/download/<tag>/<file>.msi`
+- `STUDIO_DESKTOP_RELEASE_SHA256=<64 hexadecimal digits>`
+- `STUDIO_DESKTOP_RELEASE_PUBLISHER=<expected verified Windows signing identity>`
+
+Do not set the publication flag until the released MSI's signature and hash have been independently verified and the appropriate site IT team approves rollout. Changing HMI screen configurations is a separate, user-approved workflow and does not install software.
