@@ -150,55 +150,96 @@ function renderDeviceEditor(){
     const out=el('deviceEditor');out.replaceChildren();
     const heading=document.createElement('h3');heading.textContent='Registered PCs';out.append(heading);
     if(devices.length===0){
-        const note=document.createElement('p');note.textContent='No PCs registered. Register a PC above to generate its enrollment secret.';out.append(note);
+        const note=document.createElement('p');note.textContent='No PCs yet. Name your first PC above, choose its screen and select Register & get setup code.';out.append(note);
     }
     for(const device of devices){
         const row=document.createElement('div');row.className='deviceRow';
         const name=field('input',device.name);
         const assigned=document.createElement('select');
-        for(const s of screens)assigned.append(option(s.id,s.layout.name+' ('+s.id+')'));
+        for(const screen of screens)assigned.append(option(screen.id,screen.layout.name+' ('+screen.id+')'));
         assigned.value=device.screenId;
         const enabled=field('input','');enabled.type='checkbox';enabled.checked=device.enabled;
         row.append(labelField('PC '+device.id,name),labelField('Assigned HMI screen',assigned),
             labelField('Enabled',enabled),
-            button('Update assignment',async()=>{
+            button('Save changes',async()=>{
                 try{
                     const result=await api('/api/studio/workstations/'+encodeURIComponent(device.id),'PUT',{
                         name:name.value.trim(),screenId:assigned.value,enabled:enabled.checked
                     });
                     devices=devices.map(d=>d.id===result.id?result:d);
-                    renderDeviceEditor();status('Updated '+result.id+' to '+result.screenId+
-                        '. Its JavaFX client will fetch the assigned screen on its next refresh.');
+                    renderDeviceEditor();
+                    status('Saved '+result.name+'. Its screen assignment will refresh automatically.');
                 }catch(e){status(e.message,true)}
             }));
-        row.append(button('Download PC setup ZIP',async()=>{
+        row.append(button('Pair / reconnect PC',()=>showPairing(device)));
+        row.append(button('Advanced: download setup ZIP',async()=>{
             try{
                 await window.studioAdminDownload(
                     '/api/studio/workstations/'+encodeURIComponent(device.id)+'/setup-package',
                     'IndustrialHMI-'+device.id+'-Setup.zip');
-                status('Downloaded setup package for '+device.id+
-                    '. Install the generic HMI MSI separately, then import the ZIP into that PC.');
-            }catch(e){status('Setup package failed: '+e.message,true)}
+                status('Downloaded optional setup ZIP for '+device.id+'. The easier setup uses Pair / reconnect PC.');
+            }catch(e){status('Setup ZIP failed: '+e.message,true)}
         }));
         out.append(row);
     }
 }
+async function showPairing(device){
+    const panel=el('newDeviceSecret');panel.classList.remove('hidden');
+    panel.replaceChildren();
+    const inProgress=document.createElement('p');
+    inProgress.textContent='Creating a secure setup code for '+device.name+'…';panel.append(inProgress);
+    try{
+        const pairing=await api('/api/studio/workstations/'+encodeURIComponent(device.id)+'/pairing','POST');
+        const intro=document.createElement('strong');
+        intro.textContent='Desktop setup code for '+device.name+' ('+device.id+')';
+        const instructions=document.createElement('p');
+        instructions.textContent='On the JavaFX PC, select Set up this PC, paste the full code below, then click Connect this PC. No separate viewer password is needed. This code expires in 15 minutes and can only be used once.';
+        const code=document.createElement('textarea');
+        code.value=pairing.setupCode;code.readOnly=true;code.rows=3;
+        code.style.height='auto';code.style.width='100%';
+        code.setAttribute('aria-label','Single-use workstation setup code');
+        const copy=button('Copy setup code',async()=>{
+            try{await navigator.clipboard.writeText(pairing.setupCode);
+                status('Setup code copied. Paste it into the desktop app on '+device.name+'.');
+            }catch(e){
+                code.focus();code.select();
+                status('Clipboard permission unavailable. The code is selected; press Ctrl+C to copy.',true);
+            }
+        });
+        const expiry=document.createElement('small');
+        expiry.textContent='Expires: '+new Date(pairing.expiresAt).toLocaleString()+
+            ' · Generating a newer code invalidates older unredeemed codes.';
+        panel.replaceChildren(intro,instructions,code,copy,expiry);
+        panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+        status('Setup code ready for '+device.name+'. Copy it into the JavaFX desktop client.');
+    }catch(e){
+        panel.replaceChildren(document.createTextNode('Unable to create setup code: '+e.message));
+        status('Pairing failed: '+e.message,true);
+    }
+}
+function uniqueIdFromName(name){
+    let base=name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9 _-]/g,'')
+        .trim().replace(/[ _]+/g,'-').replace(/^-+/,'').slice(0,42);
+    if(!/^[a-z]/.test(base))base='pc-'+base;
+    if(base.length<2)base='workstation';
+    let id=base,n=2;
+    while(devices.some(d=>d.id===id)){
+        id=(base.slice(0,43)+'-'+n).slice(0,48);n++;
+    }
+    return id;
+}
 async function provision(){
-    const id=el('newDeviceId').value.trim(),name=el('newDeviceName').value.trim();
+    const name=el('newDeviceName').value.trim();
+    const id=el('newDeviceId').value.trim() || uniqueIdFromName(name);
     const screenId=el('newDeviceScreen').value;
-    if(!safeId(id)||!name){status('Enter a valid unique PC ID and a friendly name',true);return}
+    if(!safeId(id)||!name){status('Enter a PC name and a valid PC ID (or leave ID blank to generate one)',true);return}
     try{
         const x=await api('/api/studio/workstations','POST',{id,name,screenId});
         devices.push(x.workstation);devices.sort((a,b)=>a.id.localeCompare(b.id));
-        renderDeviceEditor();el('newDeviceSecret').classList.remove('hidden');
-        const line=document.createElement('div'),secret=document.createElement('code');
-        secret.textContent=x.oneTimeToken;
-        line.append(document.createTextNode('PC '+x.workstation.id+' enrollment secret (shown once): '),secret);
-        el('newDeviceSecret').replaceChildren(line,
-            document.createTextNode('Copy the secret into the JavaFX client on that PC. Keep it private; the portal will not display it again.'));
+        renderDeviceEditor();
         el('newDeviceId').value='';el('newDeviceName').value='';
-        status('Registered PC '+id+' with screen '+screenId);
-    }catch(e){status(e.message,true)}
+        await showPairing(x.workstation);
+    }catch(e){status('Unable to register PC: '+e.message,true)}
 }
 async function loadAll(){
     try{
