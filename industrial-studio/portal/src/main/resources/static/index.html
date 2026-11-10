@@ -68,6 +68,17 @@ async function api(path,method='GET',body){
  return JSON.parse(raw)
 }
 window.studioAdminApi=api;
+window.studioAdminDownload=async(path,fileName)=>{
+ if(!auth)throw Error('Sign in as an administrator first');
+ const response=await fetch(path,{headers:{Authorization:auth,Accept:'application/zip'},cache:'no-store'});
+ if(!response.ok)throw Error('Download failed: HTTP '+response.status);
+ const blob=await response.blob();
+ if(blob.type && !blob.type.includes('zip') && !blob.type.includes('octet-stream'))throw Error('Invalid package response');
+ const href=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=href;link.download=fileName;
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(href),30000);
+};
 function input(value,type='text'){const e=document.createElement('input');e.type=type;e.value=value??'';if(type==='number')e.step='any';return e}
 function tagRow(t){
  const row=document.createElement('tr'),vals=[t.id,t.label,t.nodeId,t.unit,t.lowAlarm,t.highAlarm];
