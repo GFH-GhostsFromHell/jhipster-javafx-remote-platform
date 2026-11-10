@@ -97,7 +97,15 @@ public class StudioApi {
 
     @GetMapping("/update-manifest")
     public Map<String,Object> manifest() {
-        return Map.of("version","0.1.0-SNAPSHOT","channel","development",
-            "downloadUrl","","sha256","","released",false);
+        return DesktopReleaseInfo.current();
+    }
+
+    // Public metadata only: no workstation records, tokens, control data or installer payload.
+    // Allows a new, not-yet-paired PC to check for updates immediately on launch.
+    @GetMapping("/public-app-manifest")
+    public org.springframework.http.ResponseEntity<Map<String,Object>> publicManifest() {
+        return org.springframework.http.ResponseEntity.ok()
+            .cacheControl(org.springframework.http.CacheControl.noStore())
+            .body(manifest());
     }
 }
