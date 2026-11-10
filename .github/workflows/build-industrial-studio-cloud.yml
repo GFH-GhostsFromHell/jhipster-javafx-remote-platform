@@ -1,0 +1,42 @@
+name: Industrial Control Studio Render container validation
+
+on:
+  push:
+    paths:
+      - 'industrial-studio/portal/**'
+      - '.github/workflows/build-industrial-studio-cloud.yml'
+  pull_request:
+    paths:
+      - 'industrial-studio/portal/**'
+      - '.github/workflows/build-industrial-studio-cloud.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build isolated cloud configurator container
+        run: docker build --pull --file industrial-studio/portal/Dockerfile.render --tag industrial-control-studio-configurator:ci .
+      - name: Verify container cannot boot with missing secrets or ephemeral database
+        run: |
+          # A container without required cloud secrets or a PostgreSQL datasource must fail closed.
+          set +e
+          timeout 45s docker run --rm --network none -e PORT=10000             industrial-control-studio-configurator:ci >/tmp/cloud-startup.log 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 124 ]; then
+            cat /tmp/cloud-startup.log
+            echo "SECURITY FAILURE: cloud image ran without configured secrets" >&2
+            exit 1
+          fi
+          if [ "$rc" -eq 0 ]; then
+            cat /tmp/cloud-startup.log
+            echo "SECURITY FAILURE: cloud image started without a PostgreSQL datasource" >&2
+            exit 1
+          fi
+          echo "Cloud image rejected missing configuration as expected"

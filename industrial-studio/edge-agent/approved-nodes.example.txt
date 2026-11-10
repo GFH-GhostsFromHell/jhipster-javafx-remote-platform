@@ -1,0 +1,6 @@
+# Example only; DO NOT use as a site-approved allowlist without review.
+# Add exact OPC UA NodeIds of numeric READ-ONLY Kepware tags.
+# Keep the actual approved file outside the repository and controlled by site OT engineering.
+ns=2;s=Channel1.Device1.PumpSpeed
+ns=2;s=Channel1.Device1.TankLevel
+ns=2;s=Channel1.Device1.MotorCurrent

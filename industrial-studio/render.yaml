@@ -1,0 +1,55 @@
+# Demo-only Render Blueprint. Direct OPC UA and PLC access are forbidden in this cloud service.
+# Requires workspace confirmation before applying; free Postgres expires in 30 days.
+services:
+  - type: web
+    name: industrial-control-studio-demo
+    repo: https://github.com/GFH-GhostsFromHell/jhipster-javafx-remote-platform
+    branch: feature/industrial-control-studio-starter
+    runtime: docker
+    dockerfilePath: industrial-studio/portal/Dockerfile.render
+    dockerContext: .
+    region: ohio
+    plan: free
+    autoDeployTrigger: checksPass
+    healthCheckPath: /
+    envVars:
+      - key: STUDIO_BIND
+        value: 0.0.0.0
+      - key: STUDIO_CLOUD_CONFIG_ONLY
+        value: "true"
+      - key: STUDIO_SOURCE_MODE
+        value: SIMULATION
+      - key: STUDIO_ADMIN_USER
+        value: studio-admin
+      - key: STUDIO_VIEWER_USER
+        value: studio-viewer
+      - key: STUDIO_ADMIN_PASSWORD
+        generateValue: true
+      - key: STUDIO_VIEWER_PASSWORD
+        generateValue: true
+      - key: STUDIO_DB_HOST
+        fromDatabase:
+          name: industrial-control-studio-demo-db
+          property: host
+      - key: STUDIO_DB_PORT
+        fromDatabase:
+          name: industrial-control-studio-demo-db
+          property: port
+      - key: STUDIO_DB_NAME
+        fromDatabase:
+          name: industrial-control-studio-demo-db
+          property: database
+      - key: STUDIO_DB_USER
+        fromDatabase:
+          name: industrial-control-studio-demo-db
+          property: user
+      - key: STUDIO_DB_PASSWORD
+        fromDatabase:
+          name: industrial-control-studio-demo-db
+          property: password
+
+databases:
+  - name: industrial-control-studio-demo-db
+    region: ohio
+    plan: free
+    databaseName: industrial_control_studio_demo_db

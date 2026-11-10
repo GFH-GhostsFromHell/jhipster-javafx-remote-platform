@@ -1,0 +1,49 @@
+name: Build Headless Edge Collector (unsigned prototype)
+
+on:
+  push:
+    paths:
+      - 'industrial-studio/edge-agent/**'
+      - 'industrial-studio/docs/HEADLESS_EDGE_CLIENT.md'
+      - '.github/workflows/build-industrial-edge-agent.yml'
+  pull_request:
+    paths:
+      - 'industrial-studio/edge-agent/**'
+      - 'industrial-studio/docs/HEADLESS_EDGE_CLIENT.md'
+      - '.github/workflows/build-industrial-edge-agent.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  headless-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: industrial-studio/edge-agent/pom.xml
+      - name: Test and package independent headless collector
+        working-directory: industrial-studio/edge-agent
+        run: mvn --batch-mode verify
+      - name: Prepare unsigned development package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/industrial-headless-edge
+          cp industrial-studio/edge-agent/target/industrial-studio-edge-agent-0.1.0-SNAPSHOT-agent.jar dist/industrial-headless-edge/
+          cp industrial-studio/edge-agent/Start-HeadlessAgent.ps1 dist/industrial-headless-edge/
+          cp industrial-studio/docs/HEADLESS_EDGE_CLIENT.md dist/industrial-headless-edge/README.md
+          cd dist/industrial-headless-edge
+          sha256sum industrial-studio-edge-agent-0.1.0-SNAPSHOT-agent.jar > SHA256SUMS.txt
+      - name: Upload unsigned test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: IndustrialStudio-HeadlessEdge-UNSIGNED
+          path: dist/industrial-headless-edge/
+          retention-days: 14
+          if-no-files-found: error

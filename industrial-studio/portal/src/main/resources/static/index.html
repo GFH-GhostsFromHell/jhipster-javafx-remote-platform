@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Industrial Control Studio</title><style>
+:root{font:15px/1.5 system-ui,Segoe UI,sans-serif;color:#eaf4fc;background:#101d2b}*{box-sizing:border-box}body{margin:0}
+header{padding:18px 4vw;border-bottom:1px solid #385469;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 13px}h3{margin:0}p{color:#b4c9d9}
+main{max-width:1350px;margin:25px auto;padding:0 22px}
+.panel{background:#1b3045;border-radius:12px;border:1px solid #39566c;padding:20px;margin-bottom:20px}
+input,select,textarea{font:inherit;color:#effaff;background:#101f30;border:1px solid #557289;border-radius:7px;padding:9px}
+textarea{width:100%;height:275px;font:13px/1.5 Consolas,monospace}
+button{font:inherit;background:#266187;color:white;border:1px solid #559ec1;padding:9px 13px;border-radius:8px;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #ffd47e}
+label{display:grid;gap:5px;color:#dae8f3}
+.row{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.row>*{max-width:100%}.row label{min-width:150px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+nav button{background:#213f57}nav button[aria-current=page]{background:#307ead}
+.hidden{display:none!important}.warn{background:#513b22;color:#ffdeb1;border:1px solid #8a6536;border-radius:8px;padding:10px;margin:12px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{padding:14px;border:1px solid #47728c;background:#13283a;border-radius:8px}
+.value{font-size:28px;font-weight:700;color:#93e4ff}.sub{font-size:12px;color:#bacbd8;overflow-wrap:anywhere}
+.tableWrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:880px}td,th{text-align:left;padding:8px 4px;border-bottom:1px solid #426078}
+td input{width:100%;min-width:80px}td input.node{min-width:240px}th{font-size:12px;color:#c7daeb}
+#status{min-height:24px}small{color:#aac2d2}
+@media(max-width:600px){header{padding:16px}main{padding:0 12px}.panel{padding:14px}.row{display:grid;grid-template-columns:1fr 1fr}.row label{min-width:0}}
+.widgetEdit{border:1px solid #45637c;background:#162b3f;border-radius:8px;padding:12px;margin:10px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));align-items:end;gap:10px}
+.widgetEdit label{min-width:0}.widgetEdit button{font-size:13px}.widgetEdit select{max-width:100%}
+.deviceRow{border-bottom:1px solid #48657b;padding:14px 0;display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.deviceRow label{min-width:190px}.deviceRow input[type=checkbox]{width:20px;height:20px}
+#screenPreview .card{min-height:100px;min-width:0;overflow-wrap:anywhere}
+.pcUpdateFlag{border:1px solid #66819a;border-radius:8px;padding:8px;background:#162f44;min-width:150px}
+#selectedPcStatus{background:#163248;border:1px solid #53758d;border-radius:9px;padding:12px;margin:12px 0;max-width:850px}
+#selectedPcId{min-width:230px}
+</style></head><body>
+<header><div><h1>Industrial Control Studio</h1><small>OPC UA middleware configuration &amp; desktop HMI</small></div><strong>READ-ONLY SIMULATOR</strong></header><div style="padding:11px 4vw;background:#133b52;border-bottom:1px solid #3d6d86;color:#d8eefb">New: <a href="/showcase.html" style="color:#94ebff;font-weight:650">Open the public industrial HMI showcase</a> — simulated mine, conveyor and substation screens. No sign-in required.</div>
+<main>
+<section class="panel"><h2>Configurator sign-in</h2><div class="row"><label>Admin username<input id="user" autocomplete="username" value="studio-admin"></label><label>Password<input id="pass" type="password" autocomplete="current-password"></label><button id="connect">Sign in</button><button id="logout">Disconnect</button></div><p id="status" role="status">Enter the administrator credentials set on this machine. Credentials are held only in memory.</p></section>
+<div id="app" class="hidden"><nav aria-label="Application pages"><button data-page="dashboard" aria-current="page">Live preview</button><button data-page="tags">PLC tag mappings</button><button data-page="logic">Java logic drafts</button><button data-page="screens">HMI screens &amp; PCs</button><button data-page="headless">Headless data collectors</button><button data-page="system">System and releases</button></nav>
+<section id="dashboard" class="page panel"><h2>Desktop HMI preview</h2><div class="warn">Demonstration only: synthetic readings. No connection to a PLC or Kepware. Do not operate equipment from these values.</div><p id="snapshot">No data received</p><div id="cards" class="cards"></div></section>
+<section id="tags" class="page panel hidden"><h2>OPC UA connection and tag configuration</h2><p>The endpoint is a saved setting only; this prototype does not open a connection.</p><label>OPC UA server endpoint<input id="endpoint"></label>
+<div class="tableWrap"><table><thead><tr><th>Tag ID</th><th>Label</th><th>OPC NodeId</th><th>Unit</th><th>Low limit</th><th>High limit</th><th>Action</th></tr></thead><tbody id="tagbody"></tbody></table></div>
+<div class="row"><button id="add">Add tag</button><button class="save">Save configuration</button><small id="revision"></small></div></section>
+<section id="logic" class="page panel hidden"><h2>Java rules editor</h2><div class="warn">Source-code drafts cannot execute in this application. Execution will require an isolated, signed and approved rules runtime.</div><label for="java">Java source (stored as a draft)</label><textarea id="java" spellcheck="false"></textarea><button class="save">Save draft</button></section>
+<section id="screens" class="page panel hidden">
+<h2>HMI screen designer</h2><p>Build read-only dashboards in the web portal and assign them to individual Windows PCs. Layouts are downloaded by the JavaFX client; the application installer remains the same.</p>
+<div class="row"><label>Screen<select id="screenSelect" aria-label="Select HMI screen"></select></label>
+<label>New screen ID<input id="newScreenId" placeholder="motor-room"></label>
+<button id="newScreen">Create screen</button></div>
+<div class="row"><label>Screen title<input id="screenName"></label><label>Columns<select id="screenColumns"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label><button id="addWidget">Add widget</button><button id="saveScreen">Save screen</button><small id="screenRevision"></small></div>
+<p>Widgets: choose a type and a PLC tag. Use Move up/down to arrange the desktop display. No executable Java, FXML, HTML or raw CSS is downloaded.</p>
+<div id="widgetsEditor"></div>
+<h3>Screen preview</h3><div id="screenPreview" class="cards" style="margin-top:14px"></div>
+<hr style="border:0;border-top:1px solid #48667e;margin:30px 0">
+<h2>Set up a desktop PC</h2><p><strong>1.</strong> Give your PC a name and choose its screen.
+<strong>2.</strong> Click Register &amp; get setup code.
+<strong>3.</strong> On that PC, open JavaFX, paste the setup code, and click Connect this PC. No separate desktop viewer password is needed.</p>
+<p>For an existing PC, click <strong>Pair / reconnect PC</strong> in its row. Setup codes are valid for 15 minutes and can be used once.</p>
+<p>Need the Windows desktop app? <a href="https://github.com/GFH-GhostsFromHell/jhipster-javafx-remote-platform/actions/workflows/build-industrial-hmi-msi.yml" target="_blank" rel="noopener noreferrer" style="color:#9de1ff">Find the latest Windows test installer on GitHub Actions</a>. This is an unsigned development build and may require GitHub sign-in.</p>
+<div class="row"><label>Optional PC ID<input id="newDeviceId" placeholder="Generated automatically"></label>
+<label>PC name<input id="newDeviceName" placeholder="Control room PC"></label><label>Assigned screen<select id="newDeviceScreen"></select></label>
+<button id="provisionDevice">Register &amp; get setup code</button></div>
+<div id="newDeviceSecret" class="warn hidden" role="status"></div>
+<hr style="border:0;border-top:1px solid #48667e;margin:22px 0">
+<h3>Manage a registered PC</h3>
+<p>Select a PC to check whether changes have been downloaded and approved. Saving a new screen or tag configuration automatically creates a pending update; you can also request a refresh for a selected PC.</p>
+<div class="row">
+  <label>Registered PC<select id="selectedPcId" aria-label="Select registered PC for update"></select></label>
+  <button id="refreshPcStatus">Check PC update status</button>
+  <button id="queuePcUpdate">Request update for this PC</button>
+</div>
+<p id="selectedPcStatus" role="status">Select a registered PC to see its update status.</p>
+<div id="deviceEditor"></div><p id="designerStatus" role="status"></p></section>
+<section id="headless" class="page panel hidden">
+<h2>Headless collectors &amp; per-client business logic</h2>
+<div class="warn"><strong>Laboratory / simulation only.</strong> Each collector runs without a JavaFX window and can read approved local Kepware OPC UA tags. The cloud processes restricted SIM_WRITE rules as dry-run output proposals. <strong>Actual PLC writes and arbitrary Java execution are disabled.</strong> Do not use this to control equipment or safety systems.</div>
+<p>Register a separate edge client ID for each Windows service, mine location, pump station or simulator. Each agent has its own data source, tags and cloud-hosted rule draft; the collector contacts the cloud outbound over HTTPS.</p>
+<div class="row">
+<label>New collector ID<input id="edgeNewId" placeholder="mine-pump-collector"></label>
+<label>Collector name<input id="edgeNewName" placeholder="Underground pump station"></label>
+<button id="edgeCreate" type="button">Create headless collector</button>
+</div>
+<div id="edgeSecretPanel" class="panel hidden" style="margin-top:15px;background:#243a4c">
+<strong>One-time edge secret — save now</strong><p>Install this in a protected service secret store on the approved edge PC. It will not be shown again. Never include it in an installer or ZIP file.</p>
+<div class="row"><label style="flex:1">Edge token<input id="edgeSecret" type="password" readonly autocomplete="off"></label><button id="edgeCopySecret" type="button">Copy secret</button></div>
+</div>
+<div class="row" style="margin-top:18px">
+<label>Choose existing collector<select id="edgeSelect"></select></label>
+<button id="edgeRefresh" type="button">Refresh collectors</button>
+</div>
+<div id="edgeEditor" class="hidden" style="margin-top:15px">
+<div class="row">
+<label>Name<input id="edgeName"></label>
+<label>Data source<select id="edgeMode"><option value="SIMULATION">Demo simulator</option><option value="KEPWARE_READ">Local Kepware (READ ONLY)</option></select></label>
+<label>Enabled<input type="checkbox" id="edgeEnabled" checked></label>
+<small id="edgeRevision"></small>
+</div>
+<h3 style="margin-top:23px">Local read-only PLC tags</h3>
+<p>The site computer's own OPC UA certificate, username, endpoint and NodeId allowlist must approve every real tag. A cloud editor cannot override that allowlist.</p>
+<div id="edgeTags"></div><button type="button" id="edgeAddTag">Add input tag</button>
+<h3 style="margin-top:24px">Business logic for this client ID</h3>
+<p>For this first version, enter bounded math using the safe SIM_WRITE syntax. Cloud rules calculate proposed outputs but never issue PLC commands. Example:</p>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere;background:#11273b;padding:13px;border-radius:8px">SIM_WRITE desiredOutput = CLAMP(tankLevel * 1.2 + 0, 0, 100)</pre>
+<label>Rule draft<textarea id="edgeScript" spellcheck="false" style="height:175px"></textarea></label>
+<div class="row" style="margin-top:14px">
+<button type="button" id="edgeSave">Save collector configuration</button>
+<button type="button" id="edgeRotate">Rotate edge secret</button>
+</div>
+<h3 style="margin-top:25px">Test script with simulated readings</h3>
+<button type="button" id="edgeTestPrepare">Prepare sample inputs</button>
+<div class="row" id="edgePreviewInputs"></div>
+<button type="button" id="edgeTestRun">Run dry-run test</button>
+<div id="edgeDryRun" class="card" style="margin-top:12px">No test run yet.</div>
+<h3 style="margin-top:23px">Last readings from this collector</h3>
+<div id="edgeTelemetry" class="card" role="status">No data received yet.</div>
+</div>
+<p id="edgeStatus" role="status">Sign in to manage collectors.</p>
+<p><small>Start the separate `industrial-studio/edge-agent` Java 21 headless process with STUDIO_EDGE_CLOUD_URL, STUDIO_EDGE_ID and STUDIO_EDGE_TOKEN. The agent only uploads verified input data. It does not pull or execute your script locally, accept cloud control commands or perform OPC UA writes.</small></p>
+</section>
+<section id="system" class="page panel hidden"><h2>Middleware and update status</h2><p id="sys"></p><button id="reload">Reload configuration</button> <button id="check">Check releases</button><p id="updates"></p>
+<hr style="border:0;border-top:1px solid #48657d;margin:24px 0">
+<h3>Back up saved HMI designs</h3>
+<p>Export tag mappings, screen layouts and workstation assignments before moving to a new database. This design backup excludes credentials, enrollment tokens and pairing codes. It is not a full PostgreSQL backup.</p>
+<div class="row"><button id="exportDesigns" type="button">Download design backup (.json)</button>
+<label>Import a design backup<input type="file" accept=".json,application/json" id="designBackupFile"></label>
+<button id="restoreDesigns" type="button">Restore designs</button></div>
+<p class="warn">Restoring overwrites existing tag configuration and matching screen IDs. Export a fresh backup first. Workstations must be re-enrolled on a new database.</p>
+<p id="designBackupStatus" role="status"></p></section></div>
+<small>Prototype is not intended for safety systems, control decisions, alarm annunciation or production deployment.</small>
+</main><script>
+(()=>{'use strict';
+const el=id=>document.getElementById(id);let auth='',config=null,revision=0,poller;
+const report=(message,error=false)=>{el('status').textContent=message;el('status').style.color=error?'#ffb8b8':'#a5eac4'};
+async function api(path,method='GET',body){
+ if(!auth)throw Error('Not authenticated');
+ const opts={method,headers:{Authorization:auth,Accept:'application/json'},cache:'no-store'};
+ if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
+ const res=await fetch(path,opts),raw=await res.text();
+ if(!res.ok)throw Error('HTTP '+res.status+' '+raw.slice(0,160));
+ return JSON.parse(raw)
+}
+window.studioAdminApi=api;
+window.studioAdminDownload=async(path,fileName)=>{
+ if(!auth)throw Error('Sign in as an administrator first');
+ const response=await fetch(path,{headers:{Authorization:auth,Accept:'application/zip'},cache:'no-store'});
+ if(!response.ok)throw Error('Download failed: HTTP '+response.status);
+ const blob=await response.blob();
+ if(blob.type && !blob.type.includes('zip') && !blob.type.includes('octet-stream'))throw Error('Invalid package response');
+ const href=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=href;link.download=fileName;
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(href),30000);
+};
+function input(value,type='text'){const e=document.createElement('input');e.type=type;e.value=value??'';if(type==='number')e.step='any';return e}
+function tagRow(t){
+ const row=document.createElement('tr'),vals=[t.id,t.label,t.nodeId,t.unit,t.lowAlarm,t.highAlarm];
+ vals.forEach((v,i)=>{const td=document.createElement('td'),field=input(v,i>3?'number':'text');
+ field.setAttribute('aria-label',['Tag ID','Display label','OPC NodeId','Unit','Low alarm','High alarm'][i]);
+ if(i===2)field.className='node';td.append(field);row.append(td)});
+ const td=document.createElement('td'),remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>row.remove();td.append(remove);row.append(td);return row
+}
+function render(){
+ el('endpoint').value=config.endpoint;el('java').value=config.javaDraft;el('tagbody').replaceChildren();
+ config.tags.forEach(t=>el('tagbody').append(tagRow(t)));el('revision').textContent='Revision '+revision
+}
+function collect(){
+ const tags=[...el('tagbody').children].map(tr=>{
+ const f=tr.querySelectorAll('input'),n=i=>f[i].value.trim()===''?null:Number(f[i].value);
+ return{id:f[0].value.trim(),label:f[1].value.trim(),nodeId:f[2].value.trim(),unit:f[3].value.trim(),lowAlarm:n(4),highAlarm:n(5)}
+ });
+ return{endpoint:el('endpoint').value.trim(),tags,javaDraft:el('java').value}
+}
+async function load(){
+ const x=await api('/api/studio/config');revision=x.revision;config=x.configuration;render();el('app').classList.remove('hidden');
+ const s=await api('/api/studio/status');el('sys').textContent='Source '+s.mode+' · Kepware '+s.opcUaState+' · Java execution '+s.javaDraftExecution;
+ report('Connected. Configuration revision '+revision);window.dispatchEvent(new Event('studio:connected'));await refresh()
+}
+async function refresh(){
+ if(!auth)return;
+ try{
+ const x=await api('/api/studio/live');el('snapshot').textContent='Mode '+x.mode+' · '+(x.connected?'OPC ONLINE':'OPC OFFLINE / SIMULATOR')+' · '+x.serverTime+' · Config revision '+x.configurationRevision;
+ el('cards').replaceChildren();
+ x.samples.forEach(t=>{const box=document.createElement('div');box.className='card';
+ const name=document.createElement('h3'),value=document.createElement('div'),sub=document.createElement('div');
+ name.textContent=t.label;value.className='value';value.textContent=(t.quality==='GOOD'||t.quality==='SIMULATED')?(t.value+' '+t.unit):'DATA UNAVAILABLE';
+ sub.className='sub';sub.textContent=t.quality+' · '+t.nodeId+(t.alarm?' · SIMULATED LIMIT EXCEEDED':'');
+ box.append(name,value,sub);el('cards').append(box)})
+ }catch(e){el('snapshot').textContent='DATA UNAVAILABLE — '+e.message;el('cards').replaceChildren()}
+}
+el('connect').onclick=async()=>{
+ const user=el('user').value.trim(),pass=el('pass').value;
+ if(!user||!pass){report('Enter your administrator username and password',true);return}
+ auth='Basic '+btoa(user+':'+pass);
+ try{await load();if(poller)clearInterval(poller);poller=setInterval(refresh,2500)}
+ catch(e){auth='';el('app').classList.add('hidden');report(e.message,true)}
+};
+el('logout').onclick=()=>{auth='';if(poller)clearInterval(poller);poller=null;el('app').classList.add('hidden');el('pass').value='';report('Disconnected');window.dispatchEvent(new Event('studio:disconnected'))};
+document.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{
+ document.querySelectorAll('.page').forEach(s=>s.classList.toggle('hidden',s.id!==button.dataset.page));
+ document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-current',b===button?'page':'false'))
+});
+document.querySelectorAll('.save').forEach(b=>b.onclick=async()=>{
+ try{const result=await api('/api/studio/config','PUT',{expectedRevision:revision,configuration:collect()});
+ revision=result.revision;config=result.configuration;render();report('Saved configuration revision '+revision+
+ ' · Each registered desktop will now check for an update and show Update now.');window.dispatchEvent(new Event('studio:configuration-saved'));await refresh()
+ }catch(e){report(e.message+'. Reload before retrying if another editor changed the configuration.',true)}
+});
+el('add').onclick=()=>el('tagbody').append(tagRow({id:'newTag'+(el('tagbody').children.length+1),label:'New tag',nodeId:'ns=2;s=Channel1.Device1.NewTag',unit:'',lowAlarm:null,highAlarm:null}));
+el('reload').onclick=()=>load().catch(e=>report(e.message,true));
+el('check').onclick=()=>api('/api/studio/update-manifest').then(x=>el('updates').textContent=x.released?'Version '+x.version:'No signed desktop release yet (development '+x.version+')').catch(e=>el('updates').textContent=e.message);
+})();
+</script><script src="/screen-designer.js"></script><script src="/design-backup.js"></script><script src="/headless-clients.js"></script></body></html>
