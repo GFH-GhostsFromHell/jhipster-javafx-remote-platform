@@ -97,10 +97,10 @@ struct WorkbenchHome: View {
                     Label("ELECTRICAL WORKBENCH", systemImage: "bolt.fill")
                         .font(.caption.weight(.heavy))
                         .foregroundStyle(WorkbenchStyle.cyan)
-                    Text("Electrician tools for the field")
+                    Text("What do you need to do today?")
                         .font(.title2.bold())
                         .foregroundStyle(.white)
-                    Text("Native bending, electrical calculators, safety, learning, projects and career tools. Cloud features share your existing Electrical Workbench account.")
+                    Text("Start with a field task, or open Tools for electrical sizing, troubleshooting, projects and study. Cloud tools use your Electrical Workbench account.")
                         .font(.subheadline)
                         .foregroundStyle(WorkbenchStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -109,12 +109,13 @@ struct WorkbenchHome: View {
                 .padding(18)
                 .background(WorkbenchStyle.surface, in: RoundedRectangle(cornerRadius: 17))
 
+                Text("QUICK FIELD TASKS").font(.caption.weight(.bold)).foregroundStyle(WorkbenchStyle.muted)
                 NavigationLink {
                     QuickBenderView()
                 } label: {
                     HomeDestination(
                         icon: "ruler",
-                        title: "Quick conduit bender",
+                        title: "Conduit Bend Marks",
                         detail: "Offline offsets, rolling offsets, and 90° stub marks",
                         emphasis: true
                     )
@@ -126,7 +127,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "cube.transparent",
-                        title: "Advanced bender + 3D",
+                        title: "Conduit Bends + 3D Preview",
                         detail: "All bend types, diagrams, hook directions, and a rotatable result"
                     )
                 }
@@ -137,7 +138,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "wrench.and.screwdriver",
-                        title: "Offline troubleshooting",
+                        title: "Equipment Troubleshooting · Offline",
                         detail: "21 motor, PLC, VFD, mining and protection guides"
                     )
                 }
@@ -148,7 +149,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "square.stack.3d.up",
-                        title: "Conduit fabrication",
+                        title: "Conduit Cut Length & Rack Layout",
                         detail: "Offline bend gain, cut length, and parallel rack marks"
                     )
                 }
@@ -159,7 +160,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "checklist",
-                        title: "Daily 309A quiz · 25 questions",
+                        title: "Red Seal Daily Quiz · 25 Questions",
                         detail: "Five categories, worked answers, offline study"
                     )
                 }
@@ -170,18 +171,19 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "slider.horizontal.3",
-                        title: "Save bender calibration",
+                        title: "Calibrate a Conduit Bender",
                         detail: "Measure your shoe deduct and gain with scrap"
                     )
                 }
                 .buttonStyle(.plain)
 
+                Text("SIZING, PROJECTS & STUDY").font(.caption.weight(.bold)).foregroundStyle(WorkbenchStyle.muted)
                 NavigationLink {
                     PullBoxSizingView()
                 } label: {
                     HomeDestination(
                         icon: "square.dashed",
-                        title: "Pull-box sizing",
+                        title: "Pull Box Dimensions",
                         detail: "Straight, angle, U, mixed, and back-wall pulls"
                     )
                 }
@@ -194,7 +196,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "function",
-                        title: "Offline electrical calculations",
+                        title: "Electrical Calculators · Offline",
                         detail: "Transformer, motor, voltage drop, power factor and more"
                     )
                 }
@@ -205,7 +207,7 @@ struct WorkbenchHome: View {
                 } label: {
                     HomeDestination(
                         icon: "folder",
-                        title: "Native field workspaces",
+                        title: "Jobsite Tools & Saved Projects",
                         detail: "Learn, field records, projects, career hours and credentials"
                     )
                 }
@@ -225,11 +227,11 @@ struct WorkbenchHome: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
-                    PortalScreen(title: "Guided CEC calculators", path: "/guided-calculators.html")
+                    PortalScreen(title: "Step-by-Step Calculators", path: "/guided-calculators.html")
                 } label: {
                     HomeDestination(
                         icon: "function",
-                        title: "CEC calculators",
+                        title: "Step-by-Step Calculators",
                         detail: "Service, transformer, motor, and other electrical calculations"
                     )
                 }

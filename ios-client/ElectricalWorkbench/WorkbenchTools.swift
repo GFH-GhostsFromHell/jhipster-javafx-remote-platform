@@ -14,32 +14,32 @@ struct WorkbenchTools: View {
     @EnvironmentObject private var account: CloudAccountSession
 
     private let bending = [
-        CloudTool(name: "Advanced bend instructions", path: "/bend-instruction-lab.html",
+        CloudTool(name: "Conduit Bend Marks + 3D", path: "/bend-instruction-lab.html",
                   description: "Marking diagrams, hook facing, and 3D", icon: "cube.transparent"),
-        CloudTool(name: "Visual bending calculators", path: "/bend-calcs.html",
+        CloudTool(name: "Conduit Bend Diagrams", path: "/bend-calcs.html",
                   description: "Offsets, saddles, parallel runs, and bends", icon: "ruler"),
-        CloudTool(name: "Bender calibration", path: "/bender-calibration.html",
+        CloudTool(name: "Calibrate a Conduit Bender", path: "/bender-calibration.html",
                   description: "Measure and save shoe deduct or gain", icon: "slider.horizontal.3")
     ]
     private let calculations = [
-        CloudTool(name: "Guided calculators", path: "/guided-calculators.html",
+        CloudTool(name: "Step-by-Step Calculators", path: "/guided-calculators.html",
                   description: "Step-by-step electrical calculations", icon: "function"),
-        CloudTool(name: "CEC calculators", path: "/calculators.html",
+        CloudTool(name: "Electrical Calculators", path: "/calculators.html",
                   description: "Electrical code calculation workspace", icon: "number"),
-        CloudTool(name: "Advanced calculations", path: "/advanced-calculations.html",
+        CloudTool(name: "Engineering Calculators", path: "/advanced-calculations.html",
                   description: "More complex engineering worksheets", icon: "bolt.circle"),
-        CloudTool(name: "Engineering power systems", path: "/engineering-power.html",
+        CloudTool(name: "Power System Analysis", path: "/engineering-power.html",
                   description: "Sequence components, per-unit, short-circuit and power-system tools",
                   icon: "bolt.horizontal.circle", feature: "ENGINEERING_POWER_SYSTEMS"),
-        CloudTool(name: "Pull box sizing", path: "/pull-box-calcs.html",
+        CloudTool(name: "Pull Box Dimensions", path: "/pull-box-calcs.html",
                   description: "Straight, angle, and U-pull box dimensions", icon: "square.dashed"),
-        CloudTool(name: "Field suite", path: "/field-suite.html",
+        CloudTool(name: "Jobsite Tools", path: "/field-suite.html",
                   description: "Field layout and reference tools", icon: "square.grid.2x2")
     ]
     private let resources = [
-        CloudTool(name: "Troubleshooting knowledge base", path: "/troubleshooting-kb.html",
+        CloudTool(name: "Equipment Troubleshooting Guides", path: "/troubleshooting-kb.html",
                   description: "Step-by-step electrical fault isolation", icon: "wrench.adjustable"),
-        CloudTool(name: "My portal", path: "/portal.html",
+        CloudTool(name: "Account Dashboard", path: "/portal.html",
                   description: "Cloud workspace and profile", icon: "cloud"),
         CloudTool(name: "Register or recover account", path: "/account.html",
                   description: "Email verification and password recovery", icon: "person.crop.circle")
@@ -47,20 +47,20 @@ struct WorkbenchTools: View {
 
     var body: some View {
         List {
-            Section("Offline field calculators") {
+            Section("Quick & offline tools") {
                 NavigationLink {
                     FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Industrial Field Worksheets") {
                         IndustrialFieldView()
                     }
                 } label: {
-                    Label("Industrial CT/PT + relay math · offline",systemImage:"waveform.path.ecg")
+                    Label("Protection & Relay Calculators · Offline",systemImage:"waveform.path.ecg")
                 }
                 NavigationLink {
                     FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Circuit + Conductor Review") {
                         UnifiedCircuitSizingView()
                     }
                 } label: {
-                    Label("Circuit + conductor sizing · offline", systemImage: "bolt.circle")
+                    Label("Circuit Sizing & Voltage Drop · Offline", systemImage: "bolt.circle")
                 }
                 NavigationLink {
                     QuickBenderView()
@@ -93,13 +93,13 @@ struct WorkbenchTools: View {
                     Label("Daily 309A quiz · 25 questions", systemImage: "checklist")
                 }
             }
-            Section("Native electrician workspaces") {
+            Section("Jobsite & account tools") {
                 NavigationLink {
                     FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: "Electrical calculators") {
                         OfflinePowerCalculatorsView()
                     }
                 } label: {
-                    Label("Electrical power formulas · offline", systemImage: "function")
+                    Label("Electrical Calculators · Offline", systemImage: "function")
                 }
                 NavigationLink {
                     NativeSafetyWorkspaceView()
@@ -124,13 +124,13 @@ struct WorkbenchTools: View {
                     Label("Enterprise seats and membership", systemImage: "person.3")
                 }
             }
-            Section("Conduit bending · web + 3D") {
+            Section("Conduit bending & 3D") {
                 links(bending)
             }
-            Section("Electrical calculations") {
+            Section("Electrical & engineering calculators") {
                 links(calculations)
             }
-            Section("Field workspaces") {
+            Section("Projects & code updates") {
                 NavigationLink {
                     PortalScreen(title: "Field workspaces", path: "/field-suite.html")
                 } label: {
@@ -153,7 +153,7 @@ struct WorkbenchTools: View {
         }
         .scrollContentBackground(.hidden)
         .background(WorkbenchStyle.background)
-        .navigationTitle("Tools")
+        .navigationTitle("Find a Tool")
     }
 
     private func links(_ entries: [CloudTool]) -> some View {

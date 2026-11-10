@@ -108,7 +108,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
 
         VBox nav=new VBox(6);nav.setPadding(new Insets(18,12,18,12));nav.setPrefWidth(225);nav.setStyle("-fx-background-color:#07111f;");
         Label navTitle=new Label("WORKSPACE");navTitle.setStyle("-fx-text-fill:#67e8f9;-fx-font-size:10px;-fx-font-weight:bold;-fx-padding:0 8 7 8;");
-        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Workbench"), engineering=navButton("⚙  Engineering Power"), learn=navButton("🎓  Learn"), field=navButton("🛠  Field"), safety=navButton("🦺  Safety"), projects=navButton("📁  Projects"), career=navButton("📈  Career"), business=navButton("🏢  Business Team"), news=navButton("⚡  Code News"), chatgpt=navButton("🤖  Ask ChatGPT"), profile=navButton("👤  Profile");
+        Button home=navButton("⌂  Home"), calculators=navButton("🧮  Electrical Calculators"), engineering=navButton("⚙  Engineering"), learn=navButton("🎓  Learn"), field=navButton("🛠  Jobsite Tools"), safety=navButton("🦺  Safety"), projects=navButton("📁  Saved Projects"), career=navButton("📈  Trade Hours & Career"), business=navButton("🏢  Business Team"), news=navButton("⚡  Code News"), chatgpt=navButton("🤖  Ask ChatGPT"), profile=navButton("👤  Profile");
         nav.getChildren().addAll(navTitle,home,calculators,engineering,learn,field,safety,projects,career);
         if(isEnterpriseOwner()) nav.getChildren().add(business);
         nav.getChildren().addAll(news,chatgpt,profile);root.setLeft(nav);
@@ -121,7 +121,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     private Node buildHome() {
         JsonNode account=currentBootstrap.path("user");String name=account.path("displayName").asText(account.path("username").asText("user"));String rawTier=account.path("subscriptionTier").asText("TIER_1");String tier="TIER_4".equals(rawTier)?"BUSINESS / ENTERPRISE":rawTier.replace('_',' ');
         VBox page=new VBox(18);Label hello=new Label("Welcome, "+name);hello.setStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label tierLabel=new Label(tier);tierLabel.setStyle("-fx-background-color:#cffafe;-fx-text-fill:#155e75;-fx-background-radius:999;-fx-padding:5 9;-fx-font-weight:bold;");HBox head=new HBox(12,hello,tierLabel);head.setAlignment(Pos.CENTER_LEFT);
-        Label note=new Label("Workbench handles CEC calculations; Engineering Power handles per-unit, transmission, transformer and fault studies; Learn, Field, Projects and Career support everyday electrician work. Most personal records work offline.");note.setWrapText(true);note.setStyle("-fx-text-fill:#64748b;-fx-font-size:14px;");
+        Label note=new Label("Choose a task: Electrical Calculators for code and sizing, Engineering for power studies, Jobsite Tools for installation work, or Saved Projects for records. Native tools are available offline where indicated.");note.setWrapText(true);note.setStyle("-fx-text-fill:#64748b;-fx-font-size:14px;");
         Label managedNotice=new Label();managedNotice.setWrapText(true);managedNotice.setVisible(false);managedNotice.setManaged(false);managedNotice.setStyle("-fx-background-color:#ecfeff;-fx-border-color:#a5f3fc;-fx-border-radius:10;-fx-background-radius:10;-fx-padding:10 12;-fx-text-fill:#155e75;-fx-font-weight:bold;");
         CompletableFuture.supplyAsync(()->{try{return portal.enterpriseMembership(currentUsername,currentPassword);}catch(Exception ex){return null;}}).thenAccept(body->Platform.runLater(()->{
             if(body==null)return;
@@ -129,18 +129,18 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         }));
         TilePane tiles=new TilePane();tiles.setHgap(12);tiles.setVgap(12);tiles.setPrefColumns(2);
         tiles.getChildren().addAll(
-            tile("🧮 CEC 2024 Workbench","Full section-based calculators: services, busbars, motors, transformers, wiring, fire alarm, welders and more",()->setWorkspace(buildCalculators())),
-            tile("⚙ Engineering Power Systems","Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools",()->setWorkspace(buildEngineering())),
-            tile("🎓 Learn & Daily 25","Red Seal daily quiz, CEC navigator, formulas, control trainer and province profile",()->setWorkspace(buildPlatform("Learn"))),
-            tile("🛠 Field Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
-             tile("↪ Conduit Bender / Calibration","Bend layouts, field instructions and saved bender measurements",()->setWorkspace(new ConduitBendingFieldPane())),
-             tile("↪ Try 3D Bend Instruction Lab","Experimental rotatable multi-bend preview and large marking/flip cues; current native bender remains unchanged",()->openFieldPage("/bend-instruction-lab.html")),
-             tile("🛠 Industrial Troubleshooting KB","Offline motor, VFD, PLC, protection and Epiroc-style mining diagnostic guides",()->setWorkspace(new TroubleshootingKnowledgePane())),
-             tile("📐 Field Suite · web workspace","Blueprint takeoff, 3D conduit previews, quotes, controls, one-line diagrams, commissioning and project records",()->openFieldPage("/field-suite.html")),
-             tile("📘 Troubleshooting KB · full library","Open 23 detailed guided diagnostic procedures and saved troubleshooting cases",()->openFieldPage("/troubleshooting-kb.html")),
+            tile("🧮 Electrical Calculators","Full section-based calculators: services, busbars, motors, transformers, wiring, fire alarm, welders and more",()->setWorkspace(buildCalculators())),
+            tile("⚙ Engineering Calculators","Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools",()->setWorkspace(buildEngineering())),
+            tile("🎓 Red Seal Study & Daily Quiz","Red Seal daily quiz, CEC navigator, formulas, control trainer and province profile",()->setWorkspace(buildPlatform("Learn"))),
+            tile("🛠 Jobsite Tools","Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault current and grounding wizard",()->setWorkspace(buildPlatform("Field"))),
+             tile("↪ Conduit Bend Marks & Calibration","Bend layouts, field instructions and saved bender measurements",()->setWorkspace(new ConduitBendingFieldPane())),
+             tile("↪ Conduit Bends + 3D Preview","Experimental rotatable multi-bend preview and large marking/flip cues; current native bender remains unchanged",()->openFieldPage("/bend-instruction-lab.html")),
+             tile("🛠 Equipment Troubleshooting · Offline","Offline motor, VFD, PLC, protection and Epiroc-style mining diagnostic guides",()->setWorkspace(new TroubleshootingKnowledgePane())),
+             tile("📐 Jobsite Tools · Web","Blueprint takeoff, 3D conduit previews, quotes, controls, one-line diagrams, commissioning and project records",()->openFieldPage("/field-suite.html")),
+             tile("📘 Equipment Troubleshooting · Online Guides","Open 23 detailed guided diagnostic procedures and saved troubleshooting cases",()->openFieldPage("/troubleshooting-kb.html")),
             tile("🦺 Electrical Safety","PPE rating checks, approach-distance planning, unsafe-condition photos, glove testing and safety-equipment maintenance",()->setWorkspace(buildSafety())),
-            tile("📁 Project Workspace","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
-            tile("📈 Career & Apprenticeship","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
+            tile("📁 Saved Projects","Projects, equipment records, material takeoffs, saved field records and cable planning",()->setWorkspace(buildPlatform("Projects"))),
+            tile("📈 Trade Hours & Career","Hours/skills tracking, credential wallet, wage calculator and official job resources",()->setWorkspace(buildPlatform("Career"))),
             tile("🤖 Ask ChatGPT","Connect your ChatGPT account and use an eligible ChatGPT plan in a native JavaFX chat workspace",()->setWorkspace(AskChatGptView.create(currentUsername))),
             tile("⚡ CEC / OESC Code News","Live ESA/OESC bulletins and code notices in native JavaFX",()->setWorkspace(buildNews()))
         );
