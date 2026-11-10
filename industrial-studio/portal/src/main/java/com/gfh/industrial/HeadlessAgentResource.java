@@ -79,7 +79,8 @@ public final class HeadlessAgentResource {
         if(config==null||config.name()==null||config.name().isBlank()||
             config.name().length()>100)
             throw new IllegalArgumentException("Collector name must be 1-100 characters");
-        if(!Set.of("SIMULATION","KEPWARE_READ").contains(config.sourceMode()))
+        if(config.sourceMode()==null||
+            !Set.of("SIMULATION","KEPWARE_READ").contains(config.sourceMode()))
             throw new IllegalArgumentException("Choose SIMULATION or KEPWARE_READ");
         if(config.tags()==null||config.tags().isEmpty()||config.tags().size()>50)
             throw new IllegalArgumentException("Configure between 1 and 50 read-only tags");
