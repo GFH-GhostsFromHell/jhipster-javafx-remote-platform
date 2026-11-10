@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -17,6 +18,7 @@ import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Base64;
 import java.util.concurrent.*;
 
@@ -35,7 +37,8 @@ public final class IndustrialHmiApp extends Application {
     private TextField server,user,workstationId;
     private PasswordField password,workstationSecret;
     private TextArea pairingCode;
-    private Button pairButton, updateNowButton;
+    private Button pairButton, updateNowButton, openReleaseButton;
+    private volatile DesktopSoftwareUpdates.Release availableRelease;
     private Label status,quality,setupSummary,pairingHelp,updateNotice,softwareNotice;
     private volatile String appliedFingerprint="";
     private volatile boolean updateInProgress, initialConfigurationAllowed;
@@ -64,7 +67,7 @@ public final class IndustrialHmiApp extends Application {
         webPortal.setOnAction(e->getHostServices().showDocument("https://industrial-control-studio-demo.onrender.com"));
         pairPanel=new VBox(9,setupTitle,pairingHelp,webPortal,pairingCode,pairButton);
         pairPanel.setPadding(new Insets(15));
-        pairPanel.setStyle("-fx-background-color:#1a3952;-fx-background-radius:10;");
+        pairPanel.getStyleClass().add("hmi-setup-panel");
         pairPanel.setMaxWidth(720);
 
         server=new TextField("https://industrial-control-studio-demo.onrender.com");
@@ -109,18 +112,30 @@ public final class IndustrialHmiApp extends Application {
 
         Button forget=new Button("Disconnect / forget this PC");
         forget.setOnAction(e->forgetThisPc());
-        Button checkConfig=new Button("Check for configuration updates");
+        Button checkConfig=new Button("Check HMI settings now");
         checkConfig.setOnAction(e->checkConfigurationUpdates());
-        Button updates=new Button("Check application installer");
+        Button updates=new Button("Check software updates now");
         updates.setOnAction(e->checkUpdates());
         updateNotice=new Label("Configuration update status will appear after this PC connects.");
         updateNotice.setWrapText(true);
         updateNotice.setMaxWidth(760);
-        softwareNotice=new Label("Checking software release status once this PC connects...");
+        softwareNotice=new Label("Checking for approved software updates...");
         softwareNotice.setWrapText(true);
         updateNowButton=new Button("Update now");
         updateNowButton.setDisable(true);
+        updateNowButton.setManaged(false);
+        updateNowButton.setVisible(false);
         updateNowButton.setOnAction(e->applyConfigurationNow());
+        openReleaseButton=new Button("View approved release");
+        openReleaseButton.setVisible(false);
+        openReleaseButton.setManaged(false);
+        openReleaseButton.setOnAction(e->{
+            DesktopSoftwareUpdates.Release candidate=availableRelease;
+            if(candidate!=null){
+                status.setText("Verify the publisher signature and SHA-256 checksum before installing. There is no automatic code execution.");
+                getHostServices().showDocument(candidate.url().toString());
+            }
+        });
 
         status=new Label("Not connected · Paste a setup code above to get started");
         status.setWrapText(true);
@@ -134,12 +149,40 @@ public final class IndustrialHmiApp extends Application {
         ScrollPane scroll=new ScrollPane(tiles);
         scroll.setFitToWidth(true);
 
-        VBox root=new VBox(14,
-            new Label("Industrial Control Studio — JavaFX HMI"),
-            pairPanel,advanced,setupSummary,new HBox(10,forget,checkConfig,updates),
-            new HBox(12,updateNotice,updateNowButton),softwareNotice,status,quality,scroll);
-        root.setPadding(new Insets(20));
-        root.setStyle("-fx-background-color:#12253a;-fx-font-size:14px");
+        Label appTitle=new Label("Industrial Control Studio");
+        appTitle.getStyleClass().add("hmi-title");
+        Label subtitle=new Label("Cloud-designed HMI · one-time PC pairing");
+        subtitle.getStyleClass().add("hmi-subtitle");
+        VBox titles=new VBox(3,appTitle,subtitle);
+        HBox.setHgrow(titles,Priority.ALWAYS);
+        Label demoBadge=new Label("READ-ONLY DEMO");
+        demoBadge.getStyleClass().add("hmi-demo-badge");
+        HBox header=new HBox(14,titles,demoBadge);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("hmi-header");
+
+        FlowPane configControls=new FlowPane(12,8,updateNotice,updateNowButton);
+        configControls.setAlignment(Pos.CENTER_LEFT);
+        VBox configSection=new VBox(7,new Label("HMI CONFIGURATION"),configControls);
+        configSection.getStyleClass().add("hmi-info-panel");
+        FlowPane softwareControls=new FlowPane(12,8,softwareNotice,openReleaseButton);
+        softwareControls.setAlignment(Pos.CENTER_LEFT);
+        VBox softwareSection=new VBox(7,new Label("DESKTOP SOFTWARE"),softwareControls);
+        softwareSection.getStyleClass().add("hmi-info-panel");
+
+        FlowPane options=new FlowPane(9,9,checkConfig,updates,forget);
+        options.setAlignment(Pos.CENTER_LEFT);
+        TitledPane support=new TitledPane("Connection settings and help",
+            new VBox(11,options,advanced));
+        support.setExpanded(false);
+        support.getStyleClass().add("hmi-support");
+        setupSummary.getStyleClass().add("hmi-summary");
+        status.getStyleClass().add("hmi-status");
+        quality.getStyleClass().add("hmi-quality");
+        VBox root=new VBox(12,
+            header,pairPanel,setupSummary,configSection,softwareSection,status,quality,scroll,support);
+        root.getStyleClass().add("hmi-app");
+        root.setPadding(new Insets(18));
         VBox.setVgrow(scroll,Priority.ALWAYS);
         stage.setTitle("Industrial Control Studio · Workstation HMI");
         Scene scene=new Scene(root,1080,740);
@@ -173,6 +216,10 @@ public final class IndustrialHmiApp extends Application {
             status.setText("Could not restore this PC's saved enrollment. Ask for a new setup code: "+ex.getMessage());
         }
         worker.scheduleWithFixedDelay(this::poll,0,3,TimeUnit.SECONDS);
+        // Fetch public release metadata even before pairing, then every 15 minutes while open.
+        worker.scheduleWithFixedDelay(()->performSoftwareUpdateCheck(false,
+            active?endpoint:"https://industrial-control-studio-demo.onrender.com"),
+            0,15,TimeUnit.MINUTES);
     }
 
     private void setPaired(boolean paired) {
@@ -395,6 +442,8 @@ public final class IndustrialHmiApp extends Application {
                 appliedFingerprint=fingerprint;
                 initialConfigurationAllowed=false;
                 updateNowButton.setDisable(true);
+                updateNowButton.setManaged(false);
+                updateNowButton.setVisible(false);
                 updateNotice.setText("Configuration up to date · "+screen.path("screenId").asText()+
                     " revision "+screen.path("revision").asLong()+
                     " · tag settings revision "+desired.path("configurationRevision").asLong());
@@ -428,6 +477,8 @@ public final class IndustrialHmiApp extends Application {
                             " · tag settings revision "+desired.path("configurationRevision").asLong()+
                             ". Click Update now to apply it.");
                         updateNowButton.setDisable(false);
+                        updateNowButton.setManaged(true);
+                        updateNowButton.setVisible(true);
                         status.setText("New server-side configuration is waiting for your approval.");
                     });
                 }
@@ -495,36 +546,60 @@ public final class IndustrialHmiApp extends Application {
     }
 
     private void checkUpdates() {
-        if(!active){status.setText("Connect this PC before checking the application installer");return;}
         checkApplicationUpdates(true);
     }
 
     private void checkApplicationUpdates(boolean userInitiated) {
+        final String url=active?endpoint:"https://industrial-control-studio-demo.onrender.com";
+        if(userInitiated)softwareNotice.setText("Checking the cloud for a signed release...");
+        worker.execute(()->performSoftwareUpdateCheck(userInitiated,url));
+    }
+
+    private void performSoftwareUpdateCheck(boolean userInitiated,String url) {
+        final String installed=DesktopSoftwareUpdates.installedVersion();
         final long generation=connectionGeneration;
-        final String url=endpoint,basic=authorization,id=assignedWorkstation,secret=assignedSecret;
-        if(url.isBlank() || id.isBlank() || secret.isBlank())return;
-        if(userInitiated)softwareNotice.setText("Checking server for a signed desktop installer...");
-        worker.execute(()->{
-            try {
-                JsonNode manifest=getForWorkstation(url+"/api/studio/client-app-manifest",basic,id,secret);
-                boolean released=manifest.path("released").asBoolean(false);
-                String version=manifest.path("version").asText("unknown");
-                String message=released?
-                    "A desktop release has been published (version "+version+
-                    "). Install only a verified, organization-approved signed package; no automatic code execution.":
-                    "No signed desktop installer update published (development version "+version+").";
-                Platform.runLater(()->{
-                    if(!active || generation!=connectionGeneration)return;
-                    softwareNotice.setText(message);
-                    if(userInitiated)status.setText(message);
-                });
-            }catch(Exception e){
-                Platform.runLater(()->{
-                    if(!active || generation!=connectionGeneration)return;
-                    softwareNotice.setText("Could not check desktop software releases: "+e.getMessage());
-                });
-            }
-        });
+        try{
+            HttpRequest request=HttpRequest.newBuilder(
+                URI.create(url+"/api/studio/public-app-manifest"))
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept","application/json")
+                .header("Cache-Control","no-store")
+                .GET().build();
+            HttpResponse<String> response=http.send(request,HttpResponse.BodyHandlers.ofString());
+            if(response.statusCode()!=200)throw new IllegalStateException("HTTP "+response.statusCode());
+            JsonNode packet=mapper.readTree(response.body());
+            DesktopSoftwareUpdates.Release release=DesktopSoftwareUpdates.safeRelease(packet);
+            boolean newer=release!=null && DesktopSoftwareUpdates.newerThan(
+                release.version(),installed);
+            String time=LocalTime.now().withSecond(0).withNano(0).toString();
+            String message=newer?
+                "New signed MSI announced: "+release.version()+" (installed "+installed+
+                    "). Review publisher signature and SHA-256 before installing.":
+                release!=null?
+                    "Software current · Installed "+installed+" / published "+release.version()+
+                        " · Checked "+time:
+                    "Installed "+installed+" · No newer approved signed release · Checked "+time;
+            Platform.runLater(()->{
+                if(active && generation!=connectionGeneration)return;
+                availableRelease=newer?release:null;
+                openReleaseButton.setVisible(newer);
+                openReleaseButton.setManaged(newer);
+                softwareNotice.setText(message);
+                if(userInitiated)status.setText(newer?
+                    "Software release available for manual review; no automatic installation.":
+                    "Software update check complete.");
+            });
+        }catch(Exception e){
+            String failure=e.getMessage()==null?"network unavailable":e.getMessage();
+            Platform.runLater(()->{
+                if(active && generation!=connectionGeneration)return;
+                availableRelease=null;
+                openReleaseButton.setVisible(false);
+                openReleaseButton.setManaged(false);
+                softwareNotice.setText("Update check unavailable (installed "+installed+"): "+
+                    failure+". Automatic checks will retry.");
+            });
+        }
     }
 
     @Override public void stop(){
