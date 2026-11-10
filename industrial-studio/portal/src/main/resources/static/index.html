@@ -47,10 +47,13 @@ td input{width:100%;min-width:80px}td input.node{min-width:240px}th{font-size:12
 <div id="widgetsEditor"></div>
 <h3>Screen preview</h3><div id="screenPreview" class="cards" style="margin-top:14px"></div>
 <hr style="border:0;border-top:1px solid #48667e;margin:30px 0">
-<h2>PC / workstation assignments</h2><p>Every PC gets an administrator-provisioned ID and one-time enrollment secret. Only its assigned HMI layout can be downloaded with those credentials.</p>
-<div class="row"><label>New PC ID<input id="newDeviceId" placeholder="control-room-1"></label>
+<h2>Set up a desktop PC</h2><p><strong>1.</strong> Give your PC a name and choose its screen.
+<strong>2.</strong> Click Register &amp; get setup code.
+<strong>3.</strong> On that PC, open JavaFX, paste the setup code, and click Connect this PC. No separate desktop viewer password is needed.</p>
+<p>For an existing PC, click <strong>Pair / reconnect PC</strong> in its row. Setup codes are valid for 15 minutes and can be used once.</p>
+<div class="row"><label>Optional PC ID<input id="newDeviceId" placeholder="Generated automatically"></label>
 <label>PC name<input id="newDeviceName" placeholder="Control room PC"></label><label>Assigned screen<select id="newDeviceScreen"></select></label>
-<button id="provisionDevice">Register PC</button></div>
+<button id="provisionDevice">Register &amp; get setup code</button></div>
 <div id="newDeviceSecret" class="warn hidden" role="status"></div>
 <div id="deviceEditor"></div><p id="designerStatus" role="status"></p></section>
 <section id="system" class="page panel hidden"><h2>Middleware and update status</h2><p id="sys"></p><button id="reload">Reload configuration</button> <button id="check">Check releases</button><p id="updates"></p></section></div>
