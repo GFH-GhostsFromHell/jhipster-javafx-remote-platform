@@ -24,7 +24,9 @@ public final class IndustrialHmiApp extends Application {
     private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor(task -> {
         Thread t = new Thread(task, "industrial-hmi-poll"); t.setDaemon(true); return t;
     });
-    private TextField server, user;
+    private TextField server, user, workstationId;
+    private PasswordField workstationSecret;
+    private volatile String assignedWorkstation = "", assignedSecret = "";
     private PasswordField password;
     private Label status, quality;
     private TilePane tiles;
@@ -38,14 +40,21 @@ public final class IndustrialHmiApp extends Application {
         user = new TextField("studio-viewer");
         password = new PasswordField();
         password.setPromptText("Viewer password (never saved)");
+        workstationId = new TextField();
+        workstationId.setPromptText("e.g. control-room-1");
+        workstationSecret = new PasswordField();
+        workstationSecret.setPromptText("One-time enrollment secret from web portal");
         Button connect = new Button("Connect");
         connect.setOnAction(e -> connect());
         Button disconnect = new Button("Disconnect");
         disconnect.setOnAction(e -> disconnect());
         Button checkUpdates = new Button("Check updates");
         checkUpdates.setOnAction(e -> checkUpdates());
-        VBox fields = new VBox(8, new Label("Middleware URL"), server, new Label("Username"), user,
-                new Label("Password"), password, new HBox(10, connect, disconnect, checkUpdates));
+        VBox fields = new VBox(8, new Label("Middleware URL"), server,
+                new Label("Viewer username"), user, new Label("Viewer password"), password,
+                new Label("Registered workstation ID"), workstationId,
+                new Label("Workstation enrollment secret"), workstationSecret,
+                new HBox(10, connect, disconnect, checkUpdates));
         fields.setMaxWidth(480);
         status = new Label("Disconnected");
         quality = new Label("SIMULATED VALUES ONLY — NO PLC CONNECTION");
@@ -68,8 +77,10 @@ public final class IndustrialHmiApp extends Application {
 
     private void connect() {
         String url = server.getText().trim().replaceAll("/+$","");
-        if (!url.matches("https?://[^\\s]+") || user.getText().isBlank() || password.getText().isBlank()) {
-            status.setText("Enter a valid URL and credentials");
+        if (!url.matches("https?://[^\\s]+") || user.getText().isBlank() || password.getText().isBlank()
+            || !workstationId.getText().trim().matches("[A-Za-z][A-Za-z0-9_-]{1,47}")
+            || workstationSecret.getText().length() < 20) {
+            status.setText("Enter server, viewer credentials and a registered PC ID/enrollment secret");
             return;
         }
         if (!url.matches("https://.+|http://(127\\.0\\.0\\.1|localhost)(:[0-9]+)?")) {
@@ -79,62 +90,76 @@ public final class IndustrialHmiApp extends Application {
         endpoint=url;
         authorization="Basic "+Base64.getEncoder().encodeToString(
             (user.getText()+":"+password.getText()).getBytes(StandardCharsets.UTF_8));
+        assignedWorkstation = workstationId.getText().trim();
+        assignedSecret = workstationSecret.getText();
         connectionGeneration++;
         active=true;
         status.setText("Connecting...");
         password.clear();
+        workstationSecret.clear();
     }
 
     private void disconnect() {
         active=false;connectionGeneration++;authorization="";endpoint="";lastGood=0;
-        tiles.getChildren().clear();password.clear();status.setText("Disconnected");
+        assignedWorkstation="";assignedSecret="";
+        tiles.getChildren().clear();password.clear();workstationSecret.clear();status.setText("Disconnected");
     }
 
     private void poll() {
-        if (!active)return;
-        final long generation=connectionGeneration;
-        final String localUrl=endpoint, token=authorization;
-        try{
-            HttpRequest req=HttpRequest.newBuilder(URI.create(localUrl+"/api/studio/live"))
-                .header("Authorization",token).timeout(Duration.ofSeconds(7)).GET().build();
-            HttpResponse<String> response=http.send(req,HttpResponse.BodyHandlers.ofString());
-            if(response.statusCode()!=200)throw new IllegalStateException("HTTP "+response.statusCode());
-            JsonNode snapshot=mapper.readTree(response.body());
-            if(!"SIMULATION".equals(snapshot.path("mode").asText()))
-                throw new IllegalStateException("Unknown data quality: refusing display");
-            long sampled=System.currentTimeMillis();
-            Platform.runLater(()->{
-                if(!active||generation!=connectionGeneration)return;
-                lastGood=sampled;render(snapshot);
+        if (!active) return;
+        final long generation = connectionGeneration;
+        final String localUrl = endpoint, token = authorization;
+        final String id = assignedWorkstation, secret = assignedSecret;
+        try {
+            // Layout and readings are both scoped to the authenticated workstation.
+            // A PC name by itself is not sufficient to retrieve another station's screen.
+            JsonNode screen = getForWorkstation(localUrl + "/api/studio/client-screen", token, id, secret);
+            JsonNode snapshot = getForWorkstation(localUrl + "/api/studio/client-live", token, id, secret);
+            if (!"SIMULATION".equals(snapshot.path("mode").asText()) ||
+                !id.equals(screen.path("workstationId").asText()) ||
+                !id.equals(snapshot.path("workstationId").asText()) ||
+                !screen.path("screenId").asText().equals(snapshot.path("screenId").asText()) ||
+                screen.path("revision").asLong(-1) != snapshot.path("screenRevision").asLong(-2)) {
+                throw new IllegalStateException("Stale, inconsistent or untrusted screen data");
+            }
+            long sampled = System.currentTimeMillis();
+            Platform.runLater(() -> {
+                if (!active || generation != connectionGeneration) return;
+                lastGood = sampled;
+                render(snapshot, screen);
             });
-        } catch(Exception e) {
-            Platform.runLater(()->{
-                if(!active||generation!=connectionGeneration)return;
-                status.setText("DATA UNAVAILABLE / STALE: "+e.getMessage());
-                quality.setText("No reliable data • Last sample "+
-                    (lastGood==0?"never":((System.currentTimeMillis()-lastGood)/1000)+" seconds ago"));
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                if (!active || generation != connectionGeneration) return;
+                status.setText("DATA UNAVAILABLE / STALE: " + e.getMessage());
+                quality.setText("No reliable data · Last sample " +
+                    (lastGood == 0 ? "never" : ((System.currentTimeMillis()-lastGood)/1000)+" seconds ago"));
                 tiles.getChildren().clear();
             });
         }
     }
 
-    private void render(JsonNode packet) {
-        status.setText("Connected · config revision "+packet.path("configurationRevision").asText()+
-            " · "+packet.path("serverTime").asText());
-        quality.setText("READ ONLY · ALL VALUES SIMULATED");
-        tiles.getChildren().clear();
-        for(JsonNode t:packet.path("samples")){
-            Label name=new Label(t.path("label").asText());
-            Label value=new Label(t.path("value").asText()+" "+t.path("unit").asText());
-            value.setStyle("-fx-font-size:27px; -fx-text-fill:#8edbff; -fx-font-weight:bold");
-            Label info=new Label("Quality: "+t.path("quality").asText()+
-                (t.path("alarm").asBoolean()?" · SIMULATED LIMIT":""));
-            info.setStyle("-fx-text-fill:#ffd49b");
-            VBox card=new VBox(10,name,value,info);
-            card.setPrefSize(265,130);card.setPadding(new Insets(14));
-            card.setStyle("-fx-background-color:#1e4161; -fx-background-radius:9");
-            tiles.getChildren().add(card);
-        }
+    private JsonNode getForWorkstation(String url, String basic, String id, String secret) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+            .timeout(Duration.ofSeconds(7))
+            .header("Authorization", basic)
+            .header("X-Studio-Device-Id", id)
+            .header("X-Studio-Device-Token", secret)
+            .header("Cache-Control", "no-store")
+            .GET().build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200)
+            throw new IllegalStateException("Workstation authentication / screen unavailable (HTTP "+response.statusCode()+")");
+        return mapper.readTree(response.body());
+    }
+
+    private void render(JsonNode packet, JsonNode screen) {
+        status.setText("Connected · PC " + screen.path("workstationName").asText() +
+            " · screen " + screen.path("screenId").asText() +
+            " rev " + screen.path("revision").asText() +
+            " · " + packet.path("serverTime").asText());
+        quality.setText("READ ONLY · CUSTOM PC SCREEN · ALL VALUES SIMULATED");
+        HmiScreenRenderer.render(tiles, screen.path("layout"), packet.path("samples"));
     }
 
     private void checkUpdates() {
