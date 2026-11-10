@@ -4,6 +4,7 @@
 'use strict';
 const el = id => document.getElementById(id);
 let screens=[], devices=[], tags=[], current=null, draft=null, dirty=false;
+let updateStates=[], selectedPc=null, updatePoller=null;
 const api=(path,method,body)=>window.studioAdminApi(path,method,body);
 const status=(message,error=false)=>{
     const node=el('designerStatus');node.textContent=message;node.style.color=error?'#ffb1b1':'#9feacb';
@@ -22,7 +23,10 @@ function option(value,text){
     const o=document.createElement('option');o.value=value;o.textContent=text;return o;
 }
 function reset(){
+    if(updatePoller){clearInterval(updatePoller);updatePoller=null;}
     screens=[];devices=[];tags=[];current=null;draft=null;dirty=false;
+    updateStates=[];selectedPc=null;
+    el('selectedPcId').replaceChildren();el('selectedPcStatus').textContent='Sign in to view registered PCs.';
     el('widgetsEditor').replaceChildren();el('screenPreview').replaceChildren();
     el('deviceEditor').replaceChildren();el('newDeviceSecret').replaceChildren();
     el('newDeviceSecret').classList.add('hidden');
@@ -128,7 +132,9 @@ async function save(){
         });
         screens=screens.map(s=>s.id===current.id?result:s);
         current=result;draft=JSON.parse(JSON.stringify(current.layout));dirty=false;
-        renderEditor();renderDeviceEditor();status('Saved HMI screen '+current.id+' revision '+current.revision);
+        renderEditor();renderDeviceEditor();status('Saved HMI screen '+current.id+' revision '+current.revision+
+            '. Registered PCs using this screen will display Update available until they click Update now.');
+        loadUpdateStates().catch(e=>status('Screen saved, but update status could not refresh: '+e.message,true));
     }catch(e){status(e.message+'. Your local edits are still in the editor.',true)}
 }
 async function create(){
@@ -152,8 +158,10 @@ function renderDeviceEditor(){
     if(devices.length===0){
         const note=document.createElement('p');note.textContent='No PCs yet. Name your first PC above, choose its screen and select Register & get setup code.';out.append(note);
     }
+    renderSelectedPcPicker();
     for(const device of devices){
         const row=document.createElement('div');row.className='deviceRow';
+        row.dataset.workstationId=device.id;
         const name=field('input',device.name);
         const assigned=document.createElement('select');
         for(const screen of screens)assigned.append(option(screen.id,screen.layout.name+' ('+screen.id+')'));
@@ -168,9 +176,17 @@ function renderDeviceEditor(){
                     });
                     devices=devices.map(d=>d.id===result.id?result:d);
                     renderDeviceEditor();
-                    status('Saved '+result.name+'. Its screen assignment will refresh automatically.');
+                    status('Saved '+result.name+'. The selected PC will check for a new configuration and show Update now.');
+                    loadUpdateStates().catch(e=>status('Saved, but update status unavailable: '+e.message,true));
                 }catch(e){status(e.message,true)}
             }));
+        const updateLabel=document.createElement('small');
+        updateLabel.className='pcUpdateFlag';
+        updateLabel.dataset.deviceId=device.id;
+        const update=updateStates.find(u=>u.workstationId===device.id);
+        updateLabel.textContent=!device.enabled?'Disabled':!update?'Checking update status...':
+            update.updatePending?'Update available — waiting for PC':'Up to date';
+        row.append(updateLabel);
         row.append(button('Pair / reconnect PC',()=>showPairing(device)));
         row.append(button('Advanced: download setup ZIP',async()=>{
             try{
@@ -182,6 +198,53 @@ function renderDeviceEditor(){
         }));
         out.append(row);
     }
+}
+function renderSelectedPcPicker(){
+    const picker=el('selectedPcId');
+    const previous=selectedPc||picker.value;
+    picker.replaceChildren();
+    for(const pc of devices)picker.append(option(pc.id,pc.name+' ('+pc.id+')'));
+    selectedPc=devices.some(pc=>pc.id===previous)?previous:(devices[0]?.id||null);
+    if(selectedPc)picker.value=selectedPc;
+    renderSelectedPcStatus();
+}
+function renderSelectedPcStatus(){
+    const node=el('selectedPcStatus');
+    const pc=devices.find(d=>d.id===selectedPc);
+    if(!pc){node.textContent='No PC selected. Register a PC above first.';return;}
+    const rev=updateStates.find(u=>u.workstationId===pc.id);
+    if(!pc.enabled){node.textContent='This PC is disabled. Enable it to distribute updates.';return;}
+    if(!rev){node.textContent='Checking for updates on '+pc.name+'...';return;}
+    const last=rev.appliedAt?new Date(rev.appliedAt).toLocaleString():'never';
+    node.textContent=rev.updatePending?
+        'Update available for '+pc.name+' · Assigned screen: '+rev.screenId+
+        ' rev '+rev.screenRevision+' · Tag configuration: rev '+rev.configurationRevision+
+        ' · Last applied: '+last+
+        '. The PC will show Update now; changes are not silently applied.':
+        pc.name+' is up to date · Screen '+rev.screenId+' rev '+rev.screenRevision+
+        ' · Config rev '+rev.configurationRevision+' · Applied: '+last+'.';
+}
+async function loadUpdateStates(){
+    updateStates=await api('/api/studio/workstations/update-status');
+    renderSelectedPcStatus();
+    for(const label of document.querySelectorAll('.pcUpdateFlag')){
+        const pc=devices.find(d=>d.id===label.dataset.deviceId);
+        const state=updateStates.find(u=>u.workstationId===label.dataset.deviceId);
+        label.textContent=!pc?.enabled?'Disabled':!state?'Status unavailable':
+            state.updatePending?'Update available — waiting for PC':'Up to date';
+    }
+}
+async function queueSelectedPcUpdate(){
+    if(!selectedPc){status('Select a registered PC first',true);return}
+    const pc=devices.find(d=>d.id===selectedPc);
+    if(!pc?.enabled){status('The selected PC is disabled. Enable it before requesting an update.',true);return}
+    try{
+        const result=await api('/api/studio/workstations/'+encodeURIComponent(selectedPc)+'/request-update','POST');
+        updateStates=updateStates.filter(u=>u.workstationId!==result.workstationId).concat(result);
+        renderSelectedPcStatus();
+        await loadUpdateStates();
+        status('Update queued for '+pc.name+'. Its JavaFX app will show Update available. The operator clicks Update now to apply.');
+    }catch(e){status('Could not queue update: '+e.message,true)}
 }
 async function showPairing(device){
     const panel=el('newDeviceSecret');panel.classList.remove('hidden');
@@ -239,16 +302,21 @@ async function provision(){
         renderDeviceEditor();
         el('newDeviceId').value='';el('newDeviceName').value='';
         await showPairing(x.workstation);
+        selectedPc=x.workstation.id;
+        loadUpdateStates().catch(e=>status('PC registered; update status unavailable: '+e.message,true));
     }catch(e){status('Unable to register PC: '+e.message,true)}
 }
 async function loadAll(){
     try{
-        const [s,d,c]=await Promise.all([
-            api('/api/studio/screens'),api('/api/studio/workstations'),api('/api/studio/config')
+        const [s,d,c,u]=await Promise.all([
+            api('/api/studio/screens'),api('/api/studio/workstations'),api('/api/studio/config'),
+            api('/api/studio/workstations/update-status')
         ]);
-        screens=s;devices=d;tags=c.configuration.tags;
+        screens=s;devices=d;tags=c.configuration.tags;updateStates=u;
         renderScreenList();renderDeviceEditor();
-        status('Screen designer ready. Choose a screen or register a workstation.');
+        if(updatePoller)clearInterval(updatePoller);
+        updatePoller=setInterval(()=>loadUpdateStates().catch(()=>{}),10000);
+        status('Screen designer ready. Select a registered PC to see its pending updates.');
     }catch(e){status('Unable to load HMI designer: '+e.message,true)}
 }
 el('screenSelect').onchange=e=>selectScreen(e.target.value);
@@ -264,6 +332,12 @@ el('addWidget').onclick=()=>{
 el('saveScreen').onclick=save;
 el('newScreen').onclick=create;
 el('provisionDevice').onclick=provision;
+el('selectedPcId').onchange=e=>{selectedPc=e.target.value;renderSelectedPcStatus()};
+el('refreshPcStatus').onclick=()=>loadUpdateStates().then(()=>status('PC update status refreshed')).catch(e=>status(e.message,true));
+el('queuePcUpdate').onclick=queueSelectedPcUpdate;
+window.addEventListener('studio:configuration-saved',()=>{
+    loadUpdateStates().catch(e=>status('Could not load PC update status: '+e.message,true));
+});
 window.addEventListener('studio:connected',loadAll);
 window.addEventListener('studio:disconnected',reset);
 })();
