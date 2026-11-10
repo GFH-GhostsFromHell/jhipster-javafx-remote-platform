@@ -2,6 +2,23 @@
 
 Separate Java 21 / Spring Boot / JavaFX application modelled on the existing Electrical Workbench portal and desktop structure. It is deliberately isolated under `industrial-studio/`; it does not alter the production electrician app.
 
+## Headless edge collectors and per-client business rules (experimental)
+
+The administrator portal now has a **Headless data collectors** tab. Register a unique
+collector ID, give it separate read-only OPC UA NodeId mappings, generate a one-time
+device token, and edit a small per-client **SIM_WRITE** rule script. The independent
+`industrial-studio/edge-agent` module builds a Java 21 headless background process
+and an unsigned downloadable ZIP/JAR. It can generate safe simulated samples or read
+from **locally approved** Kepware OPC UA tags using a pinned encrypted session and
+a site-maintained tag allowlist. It uploads only numeric, good-quality samples to
+the cloud by outbound HTTPS.
+
+The cloud runs bounded, declarative rules to calculate **simulated proposed outputs**.
+**No real PLC writes, remote code execution, safety interlocks, or actuator commands
+are implemented.** This is intentionally a read-only data-collection and dry-run
+business-logic prototype. The cloud has not commissioned an actual Kepware instance.
+For full details and local setup, see [Headless Edge Client](docs/HEADLESS_EDGE_CLIENT.md).
+
 ## Simple Windows setup and update checks (current approach)
 
 1. Download the one common Windows test MSI from the **Build Industrial Studio HMI Windows MSI** GitHub Actions run. **No per-PC configuration ZIP is required.**
