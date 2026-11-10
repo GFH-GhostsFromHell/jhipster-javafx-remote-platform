@@ -40,7 +40,8 @@ class StudioSecurity {
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.GET, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/studio/config").hasRole("ADMIN")
-                .requestMatchers("/api/studio/**", "/", "/index.html").hasAnyRole("ADMIN", "VIEWER")
+                .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/studio/live", "/api/studio/status", "/api/studio/update-manifest").hasAnyRole("ADMIN", "VIEWER")
                 .anyRequest().denyAll())
             .httpBasic(Customizer.withDefaults());
         return http.build();
