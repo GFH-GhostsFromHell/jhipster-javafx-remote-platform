@@ -27,7 +27,9 @@ jobs:
           cache-dependency-path: industrial-studio/${{ matrix.module }}/pom.xml
       - name: Validate browser HMI editor JavaScript
         if: matrix.module == 'portal'
-        run: |\n          node --check industrial-studio/portal/src/main/resources/static/screen-designer.js\n          node --check industrial-studio/portal/src/main/resources/static/showcase.js
+        run: |
+          node --check industrial-studio/portal/src/main/resources/static/screen-designer.js
+          node --check industrial-studio/portal/src/main/resources/static/showcase.js
           node --check industrial-studio/portal/src/main/resources/static/design-backup.js
       - name: Build
         working-directory: industrial-studio/${{ matrix.module }}
