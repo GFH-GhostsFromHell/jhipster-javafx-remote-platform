@@ -37,8 +37,8 @@ struct WorkbenchTools: View {
         .init(id: "cec-sections", name: "Electrical Calculators by CEC Section", description: "Browse Code-based calculation topics", category: "Calculations", terms: "cec rule table", icon: "number", path: "/calculators.html"),
         .init(id: "relay", name: "Protection & Relay Calculators - Offline", description: "CT/PT, relay pickup and instrument scaling", category: "Power & Protection", terms: "ct pt 4-20ma current transformer", icon: "waveform.path.ecg", path: nil),
         .init(id: "power", name: "Power System Analysis", description: "Per-unit and short-circuit studies", category: "Power & Protection", terms: "sequence components faults", icon: "bolt.horizontal.circle", path: "/engineering-power.html"),
-        .init(id: "fault", name: "Equipment Troubleshooting - Offline", description: "Fault diagnosis and work orders", category: "Troubleshooting", terms: "vfd plc motor mining no start", icon: "wrench.and.screwdriver", path: nil),
-        .init(id: "troubleshooting-web", name: "Equipment Troubleshooting Guides", description: "Detailed guided diagnostic procedures", category: "Troubleshooting", terms: "step by step faults", icon: "wrench.adjustable", path: "/troubleshooting-kb.html"),
+        .init(id: "fault-offline", name: "Equipment Troubleshooting - Offline", description: "Fault diagnosis and work orders", category: "Troubleshooting", terms: "vfd plc motor mining no start", icon: "wrench.and.screwdriver", path: nil),
+        .init(id: "fault", name: "Equipment Troubleshooting Guides", description: "Detailed guided diagnostic procedures", category: "Troubleshooting", terms: "step by step faults", icon: "wrench.adjustable", path: "/troubleshooting-kb.html"),
         .init(id: "jobsite", name: "Jobsite Tools & Records", description: "Inspections, nameplates, commissioning and projects", category: "Projects", terms: "field inspection", icon: "folder", path: nil),
         .init(id: "quote", name: "Build a Job Quote", description: "Materials, labour, taxes and margins", category: "Projects", terms: "estimating contractor", icon: "doc.plaintext", path: "/field-suite.html#quote"),
         .init(id: "saved", name: "Saved Cloud Work", description: "Account-synced records and exports", category: "Projects", terms: "projects backup sync", icon: "icloud", path: "/account-records.html"),
@@ -164,7 +164,7 @@ struct WorkbenchTools: View {
             FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: tool.name) { OfflinePowerCalculatorsView() }
         case "relay":
             FeatureGate(feature: "ELECTRICAL_CALCULATORS", title: tool.name) { IndustrialFieldView() }
-        case "fault": TroubleshootingOfflineView()
+        case "fault-offline": TroubleshootingOfflineView()
         case "jobsite": NativeWorkspacesView()
         case "quiz": PracticeQuizView()
         case "safety": NativeSafetyWorkspaceView()

@@ -81,6 +81,15 @@ const helper=read(root+'worksheet-actions.js');
 for(const text of ['Save input draft','Restore inputs','Export selected JSON','Copy visible result','password|token|secret|email|address','device','Save / export']){
   assert.ok(helper.toLowerCase().includes(text.toLowerCase()),'Worksheet workflow missing '+text);
 }
+// Shared task IDs must remain aligned, even if the native destination is offline.
+const sharedTaskIds=['conduit-marks','bend-guide','bender-calibrate','pull-box','conductor-drop','service-demand',
+  'transformer','motor','advanced-code','relay','power','fault','jobsite','saved','code-updates'];
+for(const id of sharedTaskIds){
+  assert.ok(tasks.some(task=>task.id===id),'Web catalog missing '+id);
+  assert.ok(mobileCatalog.includes('MobileTask("'+id+'"'),'Android tool ID missing '+id);
+  assert.ok(ios.includes('id: "'+id+'"'),'iOS tool ID missing '+id);
+}
+assert.ok(mobileCatalog.includes('Power System Analysis - Web'),'Android power-system web dependency must be labeled');
 console.log('Task-first workflow validation passed: catalog links, deep links, native navigation and safe local drafts.');
 
 console.log('Task-first navigation labels, routes, search controls, and Android section shortcuts verified.');

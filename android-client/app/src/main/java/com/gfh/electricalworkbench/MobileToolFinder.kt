@@ -43,16 +43,17 @@ private val allTasks = listOf(
     MobileTask("fire-pump", "Fire Pump Circuit", "Pump motor and controller worksheet", "Calculations", "jockey locked rotor", "/guided-calculators.html?tool=firepump"),
     MobileTask("advanced-code", "Advanced CEC Calculators", "Complex Code worksheets", "Calculations", "neutral hvac derating", "/advanced-calculations.html"),
     MobileTask("relay", "Protection & Relay Calculators - Offline", "CT/PT ratios and relay pickup", "Power & Protection", "4 20ma", "native:relay", true),
-    MobileTask("power", "Power System Analysis", "Per-unit, short-circuit and sequence studies", "Power & Protection", "fault impedance", "native:power", true),
-    MobileTask("fault", "Equipment Troubleshooting - Offline", "Fault isolation and work orders", "Troubleshooting", "vfd plc mine motor", "native:fault", true),
-    MobileTask("troubleshooting-web", "Equipment Troubleshooting Guides", "Detailed motors, PLC, VFD and relay methods", "Troubleshooting", "diagnostic procedures", "/troubleshooting-kb.html"),
+    MobileTask("power", "Power System Analysis - Web", "Per-unit, short-circuit and sequence studies (connection required)", "Power & Protection", "fault impedance", "native:power"),
+    MobileTask("fault-offline", "Equipment Troubleshooting - Offline", "Fault isolation and work orders", "Troubleshooting", "vfd plc mine motor", "native:fault", true),
+    MobileTask("fault", "Equipment Troubleshooting Guides", "Detailed motors, PLC, VFD and relay methods", "Troubleshooting", "diagnostic procedures", "/troubleshooting-kb.html"),
     MobileTask("jobsite", "Jobsite Tools", "Nameplates, commissioning and inspections", "Projects & Learning", "field records", "native:field", true),
     MobileTask("quote", "Build a Job Quote", "Materials, labour and taxes", "Projects & Learning", "estimate contractor", "/field-suite.html#quote"),
-    MobileTask("saved", "Saved Projects", "Local projects and material takeoff", "Projects & Learning", "cable records", "native:projects", true),
+    MobileTask("local-projects", "Saved Projects", "Local projects and material takeoff", "Projects & Learning", "cable records", "native:projects", true),
     MobileTask("quiz", "Red Seal Daily Quiz", "309A practice questions", "Projects & Learning", "exam learning", "native:learn", true),
     MobileTask("career", "Trade Hours & Career", "Hours, skills and credentials", "Projects & Learning", "apprentice", "native:career", true),
     MobileTask("safety", "Electrical Safety", "PPE, approach and inspection guidance", "Projects & Learning", "loto", "native:safety", true),
-    MobileTask("cloud-records", "Saved Cloud Work", "Cloud-synced records and exports", "Projects & Learning", "sync backup", "/account-records.html")
+    MobileTask("saved", "Saved Cloud Work", "Cloud-synced records and exports", "Projects & Learning", "sync backup", "/account-records.html"),
+    MobileTask("code-updates", "Code Updates & Bulletins", "CEC/OESC notices and ESA bulletins", "Projects & Learning", "electrical code ontario news", "/news.html")
 )
 
 @Composable
