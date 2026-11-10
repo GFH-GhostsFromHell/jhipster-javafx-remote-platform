@@ -40,7 +40,7 @@ class StudioSecurity {
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.GET, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/studio/config").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/index.html", "/screen-designer.js").permitAll()
                 // The administrative preview exposes all sample tags. Workstation endpoints are separately scoped.
                 .requestMatchers(HttpMethod.GET, "/api/studio/live").hasRole("ADMIN")
                 .requestMatchers("/api/studio/screens", "/api/studio/screens/**", "/api/studio/workstations", "/api/studio/workstations/**").hasRole("ADMIN")
