@@ -184,17 +184,17 @@ public final class ElectricalWorkbenchNativeApp extends Application {
             Set<String> favourites=new LinkedHashSet<>(loadToolShortcuts("favourites"));
             List<String> recently=loadToolShortcuts("recent");
             for(Node n:originalTiles){
-                String name=String.valueOf(n.getProperties().getOrDefault("toolTitle",""));
+                String taskName=String.valueOf(n.getProperties().getOrDefault("toolTitle",""));
                 String terms=String.valueOf(n.getUserData()).toLowerCase(Locale.ROOT);
                 boolean matches=Arrays.stream(search.split("\\s+")).allMatch(terms::contains);
-                boolean show=matches&&(!favOnly.isSelected()||favourites.contains(name))
-                    &&(!recentOnly.isSelected()||recently.contains(name));
+                boolean show=matches&&(!favOnly.isSelected()||favourites.contains(taskName))
+                    &&(!recentOnly.isSelected()||recently.contains(taskName));
                 n.setVisible(show);n.setManaged(show);
             }
             originalTiles.sort(Comparator.comparingInt((Node n)->{
-                String name=String.valueOf(n.getProperties().get("toolTitle"));
-                if(favourites.contains(name))return 0;
-                int index=recently.indexOf(name);
+                String taskName=String.valueOf(n.getProperties().get("toolTitle"));
+                if(favourites.contains(taskName))return 0;
+                int index=recently.indexOf(taskName);
                 return index<0?1000:index+1;
             }));
             tiles.getChildren().setAll(originalTiles);
