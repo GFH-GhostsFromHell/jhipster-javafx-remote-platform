@@ -1,0 +1,75 @@
+name: Build Industrial Studio HMI Windows MSI (unsigned prototype)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'industrial-studio/desktop/**'
+      - '.github/workflows/build-industrial-hmi-msi.yml'
+  pull_request:
+    paths:
+      - 'industrial-studio/desktop/**'
+      - '.github/workflows/build-industrial-hmi-msi.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-msi:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: industrial-studio/desktop
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: industrial-studio/desktop/pom.xml
+
+      - name: Build/test and gather JavaFX runtime dependencies
+        shell: pwsh
+        run: |
+          mvn -B clean verify dependency:copy-dependencies -DoutputDirectory=target/jpackage-input -DincludeScope=runtime
+          if ($LASTEXITCODE -ne 0) { throw 'Maven build or tests failed' }
+          Copy-Item target/industrial-studio-hmi-0.1.0-SNAPSHOT.jar target/jpackage-input/
+
+      - name: Package Windows MSI
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force target/installer | Out-Null
+          jpackage `
+            --type msi `
+            --name IndustrialControlStudioHMI `
+            --app-version 0.1.0 `
+            --vendor "Industrial Control Studio" `
+            --description "Read-only configurable industrial HMI (prototype)" `
+            --input target/jpackage-input `
+            --main-jar industrial-studio-hmi-0.1.0-SNAPSHOT.jar `
+            --main-class com.gfh.industrial.hmi.HmiLauncher `
+            --dest target/installer `
+            --win-menu `
+            --win-shortcut `
+            --win-dir-chooser
+          if ($LASTEXITCODE -ne 0) { throw 'jpackage failed' }
+          $msi = Get-ChildItem target/installer/*.msi | Select-Object -First 1
+          if (-not $msi) { throw 'MSI not found' }
+          Copy-Item $msi.FullName target/installer/IndustrialControlStudioHMI-Setup.msi
+          $hash = (Get-FileHash target/installer/IndustrialControlStudioHMI-Setup.msi -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path target/installer/IndustrialControlStudioHMI-Setup.msi.sha256 -Value $hash -NoNewline
+          Write-Host ('Unsigned test MSI SHA256: ' + $hash)
+
+      - name: Upload unsigned prototype installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: IndustrialControlStudioHMI-Windows-UNSIGNED
+          path: |
+            industrial-studio/desktop/target/installer/IndustrialControlStudioHMI-Setup.msi
+            industrial-studio/desktop/target/installer/IndustrialControlStudioHMI-Setup.msi.sha256
+          if-no-files-found: error
+          retention-days: 14
