@@ -68,7 +68,14 @@ public class WorkstationUpdateResource {
         Delivery delivery=delivery(pc.id());
         // The screen ID is part of the fingerprint, so two layouts with equal revision
         // numbers cannot accidentally appear equivalent after a PC is reassigned.
-        String desired=pc.screenId()+":"+layouts.revision()+":"+confRev+":"+delivery.requested();
+        Timestamp workstationChange=db.queryForObject(
+            "select updated_at from studio_workstation where device_id=?",Timestamp.class,pc.id());
+        // PC label/assignment changes must trigger a notice as well as screen/tag edits.
+        // Include nanoseconds to avoid losing two rapid edits within one millisecond.
+        String pcRevision=workstationChange==null?"0":
+            workstationChange.toInstant().getEpochSecond()+"-"+workstationChange.toInstant().getNano();
+        String desired=pc.screenId()+":"+layouts.revision()+":"+confRev+":"+
+            delivery.requested()+":"+pcRevision;
         return new UpdateStatus(pc.id(),pc.name(),pc.screenId(),pc.enabled(),layouts.revision(),confRev,
             delivery.requested(),desired,delivery.applied(),delivery.appliedAt(),
             !desired.equals(delivery.applied()));
