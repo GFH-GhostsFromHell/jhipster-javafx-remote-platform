@@ -17,6 +17,16 @@ import javafx.stage.Stage;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.util.prefs.Preferences;
 import java.util.concurrent.CompletableFuture;
 
 /** Native JavaFX Electrical Workbench shell. Cloud services provide data/APIs; core UI stays native. */
@@ -31,6 +41,7 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     private String currentPassword;
     private JsonNode currentBootstrap;
     private StackPane workspace;
+    private final Preferences toolPrefs = Preferences.userNodeForPackage(ElectricalWorkbenchNativeApp.class);
 
     private static final String BG = "-fx-background-color:linear-gradient(to bottom right,#07111f,#0b2743 58%,#0e7490);";
     private static final String CARD = "-fx-background-color:white;-fx-background-radius:16;-fx-border-color:#dfe7ef;-fx-border-radius:16;";
@@ -111,7 +122,14 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         Button home=navButton("⌂  Home"), calculators=navButton("🧮  Electrical Calculators"), engineering=navButton("⚙  Power Systems"), learn=navButton("🎓  Learn"), field=navButton("🛠  Jobsite Tools"), safety=navButton("🦺  Safety"), projects=navButton("📁  Saved Projects"), career=navButton("📈  Trade Hours & Career"), business=navButton("🏢  Business Team"), news=navButton("⚡  Code News"), chatgpt=navButton("🤖  Ask ChatGPT"), profile=navButton("👤  Profile");
         nav.getChildren().addAll(navTitle,home,calculators,engineering,learn,field,safety,projects,career);
         if(isEnterpriseOwner()) nav.getChildren().add(business);
-        nav.getChildren().addAll(news,chatgpt,profile);root.setLeft(nav);
+        nav.getChildren().addAll(news,chatgpt,profile);
+        ScrollPane navScroll = new ScrollPane(nav);
+        navScroll.setFitToWidth(true);
+        navScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        navScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        navScroll.setPrefWidth(240);
+        navScroll.setStyle("-fx-background:#07111f;-fx-background-color:#07111f;-fx-border-color:transparent;");
+        root.setLeft(navScroll);
 
         workspace=new StackPane();workspace.setPadding(new Insets(22));root.setCenter(workspace);
         home.setOnAction(e->setWorkspace(buildHome()));calculators.setOnAction(e->setWorkspace(buildCalculators()));engineering.setOnAction(e->setWorkspace(buildEngineering()));learn.setOnAction(e->setWorkspace(buildPlatform("Learn")));field.setOnAction(e->setWorkspace(buildPlatform("Field")));safety.setOnAction(e->setWorkspace(buildSafety()));projects.setOnAction(e->setWorkspace(buildPlatform("Projects")));career.setOnAction(e->setWorkspace(buildPlatform("Career")));business.setOnAction(e->setWorkspace(new EnterpriseTeamPane(portal,currentUsername,currentPassword)));news.setOnAction(e->setWorkspace(buildNews()));chatgpt.setOnAction(e->setWorkspace(AskChatGptView.create(currentUsername)));profile.setOnAction(e->setWorkspace(buildProfile()));setWorkspace(buildHome());
@@ -146,7 +164,52 @@ public final class ElectricalWorkbenchNativeApp extends Application {
         );
         if(isEnterpriseOwner()) tiles.getChildren().add(tile("🏢 Business / Enterprise","Manage electricians, apprentices, field roles and Tier 1–3 business seats",()->setWorkspace(new EnterpriseTeamPane(portal,currentUsername,currentPassword))));
         VBox info=new VBox(8);info.setPadding(new Insets(18));info.setStyle(CARD);Label infoTitle=new Label("Native desktop architecture");infoTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#0f172a;");Label infoText=new Label("The UI remains JavaFX. Calculations can use cloud APIs, while quiz history, projects, field sheets, apprenticeship hours and credentials are stored locally for offline use. Engineering Power is embedded inside the desktop app and uses the same account tier permissions as the cloud portal.");infoText.setWrapText(true);infoText.setStyle("-fx-text-fill:#475569;-fx-line-spacing:3px;");info.getChildren().addAll(infoTitle,infoText);
-        page.getChildren().addAll(head,note,managedNotice,tiles,info);ScrollPane scroll=new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");return scroll;
+        TextField findTool=new TextField();
+        findTool.setPromptText("Search by job: conduit, motor, fuse, voltage drop, relay, quote…");
+        findTool.setStyle(INPUT);
+        findTool.setMinHeight(46);
+        HBox.setHgrow(findTool,Priority.ALWAYS);
+        ToggleButton favOnly=new ToggleButton("★ Favourites");
+        ToggleButton recentOnly=new ToggleButton("Recently used");
+        Button clearRecent=new Button("Clear recent");
+        favOnly.setStyle("-fx-padding:11 12;-fx-background-radius:9;");
+        recentOnly.setStyle("-fx-padding:11 12;-fx-background-radius:9;");
+        clearRecent.setStyle("-fx-padding:11 12;-fx-background-radius:9;");
+        HBox finder=new HBox(9,findTool,favOnly,recentOnly,clearRecent);
+        finder.setAlignment(Pos.CENTER_LEFT);
+        finder.setStyle("-fx-padding:8 0;");
+        final List<Node> originalTiles=new ArrayList<>(tiles.getChildren());
+        Runnable filterTiles=()->{
+            String search=findTool.getText().trim().toLowerCase(Locale.ROOT);
+            Set<String> favourites=new LinkedHashSet<>(loadToolShortcuts("favourites"));
+            List<String> recently=loadToolShortcuts("recent");
+            for(Node n:originalTiles){
+                String name=String.valueOf(n.getProperties().getOrDefault("toolTitle",""));
+                String terms=String.valueOf(n.getUserData()).toLowerCase(Locale.ROOT);
+                boolean matches=Arrays.stream(search.split("\\s+")).allMatch(terms::contains);
+                boolean show=matches&&(!favOnly.isSelected()||favourites.contains(name))
+                    &&(!recentOnly.isSelected()||recently.contains(name));
+                n.setVisible(show);n.setManaged(show);
+            }
+            originalTiles.sort(Comparator.comparingInt((Node n)->{
+                String name=String.valueOf(n.getProperties().get("toolTitle"));
+                if(favourites.contains(name))return 0;
+                int index=recently.indexOf(name);
+                return index<0?1000:index+1;
+            }));
+            tiles.getChildren().setAll(originalTiles);
+        };
+        findTool.textProperty().addListener((observable,oldText,newText)->filterTiles.run());
+        favOnly.setOnAction(e->{if(favOnly.isSelected())recentOnly.setSelected(false);filterTiles.run();});
+        recentOnly.setOnAction(e->{if(recentOnly.isSelected())favOnly.setSelected(false);filterTiles.run();});
+        clearRecent.setOnAction(e->{storeToolShortcuts("recent",List.of());filterTiles.run();});
+        filterTiles.run();
+        Label taskSteps=new Label("1  Find a task     2  Enter values     3  Verify result     4  Save / export");
+        taskSteps.setWrapText(true);
+        taskSteps.setStyle("-fx-font-size:13px;-fx-text-fill:#075985;-fx-font-weight:bold;");
+        Label toolNote=new Label("Favourites and recently opened tools are kept on this Windows device for your signed-in account, separately from cloud project records.");
+        toolNote.setStyle("-fx-font-size:12px;-fx-text-fill:#64748b;");toolNote.setWrapText(true);
+        page.getChildren().addAll(head,note,managedNotice,taskSteps,finder,tiles,toolNote,info);ScrollPane scroll=new ScrollPane(page);scroll.setFitToWidth(true);scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");return scroll;
     }
 
     private void openFieldPage(String path) {
@@ -204,8 +267,49 @@ public final class ElectricalWorkbenchNativeApp extends Application {
     }
 
     private boolean isEnterpriseOwner(){return currentBootstrap!=null&&"TIER_4".equals(currentBootstrap.path("user").path("subscriptionTier").asText(""));}
-    private Button navButton(String text){Button b=new Button(text);b.setMaxWidth(Double.MAX_VALUE);b.setStyle(NAV);return b;}
-    private Button tile(String title,String detail,Runnable action){Button b=new Button(title+"\n"+detail);b.setWrapText(true);b.setPrefWidth(460);b.setPrefHeight(95);b.setMaxWidth(Double.MAX_VALUE);b.setAlignment(Pos.CENTER_LEFT);b.setStyle("-fx-background-color:white;-fx-text-fill:#0f172a;-fx-font-weight:bold;-fx-background-radius:14;-fx-border-color:#dbe5ef;-fx-border-radius:14;-fx-padding:17 19;-fx-font-size:14px;");b.setOnAction(e->action.run());return b;}
+    private Button navButton(String text){Button b=new Button(text);b.setMaxWidth(Double.MAX_VALUE);b.setWrapText(true);b.setMinHeight(45);b.setStyle(NAV);return b;}
+    private Node tile(String title,String detail,Runnable action){
+        Button open=new Button(title+"\n"+detail);
+        open.setWrapText(true);open.setPrefWidth(404);open.setPrefHeight(95);open.setMaxWidth(Double.MAX_VALUE);
+        open.setAlignment(Pos.CENTER_LEFT);
+        open.setStyle("-fx-background-color:white;-fx-text-fill:#0f172a;-fx-font-weight:bold;-fx-background-radius:14;-fx-border-color:#dbe5ef;-fx-border-radius:14;-fx-padding:12 14;-fx-font-size:13px;");
+        open.setOnAction(e->{rememberToolOpened(title);action.run();});
+        Button star=new Button(loadToolShortcuts("favourites").contains(title)?"★":"☆");
+        star.setMinWidth(46);star.setMinHeight(46);
+        star.setAccessibleText("Toggle favourite for "+title);
+        star.setStyle("-fx-background-color:#e0f2fe;-fx-text-fill:#075985;-fx-font-size:21px;-fx-font-weight:bold;-fx-background-radius:10;");
+        star.setOnAction(e->{
+            List<String> saved=loadToolShortcuts("favourites");
+            if(saved.contains(title))saved.remove(title);else saved.add(0,title);
+            storeToolShortcuts("favourites",saved);
+            star.setText(saved.contains(title)?"★":"☆");
+        });
+        HBox tile=new HBox(6,open,star);tile.setAlignment(Pos.CENTER_LEFT);
+        tile.setPrefWidth(470);tile.setMinWidth(0);
+        HBox.setHgrow(open,Priority.ALWAYS);
+        tile.setUserData(title+" "+detail);tile.getProperties().put("toolTitle",title);
+        return tile;
+    }
+    private String toolPreferenceKey(String type){
+        String account=currentUsername==null?"":currentUsername;
+        UUID id=UUID.nameUUIDFromBytes(account.getBytes(StandardCharsets.UTF_8));
+        return "tool."+type+"."+id;
+    }
+    private List<String> loadToolShortcuts(String type){
+        try{
+            String raw=toolPrefs.get(toolPreferenceKey(type),"");
+            return new ArrayList<>(Arrays.stream(raw.split("\\n")).filter(v->!v.isBlank()).distinct().toList());
+        }catch(Exception ex){return new ArrayList<>();}
+    }
+    private void storeToolShortcuts(String type,List<String> values){
+        try{toolPrefs.put(toolPreferenceKey(type),String.join("\n",values.stream().distinct().limit(25).toList()));}
+        catch(Exception ignored){}
+    }
+    private void rememberToolOpened(String title){
+        List<String> recent=loadToolShortcuts("recent");
+        recent.remove(title);recent.add(0,title);
+        storeToolShortcuts("recent",recent);
+    }
     private void setWorkspace(Node node){workspace.getChildren().setAll(node);}
 
     private void checkForUpdates(Button button){checkForUpdates(button,false);}
