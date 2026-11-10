@@ -524,7 +524,7 @@ private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, 
         Text("Choose a task to get started", color = MobileCyan, fontWeight = FontWeight.Bold)
         Text("Start with the job you need to do. Open Tools for calculations or More for projects, learning and field records.", color = MobileMuted)
         MobileFeatureCard("🧮 Electrical Calculators", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
-        MobileFeatureCard("⚙ Engineering Calculators", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
+        MobileFeatureCard("⚙ Power System Analysis", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
         MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
@@ -559,7 +559,7 @@ private fun MobileWorkbenchPage(username: String, onOpenWeb: (String) -> Unit) {
         MWHubCard("Protection & Relay Calculators · Offline", "Three inputs: instrument transformer ratios, 3-phase power, specified relay pickup translation, ideal transformer fault estimate and 4–20 mA scaling") {
             context.startActivity(Intent(context, IndustrialFieldActivity::class.java))
         }
-        MWHubCard("Engineering Power Systems", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
+        MWHubCard("Power System Analysis", "Per-unit, base values, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
             context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
         }
         MWHubCard("Circuit Sizing & Voltage Drop · Offline", "One set of inputs for termination-column ampacity, ambient/grouping, voltage drop, maximum length and an OCPD arithmetic screen") {
@@ -573,7 +573,7 @@ private fun MobileWorkbenchPage(username: String, onOpenWeb: (String) -> Unit) {
         MWHubCard("Refrigeration Motor Sizing", "Multiple hermetic/semi-hermetic compressors with RLA/LRA, failed-start 50/65% protection, overload type, equipment MCA/MOCP and group conductor sizing") { onOpenWeb("/calculators.html?section=s28&tab=6") }
         MWSectionHeader("More tools & reference", "Browse additional calculations, bending guides, and saved projects.")
         MWHubCard("All CEC Section Calculators", "Selection-driven services, conductors, transformers, motors, refrigeration, fire alarm, welders and other section-based calculations") { onOpenWeb("/calculators.html") }
-        MWHubCard("Engineering Calculators", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
+        MWHubCard("Advanced CEC Calculators", "Grounding, fire pump, neutral, services, HVAC, fire alarm and derating worksheets") { onOpenWeb("/advanced-calculations.html") }
         MWHubCard("Pull Boxes & Bend Marks · Offline", "Offline field tools with CEC 2024 straight, angle, U and back-cover dimensions, plus measured bend marks and step-by-step instructions") { context.startActivity(Intent(context, FieldSizingActivity::class.java)) }
         MWHubCard("Conduit Bend Diagrams", "Interactive diagrams for 14 bend layouts and detailed field marking instructions") { onOpenWeb("/bend-calcs.html") }
          MWHubCard("Calibrate a Conduit Bender", "Measure actual stub deduct and 90° gain on scrap conduit, then save this bender in the web workspace") { onOpenWeb("/bender-calibration.html") }

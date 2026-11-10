@@ -11,12 +11,13 @@ internal names such as **pack**, **suite**, **workbench**, **lab** or **KB** to 
 | --- | --- | --- |
 | Everyday electrical calculations | Electrical Calculators | CEC section-based workspace; native offline equivalents |
 | Guided arithmetic | Step-by-Step Calculators | `/guided-calculators.html` |
-| Advanced power engineering | Engineering Calculators | `/advanced-calculations.html` / native engineering app |
+| Advanced CEC worksheets | Advanced CEC Calculators | `/advanced-calculations.html` |
+| Short-circuit and per-unit analysis | Power System Analysis | Native engineering app / power systems page |
 | Conduit measurements | Conduit Bend Marks | `/bend-calcs.html` and native quick bender |
 | Visual bend instructions | Conduit Bend Marks + 3D | `/bend-instruction-lab.html` |
 | On-site installation workflows | Jobsite Tools | `/field-suite.html` and native Field area |
 | Fault isolation | Equipment Troubleshooting | Native offline guide or `/troubleshooting-kb.html` |
-| Cloud records | Saved Projects | `/account-records.html` and native Projects |
+| Cloud records | Saved Work | `/account-records.html` (cloud records; local projects have separate storage) |
 | Protection, CT/PT and relay calculations | Protection & Relay Calculators | Native industrial field / relay tooling |
 | Exam practice | Red Seal Daily Quiz | Native 25-question study mode |
 | Regulations and bulletins | Code Updates | `/news.html` |
@@ -41,7 +42,7 @@ tools. Do not casually rename route IDs, persisted record types, or API feature 
 - Add favourite/recent tools and device-local search history (opt-in, not cross-account by default).
 - Give each calculator a uniform **Input → Result → Field instructions → Save/Export** layout.
 - Consolidate duplicate conduit bending entry points after parity and bend-mark tests.
-- Deep-link home tiles to specific native tabs (not just a generic **More** hub).
+- Expand task-level deep links beyond the initial Android Study, Field, Projects and Career shortcuts.
 - Test small Android screens, tablet split-screen, large text, VoiceOver/TalkBack and keyboard navigation.
 - Verify calculation safety, cloud authorization and persisted projects before any release.
 - Add screenshots and task-completion usability checks to each platform's release checklist.

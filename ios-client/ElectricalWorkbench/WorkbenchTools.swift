@@ -26,7 +26,7 @@ struct WorkbenchTools: View {
                   description: "Step-by-step electrical calculations", icon: "function"),
         CloudTool(name: "Electrical Calculators", path: "/calculators.html",
                   description: "Electrical code calculation workspace", icon: "number"),
-        CloudTool(name: "Engineering Calculators", path: "/advanced-calculations.html",
+        CloudTool(name: "Advanced CEC Calculators", path: "/advanced-calculations.html",
                   description: "More complex engineering worksheets", icon: "bolt.circle"),
         CloudTool(name: "Power System Analysis", path: "/engineering-power.html",
                   description: "Sequence components, per-unit, short-circuit and power-system tools",
