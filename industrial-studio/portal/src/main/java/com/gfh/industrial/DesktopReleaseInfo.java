@@ -45,7 +45,7 @@ public final class DesktopReleaseInfo {
                 parsed.getUserInfo()==null && parsed.getFragment()==null &&
                 parsed.getRawQuery()==null && parsed.getPort()==-1 &&
                 parsed.getPath().endsWith(".msi") &&
-                !parsed.getPath().contains("..") && !parsed.getPath().contains("%");
+                !parsed.getPath().contains("..") && !parsed.getRawPath().contains("%");
         }catch(IllegalArgumentException error){return false;}
     }
 }
