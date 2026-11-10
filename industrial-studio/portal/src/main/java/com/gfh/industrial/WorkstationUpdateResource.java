@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Declarative HMI configuration update notices. The server never pushes executable files
@@ -98,6 +99,14 @@ public class WorkstationUpdateResource {
         @RequestHeader(value="X-Studio-Device-Token",required=false) String token) {
         screens.clientScreen(id,token); // Re-validate enabled PC and hashed device token.
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(state(workstation(id)));
+    }
+
+    @GetMapping("/client-app-manifest")
+    public ResponseEntity<Map<String,Object>> clientApplicationRelease(
+        @RequestHeader(value="X-Studio-Device-Id",required=false) String id,
+        @RequestHeader(value="X-Studio-Device-Token",required=false) String token) {
+        screens.clientScreen(id,token); // Endpoint is accessible only to a registered and enabled PC.
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(config.manifest());
     }
 
     @Transactional
