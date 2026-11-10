@@ -57,12 +57,14 @@
         <div class="hero"><div><div class="eyebrow">CEC 2024 ELECTRICAL WORKSPACE</div><h2 id="welcomeTitle">Welcome back</h2><p>Choose the job you need to do. Use a quick shortcut below, or search by task (such as voltage drop, conduit bending or motor troubleshooting).</p></div><a class="btn" href="/guided-calculators.html">Start guided calculation</a></div>
         <div class="stats"><div class="stat"><div class="label">Subscription</div><div id="dashTier" class="value">—</div><div class="sub">Current account tier</div></div><div class="stat"><div class="label">Enabled features</div><div id="dashFeatures" class="value">—</div><div class="sub">From live account bootstrap</div></div></div>
         <div class="section-title"><h2>Start with a task</h2></div>
+<div class="section-title"><h2>Find your workflow</h2><a class="btn" href="/start.html">Search all tools</a></div>
 <div class="workflow-links" aria-label="Common jobs">
  <a class="workflow-link" href="/bend-instruction-lab.html"><strong>↪ Bend conduit</strong><span>Get marks and shoe direction</span></a>
  <a class="workflow-link" href="/guided-calculators.html"><strong>∑ Size an electrical circuit</strong><span>Follow a guided calculation</span></a>
  <a class="workflow-link" href="/troubleshooting-kb.html"><strong>🛠 Diagnose equipment</strong><span>Step-by-step fault checks</span></a>
  <a class="workflow-link" href="/account-records.html"><strong>📁 Open saved work</strong><span>Projects and synced records</span></a>
 </div>
+<div class="card" style="margin:14px 0" aria-label="Favourites and recent tools"><h2 style="margin:0 0 10px">Your shortcuts</h2><div class="grid"><div><h3>★ Favourite tools</h3><div id="dashboardFavorites" class="quick-grid"></div></div><div><h3>Recently opened</h3><div id="dashboardRecent" class="quick-grid"></div></div></div><p class="muted">Saved only on this device for your signed-in account. <a href="/start.html">Manage favourites and find more tools</a>.</p></div>
 <div class="tool-finder" role="search" aria-label="Find Electrical Workbench tools">
  <label for="toolFinderSearch">Find a tool by name or task</label>
  <input id="toolFinderSearch" type="search" autocomplete="off" placeholder="Try motor, voltage drop, 3D bend, pull box or quote">
@@ -136,4 +138,5 @@ async function saveProfile(){try{if(profile.subscriptionTier==='ADMIN')throw new
 })();
 load().catch(e=>{console.error(e);location.href='/'})
 </script>
+<script src="/tool-catalog.js" defer></script><script src="/tool-state.js" defer></script><script src="/dashboard-tools.js" defer></script>
 </body></html>
