@@ -41,7 +41,8 @@ class StudioSecurity {
                 .requestMatchers(HttpMethod.GET, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/screen-designer.js",
-                    "/showcase.html", "/showcase.js", "/design-backup.js", "/api/studio/showcase").permitAll()
+                    "/showcase.html", "/showcase.js", "/design-backup.js",
+                    "/api/studio/showcase", "/api/studio/public-app-manifest").permitAll()
                 // The administrative preview exposes all sample tags. Workstation endpoints are separately scoped.
                 // Pairing code is 256-bit, short-lived, one-use and is validated in the endpoint.
                 .requestMatchers(HttpMethod.POST, "/api/studio/pair").permitAll()
