@@ -9,7 +9,7 @@ Separate Java 21 / Spring Boot / JavaFX application modelled on the existing Ele
 - Revisioned, persistent configuration using optimistic concurrency (H2 local or PostgreSQL).
 - Browser-editable **Java source drafts** for a future isolated rules worker. Drafts are stored but **never compiled or executed** by the portal.
 - JavaFX desktop HMI reads the service, automatically refreshes values, exposes connection/quality/staleness, and keeps credentials in memory.
-- Explicit **SIMULATION** quality on all sample telemetry. There is **no live Kepware/PLC connection or write path yet**.
+- **SIMULATION** (default) or optional **KEPWARE** (private Windows VM with trusted certificates) source mode. The optional connector is read-only; no PLC writes are implemented or exposed. A real Kepware server, VM and certificate enrollment are NOT provisioned.
 - Update manifest API and desktop update-check hook; no release/installer exists until a dedicated workflow ships one.
 - All services default to loopback-only; never expose the starter directly to the public internet.
 
@@ -36,8 +36,11 @@ For a real Kepware link use Eclipse Milo 1.1.x or a newer stable client, with tr
 
 ## Delivery status
 - Phase 1: simulator, configuration API, source drafts, JavaFX HMI, per-PC read-only screen assignment and update manifest: **prototype implemented in this branch; CI and industrial security validation required**.
-- Phase 2: real read-only OPC UA subscriber, credential/certificate manager, tag browser, alarm historian.
+- Phase 2: optional read-only OPC UA read worker using Eclipse Milo, with configured trust/PKCS12 certificate and synthetic-data fail-closed behavior; **not yet validated against a running Kepware instance**. Tag browser, production credential/certificate manager, alarm historian, and subscriptions are still pending.
 - Phase 3: isolated signed Java rules runtime and simulated test harness.
 - Phase 4: reviewed and explicitly authorized PLC writes, field acceptance tests, staged updates, MSI installer, and signed releases.
 
 This is a new product, not a rebranding or direct deployment of Electrical Workbench. Existing sign-in/sync/updater concepts are reused as patterns; accounts, releases and databases are separate until intentionally integrated.
+
+## Cloud demo deployment
+See [the cloud Kepware showcase guide](docs/CLOUD_KEPWARE_SHOWCASE.md). Windows VM / Kepware installation and licensing are separate prerequisites; this GitHub branch contains no running cloud Kepware service.
