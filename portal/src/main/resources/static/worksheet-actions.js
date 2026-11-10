@@ -110,6 +110,13 @@
   if(put(allRecords().filter(function(x){return x.id!==item.id;}))){update();status('Local worksheet deleted.');}
  });
  document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('nav,.tabs,[data-tabset]'))setTimeout(update,0);},true);
+ window.EWBWorksheetActions=Object.freeze({
+  saveCurrent:function(){
+   if(!storeKey){status('Sign in before saving a local draft.');return false;}
+   save.click();
+   return !!selected();
+  }
+ });
  function setAccount(profile){
   username=profile.username;storeKey='ewb.worksheetDrafts.v1.'+encodeURIComponent(username);
   status('Ready to save input drafts for '+username+' on this device.');
