@@ -29,6 +29,7 @@ struct WorkbenchTools: View {
         .init(id: "pull-box", name: "Pull Box Dimensions - Offline", description: "Straight, angle and U-pull boxes", category: "Installation", terms: "junction box wall", icon: "square.dashed", path: nil),
         .init(id: "conductor-drop", name: "Circuit Sizing & Voltage Drop - Offline", description: "Conductor selection, ampacity and voltage drop", category: "Calculations", terms: "cable current table d3 wire", icon: "bolt.circle", path: nil),
         .init(id: "electrical-offline", name: "Electrical Calculators - Offline", description: "Power, motor, transformer and voltage drop", category: "Calculations", terms: "basic formulas kw kva", icon: "function", path: nil),
+        .init(id: "guided", name: "Step-by-Step Calculators", description: "Guided inputs and worked electrical solutions", category: "Calculations", terms: "cec conductor transformer motor grounding", icon: "list.number", path: "/guided-calculators.html"),
         .init(id: "service-demand", name: "Service Load Calculations", description: "Hospital, apartment, dwelling and school", category: "Calculations", terms: "demand feeder residential hotel", icon: "building.2", path: "/guided-calculators.html?tool=service"),
         .init(id: "transformer", name: "Transformer Sizing", description: "Current, ratio and protection worksheets", category: "Calculations", terms: "primary secondary kva", icon: "bolt", path: "/guided-calculators.html?tool=xfmr"),
         .init(id: "motor", name: "Motor Protection & Starter Sizing", description: "Motor fuses, breakers and overloads", category: "Calculations", terms: "flc ocpd starter", icon: "gearshape", path: "/calculators.html?section=s28"),
@@ -103,7 +104,7 @@ struct WorkbenchTools: View {
                 if matched.isEmpty {
                     Text("No matching tools. Try another word or select All tools.")
                 } else {
-                    ForEach(matched.filter { !searchText.isEmpty || category != "All tools" || (!favourites.contains($0.id) && !recentTools.contains(where: { recentTool in recentTool.id == $0.id })) }) { taskRow($0) }
+                    ForEach(matched.filter { tool in !searchText.isEmpty || category != "All tools" || (!favourites.contains(tool.id) && !recentTools.contains(where: { recentTool in recentTool.id == tool.id })) }) { tool in taskRow(tool) }
                 }
             }
             Section {
