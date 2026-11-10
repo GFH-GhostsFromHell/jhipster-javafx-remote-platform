@@ -41,7 +41,7 @@ class StudioSecurity {
                 .requestMatchers(HttpMethod.GET, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/studio/config").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/screen-designer.js",
-                    "/showcase.html", "/showcase.js", "/design-backup.js",
+                    "/showcase.html", "/showcase.js", "/design-backup.js", "/headless-clients.js",
                     "/api/studio/showcase", "/api/studio/public-app-manifest").permitAll()
                 // The administrative preview exposes all sample tags. Workstation endpoints are separately scoped.
                 // Pairing code is 256-bit, short-lived, one-use and is validated in the endpoint.
@@ -51,6 +51,10 @@ class StudioSecurity {
                 .requestMatchers(HttpMethod.GET, "/api/studio/client-screen", "/api/studio/client-live",
                     "/api/studio/client-update-status", "/api/studio/client-app-manifest").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/studio/client-update-ack").permitAll()
+                // Only the locally enrolled edge agent token authorizes these endpoints.
+                .requestMatchers(HttpMethod.GET, "/api/studio/edge-clients/*/config").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/studio/edge-clients/*/samples").permitAll()
+                .requestMatchers("/api/studio/headless-agents", "/api/studio/headless-agents/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/studio/live").hasRole("ADMIN")
                 .requestMatchers("/api/studio/screens", "/api/studio/screens/**", "/api/studio/workstations", "/api/studio/workstations/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/studio/status", "/api/studio/update-manifest").hasAnyRole("ADMIN", "VIEWER")
