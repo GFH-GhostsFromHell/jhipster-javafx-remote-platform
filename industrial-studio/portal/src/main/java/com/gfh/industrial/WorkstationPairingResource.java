@@ -29,7 +29,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/studio")
-public final class WorkstationPairingResource {
+public class WorkstationPairingResource {
     private final JdbcTemplate db;
     private final String baseUrl;
     private final SecureRandom random = new SecureRandom();
