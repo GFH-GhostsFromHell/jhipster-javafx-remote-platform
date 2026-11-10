@@ -28,7 +28,7 @@ public record ScreenLayout(String name, int columns, List<Widget> widgets) {
                 throw new IllegalArgumentException("Each widget needs a unique ID");
             }
             if (w.title()==null || w.title().isBlank() || w.title().length()>100) throw new IllegalArgumentException("Widget title must be 1-100 characters");
-            if (!Set.of("TEXT","VALUE","GAUGE","STATUS").contains(w.type())) throw new IllegalArgumentException("Unsupported widget type");
+            if (w.type()==null || !Set.of("TEXT","VALUE","GAUGE","STATUS").contains(w.type())) throw new IllegalArgumentException("Unsupported widget type");
             if ("TEXT".equals(w.type())) {
                 if (w.tagId()!=null && !w.tagId().isBlank()) throw new IllegalArgumentException("Text widgets cannot bind PLC tags");
             } else if (w.tagId()==null || !knownTags.contains(w.tagId())) {
