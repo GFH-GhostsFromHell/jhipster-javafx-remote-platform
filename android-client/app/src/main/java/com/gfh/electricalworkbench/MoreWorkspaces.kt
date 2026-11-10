@@ -35,17 +35,17 @@ import org.json.JSONObject
 import java.time.LocalDate
 import kotlin.math.sqrt
 
-private enum class MoreArea { HUB, LEARN, FIELD, PROJECTS, CAREER }
+enum class MoreArea { HUB, LEARN, FIELD, PROJECTS, CAREER }
 
 @Composable
-fun MoreWorkspaceScreen(username: String, onOpenWeb: (String) -> Unit) {
-    var area by remember { mutableStateOf(MoreArea.HUB) }
+fun MoreWorkspaceScreen(username: String, onOpenWeb: (String) -> Unit, initialArea: MoreArea = MoreArea.HUB) {
+    var area by remember(initialArea) { mutableStateOf(initialArea) }
     if (area == MoreArea.HUB) {
-        MWPage("More Workspaces", "The Android client now exposes the same major electrician workspace families as the desktop app.") {
-            MWHubCard("🎓 Learn", "Daily 25 quiz, CEC navigator, formulas, control trainer and province/code profile") { area = MoreArea.LEARN }
-            MWHubCard("🛠 Field", "Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault-current and grounding/bonding tools") { area = MoreArea.FIELD }
-            MWHubCard("📁 Projects", "Project log, material takeoff, saved field records and cable planning") { area = MoreArea.PROJECTS }
-            MWHubCard("📈 Career", "Trade hours, credential wallet, wage calculator and official job resources") { area = MoreArea.CAREER }
+        MWPage("More Tools", "Choose a task to open its tools and records.") {
+            MWHubCard("🎓 Red Seal Study", "Daily 25 quiz, CEC navigator, formulas, control trainer and province/code profile") { area = MoreArea.LEARN }
+            MWHubCard("🛠 Jobsite Tools", "Troubleshooting, nameplates, commissioning, inspection, blueprint scaling, fault-current and grounding/bonding tools") { area = MoreArea.FIELD }
+            MWHubCard("📁 Saved Projects", "Project log, material takeoff, saved field records and cable planning") { area = MoreArea.PROJECTS }
+            MWHubCard("📈 Trade Hours & Career", "Trade hours, credential wallet, wage calculator and official job resources") { area = MoreArea.CAREER }
             MWHubCard("⚡ Code News", "ESA/OESC bulletins and CEC/OESC notices") { onOpenWeb("/news.html") }
         }
     } else {
