@@ -18,7 +18,7 @@ public final class HmiScreenRenderer {
         tiles.getChildren().clear();
         int columns = layout.path("columns").asInt(2);
         tiles.setPrefColumns(Math.max(1, Math.min(4, columns)));
-        tiles.setPrefTileWidth(230);
+        tiles.setPrefTileWidth(240);
         Map<String,JsonNode> readings = new HashMap<>();
         for (JsonNode sample : samples) {
             if (sample.path("id").isTextual() && ("SIMULATED".equals(sample.path("quality").asText()) || "GOOD".equals(sample.path("quality").asText()))) {
@@ -32,7 +32,8 @@ public final class HmiScreenRenderer {
             if (!type.equals("TEXT") && !type.equals("VALUE") &&
                 !type.equals("GAUGE") && !type.equals("STATUS")) continue;
             VBox card=new VBox(10);
-            card.setPrefSize(225,150);
+            card.setPrefSize(225,165);
+            card.setMinWidth(220);
             card.setPadding(new Insets(14));
             card.setStyle("-fx-background-color:#1e4161; -fx-background-radius:9;");
             Label heading=new Label(widget.path("title").asText("Unnamed"));
@@ -68,7 +69,7 @@ public final class HmiScreenRenderer {
                 card.getChildren().add(reading);
             }else if(type.equals("STATUS")){
                 Label state=new Label(value.path("alarm").asBoolean()?
-                    "SIMULATED LIMIT EXCEEDED":"Within simulated limits");
+                    "Configured threshold exceeded":"Within configured thresholds");
                 state.setWrapText(true);
                 state.setStyle(value.path("alarm").asBoolean()?
                     "-fx-text-fill:#ffbe8d; -fx-font-weight:bold":
@@ -89,7 +90,8 @@ public final class HmiScreenRenderer {
                     card.getChildren().add(reading);
                 }
             }
-            Label meta=new Label("Quality: "+value.path("quality").asText());
+            Label meta=new Label("Data quality: "+value.path("quality").asText()+
+                ("SIMULATED".equals(value.path("quality").asText())?" · DEMO":" · OPC UA"));
             meta.setStyle("-fx-text-fill:#ffd49b");
             card.getChildren().add(meta);
             tiles.getChildren().add(card);
