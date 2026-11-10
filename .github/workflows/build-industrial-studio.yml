@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: [portal, desktop]
+        module: [portal, desktop, edge-agent]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -31,6 +31,7 @@ jobs:
           node --check industrial-studio/portal/src/main/resources/static/screen-designer.js
           node --check industrial-studio/portal/src/main/resources/static/showcase.js
           node --check industrial-studio/portal/src/main/resources/static/design-backup.js
+          node --check industrial-studio/portal/src/main/resources/static/headless-clients.js
       - name: Build
         working-directory: industrial-studio/${{ matrix.module }}
         run: mvn --batch-mode -DskipTests=false verify
