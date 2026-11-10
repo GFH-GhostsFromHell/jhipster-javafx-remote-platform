@@ -35,8 +35,10 @@ public final class IndustrialHmiApp extends Application {
     private TextField server,user,workstationId;
     private PasswordField password,workstationSecret;
     private TextArea pairingCode;
-    private Button pairButton;
-    private Label status,quality,setupSummary,pairingHelp;
+    private Button pairButton, updateNowButton;
+    private Label status,quality,setupSummary,pairingHelp,updateNotice;
+    private volatile String appliedFingerprint="";
+    private volatile boolean updateInProgress, initialConfigurationAllowed;
     private VBox pairPanel;
     private TitledPane advanced;
     private TilePane tiles;
@@ -107,8 +109,16 @@ public final class IndustrialHmiApp extends Application {
 
         Button forget=new Button("Disconnect / forget this PC");
         forget.setOnAction(e->forgetThisPc());
-        Button updates=new Button("Check software updates");
+        Button checkConfig=new Button("Check for configuration updates");
+        checkConfig.setOnAction(e->checkConfigurationUpdates());
+        Button updates=new Button("Check application installer");
         updates.setOnAction(e->checkUpdates());
+        updateNotice=new Label("Configuration update status will appear after this PC connects.");
+        updateNotice.setWrapText(true);
+        updateNotice.setMaxWidth(760);
+        updateNowButton=new Button("Update now");
+        updateNowButton.setDisable(true);
+        updateNowButton.setOnAction(e->applyConfigurationNow());
 
         status=new Label("Not connected · Paste a setup code above to get started");
         status.setWrapText(true);
@@ -124,7 +134,8 @@ public final class IndustrialHmiApp extends Application {
 
         VBox root=new VBox(14,
             new Label("Industrial Control Studio — JavaFX HMI"),
-            pairPanel,advanced,setupSummary,new HBox(10,forget,updates),status,quality,scroll);
+            pairPanel,advanced,setupSummary,new HBox(10,forget,checkConfig,updates),
+            new HBox(12,updateNotice,updateNowButton),status,quality,scroll);
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color:#12253a;-fx-font-size:14px");
         VBox.setVgrow(scroll,Priority.ALWAYS);
@@ -138,6 +149,10 @@ public final class IndustrialHmiApp extends Application {
             SecureWorkstationStore.Session saved=SecureWorkstationStore.load();
             if(saved!=null){
                 activate(saved.serverUrl(),saved.workstationId(),saved.deviceSecret(),"");
+                // A restart compares the last user-accepted revision with the server
+                // before it displays live data or changes the screen layout.
+                appliedFingerprint=AppliedConfigurationStore.load(saved.serverUrl(),saved.workstationId());
+                initialConfigurationAllowed=appliedFingerprint.isBlank();
                 setupSummary.setText("Registered PC: "+saved.workstationName()+" ("+
                     saved.workstationId()+") · Assigned screen: "+saved.screenId());
                 status.setText("Reconnecting this PC automatically...");
@@ -173,6 +188,11 @@ public final class IndustrialHmiApp extends Application {
         authorization=basic;
         active=true;
         lastGood=0;
+        appliedFingerprint="";
+        initialConfigurationAllowed=true;
+        updateInProgress=false;
+        updateNotice.setText("Checking configuration for this PC...");
+        updateNowButton.setDisable(true);
         setPaired(true);
     }
 
@@ -227,6 +247,9 @@ public final class IndustrialHmiApp extends Application {
                 }catch(Exception saveError){
                     persistenceNote=" · Connected for this session; Windows credential storage failed. Pair again after restarting.";
                 }
+                try { AppliedConfigurationStore.forget(); } catch(Exception ignored) {
+                    // Failure to clear previous non-secret revision metadata does not authorize it.
+                }
                 final String note=persistenceNote;
                 Platform.runLater(()->{
                     activate(canonical,id,issued,"");
@@ -268,9 +291,13 @@ public final class IndustrialHmiApp extends Application {
         active=false;endpoint="";authorization="";
         assignedWorkstation="";assignedSecret="";lastGood=0;
         tiles.getChildren().clear();
+        appliedFingerprint="";initialConfigurationAllowed=false;
+        updateNowButton.setDisable(true);
+        updateNotice.setText("Not connected.");
         password.clear();workstationSecret.clear();
         setPaired(false);
         try{SecureWorkstationStore.forget();
+            AppliedConfigurationStore.forget();
             status.setText("Local PC registration cleared. Paste a new setup code to connect.");
         }catch(Exception ex){
             status.setText("Disconnected, but saved Windows registration could not be removed: "+ex.getMessage());
@@ -278,43 +305,164 @@ public final class IndustrialHmiApp extends Application {
         setupSummary.setText("Not connected. Ask an administrator for a new PC setup code.");
     }
 
-    private void poll() {
-        if(!active)return;
+    private void checkConfigurationUpdates() {
+        if(!active){
+            status.setText("Connect or pair this PC before checking for configuration updates.");
+            return;
+        }
+        updateNotice.setText("Checking the web portal for changes...");
+        worker.execute(this::poll);
+    }
+
+    private void applyConfigurationNow() {
+        if(!active || updateInProgress) return;
+        updateNowButton.setDisable(true);
+        updateNotice.setText("Downloading the latest screen and configuration...");
         final long generation=connectionGeneration;
-        final String url=endpoint, basic=authorization;
-        final String id=assignedWorkstation, secret=assignedSecret;
+        final String url=endpoint,basic=authorization,id=assignedWorkstation,secret=assignedSecret;
+        worker.execute(()->{
+            try{
+                JsonNode desired=fetchStatus(url,basic,id,secret);
+                installConfigurationFromWorker(desired,generation,url,basic,id,secret);
+            }catch(Exception error){handlePollError(error,generation);}
+        });
+    }
+
+    private JsonNode fetchStatus(String url,String basic,String id,String secret) throws Exception {
+        JsonNode status=getForWorkstation(url+"/api/studio/client-update-status",basic,id,secret);
+        if(!id.equals(status.path("workstationId").asText()) ||
+           !status.path("enabled").asBoolean() ||
+           !status.path("fingerprint").asText("").matches("[A-Za-z0-9_:-]{1,200}"))
+            throw new IllegalStateException("Untrusted PC configuration update status");
+        return status;
+    }
+
+    private void validateSnapshot(JsonNode current,JsonNode screen,JsonNode readings,String id) {
+        if(!("SIMULATION".equals(readings.path("mode").asText()) ||
+              "KEPWARE".equals(readings.path("mode").asText())) ||
+            !id.equals(screen.path("workstationId").asText()) ||
+            !id.equals(readings.path("workstationId").asText()) ||
+            !current.path("screenId").asText().equals(screen.path("screenId").asText()) ||
+            !current.path("screenId").asText().equals(readings.path("screenId").asText()) ||
+            current.path("screenRevision").asLong(-1)!=screen.path("revision").asLong(-2) ||
+            current.path("screenRevision").asLong(-1)!=readings.path("screenRevision").asLong(-2) ||
+            current.path("configurationRevision").asLong(-1)!=readings.path("configurationRevision").asLong(-2)) {
+            throw new IllegalStateException("Server configuration changed during refresh; try again");
+        }
+    }
+
+    private JsonNode acknowledge(String url,String basic,String id,String secret,String fingerprint) throws Exception {
+        String body=mapper.writeValueAsString(java.util.Map.of("fingerprint",fingerprint));
+        HttpRequest.Builder builder=HttpRequest.newBuilder(URI.create(url+"/api/studio/client-update-ack"))
+            .timeout(Duration.ofSeconds(15))
+            .header("Content-Type","application/json")
+            .header("Cache-Control","no-store")
+            .header("X-Studio-Device-Id",id)
+            .header("X-Studio-Device-Token",secret)
+            .POST(HttpRequest.BodyPublishers.ofString(body));
+        if(!basic.isBlank())builder.header("Authorization",basic);
+        HttpResponse<String> response=http.send(builder.build(),HttpResponse.BodyHandlers.ofString());
+        if(response.statusCode()!=200)
+            throw new IllegalStateException("Update was not accepted (HTTP "+response.statusCode()+
+                "). Refresh the update notice and try again.");
+        JsonNode answer=mapper.readTree(response.body());
+        if(!fingerprint.equals(answer.path("fingerprint").asText()) ||
+           answer.path("updatePending").asBoolean(true))
+            throw new IllegalStateException("A newer configuration was published. Please update again.");
+        return answer;
+    }
+
+    private void installConfigurationFromWorker(JsonNode desired,long generation,
+        String url,String basic,String id,String secret) {
+        if(!active || generation!=connectionGeneration || updateInProgress)return;
+        updateInProgress=true;
         try{
+            String fingerprint=desired.path("fingerprint").asText("");
             JsonNode screen=getForWorkstation(url+"/api/studio/client-screen",basic,id,secret);
             JsonNode readings=getForWorkstation(url+"/api/studio/client-live",basic,id,secret);
-            if(!("SIMULATION".equals(readings.path("mode").asText()) ||
-                  "KEPWARE".equals(readings.path("mode").asText())) ||
-                !id.equals(screen.path("workstationId").asText()) ||
-                !id.equals(readings.path("workstationId").asText()) ||
-                !screen.path("screenId").asText().equals(readings.path("screenId").asText()) ||
-                screen.path("revision").asLong(-1)!=readings.path("screenRevision").asLong(-2)){
-                throw new IllegalStateException("Screen data was inconsistent; retrying");
-            }
-            long sampled=System.currentTimeMillis();
+            validateSnapshot(desired,screen,readings,id);
+            if(!active || generation!=connectionGeneration)return;
+            acknowledge(url,basic,id,secret,fingerprint);
+            String saveMessage="";
+            try{AppliedConfigurationStore.save(url,id,fingerprint);}
+            catch(Exception e){saveMessage=" · Could not remember revision on this PC; it may ask again after restart";}
+            final String note=saveMessage;
             Platform.runLater(()->{
                 if(!active || generation!=connectionGeneration)return;
-                lastGood=sampled;
+                appliedFingerprint=fingerprint;
+                initialConfigurationAllowed=false;
+                updateNowButton.setDisable(true);
+                updateNotice.setText("Configuration up to date · "+screen.path("screenId").asText()+
+                    " revision "+screen.path("revision").asLong()+
+                    " · tag settings revision "+desired.path("configurationRevision").asLong());
+                render(readings,screen);
+                if(!note.isBlank())status.setText("Configuration loaded"+note);
+            });
+        }catch(Exception e){handlePollError(e,generation);}
+        finally{updateInProgress=false;}
+    }
+
+    private void poll() {
+        if(!active || updateInProgress)return;
+        final long generation=connectionGeneration;
+        final String url=endpoint,basic=authorization,id=assignedWorkstation,secret=assignedSecret;
+        try{
+            JsonNode desired=fetchStatus(url,basic,id,secret);
+            String fingerprint=desired.path("fingerprint").asText();
+            if(!fingerprint.equals(appliedFingerprint)) {
+                if(appliedFingerprint.isBlank() && initialConfigurationAllowed) {
+                    // First pairing: install the initial assigned screen automatically.
+                    // Later changes to an accepted configuration ALWAYS require Update now.
+                    installConfigurationFromWorker(desired,generation,url,basic,id,secret);
+                }else{
+                    Platform.runLater(()->{
+                        if(!active || generation!=connectionGeneration)return;
+                        tiles.getChildren().clear();
+                        quality.setText("CONFIGURATION UPDATE PENDING · Values withheld until update is accepted");
+                        updateNotice.setText("Update available for "+desired.path("workstationName").asText()+
+                            " · screen "+desired.path("screenId").asText()+
+                            " revision "+desired.path("screenRevision").asLong()+
+                            " · tag settings revision "+desired.path("configurationRevision").asLong()+
+                            ". Click Update now to apply it.");
+                        updateNowButton.setDisable(false);
+                        status.setText("New server-side configuration is waiting for your approval.");
+                    });
+                }
+                return;
+            }
+
+            JsonNode screen=getForWorkstation(url+"/api/studio/client-screen",basic,id,secret);
+            JsonNode readings=getForWorkstation(url+"/api/studio/client-live",basic,id,secret);
+            validateSnapshot(desired,screen,readings,id);
+            if(!fingerprint.equals(desired.path("appliedFingerprint").asText("")))
+                acknowledge(url,basic,id,secret,fingerprint); // already accepted locally before restart
+            Platform.runLater(()->{
+                if(!active || generation!=connectionGeneration)return;
+                updateNowButton.setDisable(true);
+                updateNotice.setText("Configuration up to date · check automatically at startup and while connected");
+                lastGood=System.currentTimeMillis();
                 render(readings,screen);
             });
-        }catch(Exception ex){
-            Platform.runLater(()->{
-                if(!active || generation!=connectionGeneration)return;
-                String error=ex.getMessage()==null?"Unknown network error":ex.getMessage();
-                status.setText("DATA UNAVAILABLE: "+error);
-                quality.setText("Readings cleared because the connection is stale or unauthorized");
-                tiles.getChildren().clear();
-                if(error.contains("403") || error.contains("401")){
-                    active=false;
-                    setPaired(false);
-                    pairingHelp.setText("This PC no longer has access. In the web portal, choose Pair / reconnect PC and paste the new setup code here.");
-                    status.setText("This PC was disabled, re-registered or has invalid credentials. Please pair it again.");
-                }
-            });
-        }
+        }catch(Exception e){handlePollError(e,generation);}
+    }
+
+    private void handlePollError(Exception error,long generation) {
+        Platform.runLater(()->{
+            if(!active || generation!=connectionGeneration)return;
+            String message=error.getMessage()==null?"Unknown network error":error.getMessage();
+            status.setText("DATA UNAVAILABLE: "+message);
+            quality.setText("No reliable data · Readings withheld while connection or update fails");
+            tiles.getChildren().clear();
+            if(message.contains("HTTP 403") || message.contains("HTTP 401")) {
+                active=false;updateNowButton.setDisable(true);
+                setPaired(false);
+                pairingHelp.setText("This PC is disabled or its registration was revoked. Select Pair / reconnect PC in the portal and paste the new code.");
+                status.setText("This PC is no longer authorized. Pair again in the web portal.");
+            }else{
+                updateNowButton.setDisable(false);
+                updateNotice.setText("Could not check or apply configuration. Retry Check for configuration updates or Update now.");
+            }
+        });
     }
 
     private JsonNode getForWorkstation(String url,String basic,String id,String secret) throws Exception {
