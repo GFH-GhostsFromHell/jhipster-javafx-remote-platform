@@ -343,6 +343,8 @@ public final class IndustrialHmiApp extends Application {
         tiles.getChildren().clear();
         appliedFingerprint="";initialConfigurationAllowed=false;
         updateNowButton.setDisable(true);
+        updateNowButton.setManaged(false);
+        updateNowButton.setVisible(false);
         updateNotice.setText("Not connected.");
         password.clear();workstationSecret.clear();
         setPaired(false);
@@ -493,7 +495,9 @@ public final class IndustrialHmiApp extends Application {
             Platform.runLater(()->{
                 if(!active || generation!=connectionGeneration)return;
                 updateNowButton.setDisable(true);
-                updateNotice.setText("Configuration up to date · check automatically at startup and while connected");
+                updateNowButton.setManaged(false);
+                updateNowButton.setVisible(false);
+                updateNotice.setText("HMI configuration up to date · automatically checked every 3 seconds");
                 lastGood=System.currentTimeMillis();
                 render(readings,screen);
             });
@@ -509,6 +513,8 @@ public final class IndustrialHmiApp extends Application {
             tiles.getChildren().clear();
             if(message.contains("HTTP 403") || message.contains("HTTP 401")) {
                 active=false;updateNowButton.setDisable(true);
+                updateNowButton.setVisible(false);
+                updateNowButton.setManaged(false);
                 setPaired(false);
                 pairingHelp.setText("This PC is disabled or its registration was revoked. Select Pair / reconnect PC in the portal and paste the new code.");
                 status.setText("This PC is no longer authorized. Pair again in the web portal.");
