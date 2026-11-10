@@ -36,7 +36,7 @@ public final class IndustrialHmiApp extends Application {
     private PasswordField password,workstationSecret;
     private TextArea pairingCode;
     private Button pairButton, updateNowButton;
-    private Label status,quality,setupSummary,pairingHelp,updateNotice;
+    private Label status,quality,setupSummary,pairingHelp,updateNotice,softwareNotice;
     private volatile String appliedFingerprint="";
     private volatile boolean updateInProgress, initialConfigurationAllowed;
     private VBox pairPanel;
@@ -116,6 +116,8 @@ public final class IndustrialHmiApp extends Application {
         updateNotice=new Label("Configuration update status will appear after this PC connects.");
         updateNotice.setWrapText(true);
         updateNotice.setMaxWidth(760);
+        softwareNotice=new Label("Checking software release status once this PC connects...");
+        softwareNotice.setWrapText(true);
         updateNowButton=new Button("Update now");
         updateNowButton.setDisable(true);
         updateNowButton.setOnAction(e->applyConfigurationNow());
@@ -135,7 +137,7 @@ public final class IndustrialHmiApp extends Application {
         VBox root=new VBox(14,
             new Label("Industrial Control Studio — JavaFX HMI"),
             pairPanel,advanced,setupSummary,new HBox(10,forget,checkConfig,updates),
-            new HBox(12,updateNotice,updateNowButton),status,quality,scroll);
+            new HBox(12,updateNotice,updateNowButton),softwareNotice,status,quality,scroll);
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color:#12253a;-fx-font-size:14px");
         VBox.setVgrow(scroll,Priority.ALWAYS);
@@ -194,6 +196,7 @@ public final class IndustrialHmiApp extends Application {
         updateNotice.setText("Checking configuration for this PC...");
         updateNowButton.setDisable(true);
         setPaired(true);
+        checkApplicationUpdates(false);
     }
 
     private void pairNewDevice() {
@@ -492,7 +495,36 @@ public final class IndustrialHmiApp extends Application {
     }
 
     private void checkUpdates() {
-        status.setText("Development installers are published as unsigned GitHub Actions artifacts. There is no signed automatic update channel yet.");
+        if(!active){status.setText("Connect this PC before checking the application installer");return;}
+        checkApplicationUpdates(true);
+    }
+
+    private void checkApplicationUpdates(boolean userInitiated) {
+        final long generation=connectionGeneration;
+        final String url=endpoint,basic=authorization,id=assignedWorkstation,secret=assignedSecret;
+        if(url.isBlank() || id.isBlank() || secret.isBlank())return;
+        if(userInitiated)softwareNotice.setText("Checking server for a signed desktop installer...");
+        worker.execute(()->{
+            try {
+                JsonNode manifest=getForWorkstation(url+"/api/studio/client-app-manifest",basic,id,secret);
+                boolean released=manifest.path("released").asBoolean(false);
+                String version=manifest.path("version").asText("unknown");
+                String message=released?
+                    "A desktop release has been published (version "+version+
+                    "). Install only a verified, organization-approved signed package; no automatic code execution.":
+                    "No signed desktop installer update published (development version "+version+").";
+                Platform.runLater(()->{
+                    if(!active || generation!=connectionGeneration)return;
+                    softwareNotice.setText(message);
+                    if(userInitiated)status.setText(message);
+                });
+            }catch(Exception e){
+                Platform.runLater(()->{
+                    if(!active || generation!=connectionGeneration)return;
+                    softwareNotice.setText("Could not check desktop software releases: "+e.getMessage());
+                });
+            }
+        });
     }
 
     @Override public void stop(){
