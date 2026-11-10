@@ -10,6 +10,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.FileChooser;
+import java.io.File;
 
 import java.net.URI;
 import java.net.http.*;
@@ -28,7 +30,7 @@ public final class IndustrialHmiApp extends Application {
     private PasswordField workstationSecret;
     private volatile String assignedWorkstation = "", assignedSecret = "";
     private PasswordField password;
-    private Label status, quality;
+    private Label status, quality, setupSummary;
     private TilePane tiles;
     private volatile String endpoint = "", authorization = "";
     private volatile boolean active;
@@ -50,20 +52,38 @@ public final class IndustrialHmiApp extends Application {
         disconnect.setOnAction(e -> disconnect());
         Button checkUpdates = new Button("Check updates");
         checkUpdates.setOnAction(e -> checkUpdates());
+        Button importSetup = new Button("Import PC setup ZIP");
+        importSetup.setOnAction(e -> {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Select this PC's setup ZIP from the web configurator");
+            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("HMI setup packages (*.zip)", "*.zip"));
+            File selected = chooser.showOpenDialog(stage);
+            if (selected == null) return;
+            try {
+                WorkstationSetup.Settings settings = WorkstationSetup.importZip(
+                    selected.toPath(),WorkstationSetup.configPath());
+                applySetup(settings);
+                status.setText("PC settings imported. Enter separately issued viewer and workstation credentials.");
+            } catch (Exception ex) {
+                status.setText("Setup import rejected: " + ex.getMessage());
+            }
+        });
         VBox fields = new VBox(8, new Label("Middleware URL"), server,
                 new Label("Viewer username"), user, new Label("Viewer password"), password,
                 new Label("Registered workstation ID"), workstationId,
                 new Label("Workstation enrollment secret"), workstationSecret,
-                new HBox(10, connect, disconnect, checkUpdates));
+                new HBox(10, connect, disconnect, checkUpdates, importSetup));
         fields.setMaxWidth(480);
         status = new Label("Disconnected");
+        setupSummary = new Label("No PC setup profile imported · Select Import PC setup ZIP or configure manually");
+        setupSummary.setWrapText(true);
         quality = new Label("SIMULATED VALUES ONLY — NO PLC CONNECTION");
         quality.setTextFill(Color.ORANGE);
         tiles = new TilePane(12,12);
         tiles.setPrefColumns(3);
         ScrollPane scroll = new ScrollPane(tiles);
         scroll.setFitToWidth(true);
-        VBox root = new VBox(14, new Label("Industrial Control Studio — JavaFX HMI"), fields, status, quality, scroll);
+        VBox root = new VBox(14, new Label("Industrial Control Studio — JavaFX HMI"), fields, setupSummary, status, quality, scroll);
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color:#12253a; -fx-font-size:14px");
         VBox.setVgrow(scroll,Priority.ALWAYS);
@@ -72,7 +92,22 @@ public final class IndustrialHmiApp extends Application {
         scene.getStylesheets().add(getClass().getResource("/hmi.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
+        try {
+            WorkstationSetup.Settings setup=WorkstationSetup.load();
+            if(setup!=null)applySetup(setup);
+        }catch(Exception ex){
+            status.setText("Invalid saved PC setup: "+ex.getMessage()+". Re-import a trusted setup ZIP.");
+        }
         worker.scheduleWithFixedDelay(this::poll,0,3,TimeUnit.SECONDS);
+    }
+
+    private void applySetup(WorkstationSetup.Settings setup) {
+        server.setText(setup.serverUrl());
+        workstationId.setText(setup.workstationId());
+        user.setText(setup.viewerUsername());
+        setupSummary.setText("Assigned PC: " + setup.workstationName() + " (" + setup.workstationId() +
+            ") · Current portal screen: " + setup.assignedScreen() +
+            " (server assignment takes precedence)");
     }
 
     private void connect() {
