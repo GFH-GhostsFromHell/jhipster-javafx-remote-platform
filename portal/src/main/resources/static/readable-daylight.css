@@ -1,0 +1,73 @@
+/*
+ * Electrical Workbench — Daylight UI
+ * Consistent, readable, high-contrast colours for older dark web calculators.
+ * SVG conduit diagrams and canvas drawings retain their original rendering.
+ */
+@media screen {
+  :root {
+    color-scheme:light!important;
+    --bg:#F3F6FB;--panel:#FFFFFF;--panel2:#EDF3FA;--card:#FFFFFF;--card2:#EDF3FA;
+    --line:#A9BBCE;--border:#A9BBCE;--text:#14263D;--muted:#465870;
+    --cyan:#124A7A;--blue:#1D4ED8;--link:#124A7A;
+    --amber:#874300;--warn:#874300;--green:#166534;--good:#166534;
+    --red:#B42318;--bad:#B42318;--danger:#B42318;
+  }
+  html,body{background:#F3F6FB!important;color:#14263D!important;color-scheme:light!important}
+  header,.top,.topbar,.sidebar,nav,.nav{
+    background:#E6EEF8!important;color:#14263D!important;border-color:#B4C5D7!important;
+  }
+  header h1,header h2,header b,.top .brand,.topbar .brand,.brand strong,.brand b,
+  .tooltitle,.sidebar strong{color:#14263D!important}
+  .hero,.card,.panel,.ref,.stat,.tile,.quick-card,.quick-summary,.viewer,.mark,
+  .cue,.result,.results .result,.out,.notice,.placeholder,.markcard,.quick-mark,
+  .summary,details,.bendbtn,.quick-action,.guide,.worksheet,.info,.info-card{
+    background:#FFFFFF!important;color:#14263D!important;border-color:#B4C5D7!important;
+  }
+  pre,.result,.out,.output,.reading,.answer{color:#14263D!important}
+  .result strong,.quick-summary strong,.mark strong,.cue strong,.bendbtn strong,
+  .tile b,.stat .value,.mark b{color:#14263D!important}
+  .result.green strong,.good,.success,.meter{color:#166534!important}
+  .result.amber strong,.warn{color:#874300!important}
+  .result.cyan strong,.result.blue strong{color:#124A7A!important}
+  p,label,.field label,.lead,.note,.muted,.subtle,.hint,.eyebrow,.brand span,
+  .brand small,.result small,.mark small,.cue small,.tile small,.bendbtn span,
+  header p,.hero p,.quick-summary small,.stat .sub{color:#465870!important}
+  a,header a,nav a,.nav a{color:#124A7A!important}
+  input,textarea,select,.field input,.field select,.field textarea{
+    background:#FFFFFF!important;color:#14263D!important;
+    border:1px solid #8399AF!important;color-scheme:light!important;
+  }
+  input::placeholder,textarea::placeholder{color:#50627A!important;opacity:1}
+  select option{color:#14263D!important;background:#FFFFFF!important}
+  button,.btn,.back,.chip,.pill,.navbtn,.tabs button,.top a,.top button,
+  header nav a,.stepnav button,[role="button"]{
+    background:#1D4ED8!important;color:#FFFFFF!important;
+    border:1px solid #1D4ED8!important;text-shadow:none!important;
+  }
+  .nav button,.nav a,nav .navbtn,.tabs button:not(.active),.chip:not(.active),
+  .bendbtn,button.tile,.top a,.top button,header nav a,.back{
+    background:#FFFFFF!important;color:#124A7A!important;border-color:#94A8BE!important;
+  }
+  .nav button.active,.navbtn.active,.tabs button.active,.chip.active,
+  button.active,button.primary,.btn.primary,button[type="submit"]{
+    background:#124A7A!important;color:#FFFFFF!important;border-color:#124A7A!important;
+  }
+  button.danger,.btn.danger{background:#B42318!important;color:#FFFFFF!important;border-color:#B42318!important}
+  button:disabled,.btn:disabled{background:#E2E8F0!important;color:#475569!important;border-color:#C5D0DE!important;opacity:1!important}
+  .warning,.notice,.face-direction.unverified{
+    background:#FFF4E5!important;color:#874300!important;border-color:#D9A54F!important
+  }
+  .face-direction,.hookvisual,.quick-summary{
+    background:#DFEAF7!important;color:#14263D!important;border-color:#91B4D1!important
+  }
+  .hookvisual.unverified{background:#FFF4E5!important;color:#874300!important;border-color:#D9A54F!important}
+  .markbar{background:#EDF3FA!important;border-color:#A9BBCE!important}
+  .mini{background:#F0F5FB!important}
+  :is(button,a,input,textarea,select,summary,[role="button"]):focus-visible{
+    outline:3px solid #E69D31!important;outline-offset:2px!important
+  }
+  @media(max-width:720px){
+    header,.top,.topbar{padding:12px 14px!important}
+    .card,.panel,.quick-card{padding:14px!important}
+  }
+}
