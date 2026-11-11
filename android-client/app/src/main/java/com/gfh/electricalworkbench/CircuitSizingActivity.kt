@@ -86,6 +86,7 @@ private fun CircuitSizingScreen(username:String) {
     var dropLimit by remember {mutableStateOf("3")}
     var showVD by remember {mutableStateOf(false)}
     var showArchive by remember {mutableStateOf(false)}
+    var presetMenu by remember {mutableStateOf(false)}
     var currentStep by remember { mutableIntStateOf(0) }
     var result by remember {mutableStateOf("Replace sample inputs with your actual circuit data, then calculate.")}
     fun currentInputs()=CircuitReviewMath.Input(
@@ -114,21 +115,26 @@ private fun CircuitSizingScreen(username:String) {
         }
         if(currentStep==0) {
         CircuitInputCard("1 · Circuit") {
-            Text("Quick system presets · only voltage and phase change",
-                style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement=Arrangement.spacedBy(7.dp)) {
-                listOf(
-                    Triple("120 V · 1φ","120","1"),
-                    Triple("208 V · 3φ","208","3"),
-                    Triple("347 V · 1φ","347","1"),
-                    Triple("600 V · 3φ","600","3")
-                ).forEach { (label,volts,phase)->
-                    OutlinedButton(onClick={
-                        voltage=volts;phases=phase
-                        lastInputs=null;lastResults=null
-                        result="System selected. Confirm actual load, conductor data and limits; calculate again."
-                    },modifier=Modifier.heightIn(min=48.dp)){Text(label)}
+            Text("System preset · change voltage and phase together",
+                style=MaterialTheme.typography.bodySmall,color=EWColors.muted)
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick={presetMenu=true},modifier=Modifier.fillMaxWidth()) {
+                    Text(voltage+" V · "+phases+"φ  ▾")
+                }
+                DropdownMenu(expanded=presetMenu,onDismissRequest={presetMenu=false}) {
+                    listOf(
+                        Triple("120 V · 1φ","120","1"),
+                        Triple("208 V · 3φ","208","3"),
+                        Triple("347 V · 1φ","347","1"),
+                        Triple("600 V · 3φ","600","3")
+                    ).forEach { (label,volts,phase)->
+                        DropdownMenuItem(text={Text(label)},onClick={
+                            presetMenu=false
+                            voltage=volts;phases=phase
+                            lastInputs=null;lastResults=null
+                            result="System selected. Confirm all actual circuit data, then calculate."
+                        })
+                    }
                 }
             }
             CircuitNumber("Actual load current A",load){load=it}

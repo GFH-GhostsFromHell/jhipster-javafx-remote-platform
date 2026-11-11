@@ -58,6 +58,8 @@ must(circuit,'if(currentStep==0) {','First wizard page must contain circuit inpu
 must(circuit,'if(currentStep==1) {','Second wizard page must contain conductor inputs');
 must(circuit,'if(currentStep==2) {','Third wizard page must contain result and save controls');
 must(circuit,'Next · Calculate and review','Clear next-step navigation');
+must(circuit,'DropdownMenu(expanded=presetMenu','System choices do not need sideways swipe');
+assert.ok(!circuit.includes('.horizontalScroll('),'No horizontal scrolling in circuit wizard');
 must(transformer,'var editing by remember(load.id)','Editable but collapsed transformer loads');
 must(transformer,'if (editing) {','Long load fields must be deliberate');
 must(field,'var showMeasureSteps by remember(type)','Conduit guide can expand when needed');
