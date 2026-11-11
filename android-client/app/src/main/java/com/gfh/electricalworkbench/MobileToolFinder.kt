@@ -40,6 +40,7 @@ private data class MobileTask(
 )
 
 private val allTasks = listOf(
+    MobileTask("quick-bender-offline", "Quick Conduit Bender - Offline", "Tape marks and instructions with 10-ft stock checks", "Installation", "conduit emt bend offset saddle kick 90", "native:bender", true),
     MobileTask("conduit-marks", "Conduit Bend Marks + 3D", "Tape marks, facing and a finished bend preview", "Installation", "conduit offset saddle kick 90 hook shoe", "/bend-instruction-lab.html"),
     MobileTask("bend-guide", "Conduit Bend Diagrams", "Bend layouts and mark instructions", "Installation", "emt pipe bend offset saddle", "/bend-calcs.html"),
     MobileTask("bender-calibrate", "Calibrate a Conduit Bender", "Measure shoe deduct and gain", "Installation", "shoe profile", "/bender-calibration.html"),
@@ -89,6 +90,7 @@ internal fun MobileToolFinder(username:String,onOpenWeb:(String)->Unit,
         preferences.edit().putString("recent",recent.joinToString("|")).apply()
         when(task.destination) {
             "native:pull"->context.startActivity(Intent(context,FieldSizingActivity::class.java))
+            "native:bender"->context.startActivity(Intent(context,FieldSizingActivity::class.java).putExtra("toolTab","Bender"))
             "native:circuit"->context.startActivity(Intent(context,CircuitSizingActivity::class.java).putExtra("accountUsername",username))
             "native:transformer"->context.startActivity(Intent(context,TransformerSizingActivity::class.java))
             "native:relay"->context.startActivity(Intent(context,IndustrialFieldActivity::class.java))
@@ -110,7 +112,7 @@ internal fun MobileToolFinder(username:String,onOpenWeb:(String)->Unit,
             }
     }.sortedWith(compareBy<MobileTask>{if(favourites.contains(it.id))0 else 1}
         .thenBy{val n=recent.indexOf(it.id);if(n<0)1000 else n}.thenBy{it.title})
-    val featured=setOf("conduit-marks","conductor-drop","pull-box","motor","fault-offline","jobsite")
+    val featured=setOf("quick-bender-offline","conductor-drop","pull-box","motor","fault-offline","jobsite")
     val compact=query.isBlank()&&group=="All"&&!offlineOnly&&!showAll
     val visibleTasks=if(compact)filtered.filter{it.id in featured||it.id in favourites}.take(8) else filtered
     val pinned=if(compact)favourites.mapNotNull{id->allTasks.find{it.id==id}}.take(3) else emptyList()

@@ -49,7 +49,9 @@ for(const task of ['conduit-marks','conductor-drop','pull-box','motor','fault-of
   must(finder,'"'+task+'"','Common field task '+task);
 }
 for(const area of ['LEARN','FIELD','PROJECTS','CAREER'])must(finder,'MoreArea.'+area,'Direct section links');
-must(shell,'MWHubCard("Bend conduit"','Home opens with a real job task');
+must(shell,'MWHubCard("Bend conduit · Offline"','Offline native conduit bending first');
+must(finder,'MobileTask("quick-bender-offline"','Native bender is searchable');
+must(finder,'"native:bender"->','Native bending route points to native field tool');
 must(shell,'MWHubCard("Size a circuit · Offline"','Native circuit quick start');
 must(circuit,'if (showArchive) CircuitInputCard','Hide long history until requested');
 must(transformer,'var editing by remember(load.id)','Editable but collapsed transformer loads');

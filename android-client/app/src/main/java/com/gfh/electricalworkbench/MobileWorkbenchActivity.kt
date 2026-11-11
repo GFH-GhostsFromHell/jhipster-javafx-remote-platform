@@ -501,8 +501,9 @@ private fun MobileHome(
 ) {
     val context=LocalContext.current
     MWPage("Ready for the job?", "Choose a common task, or search all tools.") {
-        MWHubCard("Bend conduit", "Tape marks, shoe direction and 3D preview") {
-            onOpenWeb("/bend-instruction-lab.html")
+        MWHubCard("Bend conduit · Offline", "Fast tape marks, shoe facing and bend steps") {
+            context.startActivity(Intent(context,FieldSizingActivity::class.java)
+                .putExtra("toolTab","Bender"))
         }
         MWHubCard("Size a circuit · Offline", "Ampacity, voltage drop and conductor review") {
             context.startActivity(Intent(context,CircuitSizingActivity::class.java)
