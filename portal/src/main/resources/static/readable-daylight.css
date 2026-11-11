@@ -61,6 +61,7 @@
     background:#DFEAF7!important;color:#14263D!important;border-color:#91B4D1!important
   }
   .hookvisual.unverified{background:#FFF4E5!important;color:#874300!important;border-color:#D9A54F!important}
+  .hint{background:#EDF3FA!important;color:#465870!important;border:1px solid #A9BBCE!important}
   .markbar{background:#EDF3FA!important;border-color:#A9BBCE!important}
   .mini{background:#F0F5FB!important}
   :is(button,a,input,textarea,select,summary,[role="button"]):focus-visible{
