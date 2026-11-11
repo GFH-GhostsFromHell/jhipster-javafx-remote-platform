@@ -339,26 +339,22 @@ private fun MobileLoginScreen(
                             Text("Connecting…")
                         } else Text("Sign in to Electrical Workbench", fontWeight = FontWeight.Bold)
                     }
-                    Text("Account access", color = MobileCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "signup")) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Create account") }
-                        OutlinedButton(
-                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "verify")) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Verify email") }
+                    Text("Account help",color=MobileMuted,fontSize=12.sp,fontWeight=FontWeight.SemiBold)
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick={
+                            context.startActivity(Intent(context,AccountAccessActivity::class.java).putExtra("tab","signup"))
+                        },modifier=Modifier.weight(1f).heightIn(min=48.dp)){Text("Create account")}
+                        OutlinedButton(onClick={
+                            context.startActivity(Intent(context,AccountAccessActivity::class.java).putExtra("tab","verify"))
+                        },modifier=Modifier.weight(1f).heightIn(min=48.dp)){Text("Verify email")}
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-password")) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Reset password") }
-                        OutlinedButton(
-                            onClick = { context.startActivity(Intent(context, AccountAccessActivity::class.java).putExtra("tab", "forgot-username")) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Forgot username") }
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick={
+                            context.startActivity(Intent(context,AccountAccessActivity::class.java).putExtra("tab","forgot-password"))
+                        },modifier=Modifier.weight(1f).heightIn(min=48.dp)){Text("Reset password")}
+                        OutlinedButton(onClick={
+                            context.startActivity(Intent(context,AccountAccessActivity::class.java).putExtra("tab","forgot-username"))
+                        },modifier=Modifier.weight(1f).heightIn(min=48.dp)){Text("Find username")}
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.CloudDone, null, tint = if (cloudOk == true) MobileGood else MobileMuted)
@@ -474,13 +470,9 @@ private fun MobileUpdateBanner(
     ) {
         Text("Update available · v${release.version}",
             color = MobileGood, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onReview, modifier = Modifier.fillMaxWidth()) {
-                Text("Review update", fontSize = 12.sp)
-            }
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Later", fontSize = 12.sp)
-            }
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Button(onClick=onReview,modifier=Modifier.weight(1f)){Text("View update")}
+            OutlinedButton(onClick=onDismiss,modifier=Modifier.weight(1f)){Text("Later")}
         }
     }
 }
@@ -503,37 +495,45 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
 }
 
 @Composable
-private fun MobileHome(session: MobileSession, onSelected: (MobileTab) -> Unit, onOpenWeb: (String) -> Unit, onOpenMore: (MoreArea) -> Unit) {
-    val context = LocalContext.current
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Welcome, ${session.displayName}", color = MobileText, fontSize = 26.sp, fontWeight = FontWeight.Black)
-        Text("Choose a task to get started", color = MobileCyan, fontWeight = FontWeight.Bold)
-        Text("Start with the job you need to do. Open Tools for calculations or More for projects, learning and field records.", color = MobileMuted)
-        MobileFeatureCard("🧮 Electrical Calculators", "Full calculator workspace, advanced calculation pack and conduit bending") { onSelected(MobileTab.Workbench) }
-        MobileFeatureCard("⚙ Power System Analysis", "Per-unit, transformer impedance, transmission lines, symmetrical components, sequence faults and short-circuit tools") {
-            context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
+private fun MobileHome(
+    session: MobileSession, onSelected: (MobileTab) -> Unit,
+    onOpenWeb: (String) -> Unit, onOpenMore: (MoreArea) -> Unit
+) {
+    val context=LocalContext.current
+    MWPage("Ready for the job?", "Choose a common task, or search all tools.") {
+        MWHubCard("Bend conduit", "Tape marks, shoe direction and 3D preview") {
+            onOpenWeb("/bend-instruction-lab.html")
         }
-        MobileFeatureCard("🦺 Electrical Safety", "Thunderstorm stand-down, PPE rating checks, approach planning, unsafe conditions, glove tests and maintenance") { onSelected(MobileTab.Safety) }
-        MobileFeatureCard("🤖 Ask ChatGPT", "Connect an eligible ChatGPT account and ask questions directly inside Electrical Workbench") { onSelected(MobileTab.ChatGPT) }
-        MobileFeatureCard("🎓 Red Seal Study", "Daily 25, CEC navigator, formulas, control trainer and province/code profile") { onOpenMore(MoreArea.LEARN) }
-        MobileFeatureCard("🛠 Jobsite Tools", "Troubleshooting, nameplates, commissioning, inspection, blueprint helper, fault current and grounding/bonding") { onOpenMore(MoreArea.FIELD) }
-        MobileFeatureCard("📁 Saved Projects", "Project log, material takeoff, records and cable planning") { onOpenMore(MoreArea.PROJECTS) }
-        MobileFeatureCard("📈 Career & Trade Hours", "Trade hours, credentials, wage estimate and official trade/job resources") { onOpenMore(MoreArea.CAREER) }
-        MobileFeatureCard("⚡ CEC / OESC Code News", "ESA/OESC public bulletins and code notices") { onOpenWeb("/news.html") }
-    }
-}
-
-@Composable
-private fun MobileFeatureCard(title: String, detail: String, onClick: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MobileSteel), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, color = MobileCyan, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(detail, color = MobileMuted, fontSize = 13.sp)
-            Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text("Open") }
+        MWHubCard("Size a circuit · Offline", "Ampacity, voltage drop and conductor review") {
+            context.startActivity(Intent(context,CircuitSizingActivity::class.java)
+                .putExtra("accountUsername",session.username))
         }
+        MWHubCard("Troubleshoot equipment · Offline", "Fault checks and work orders") {
+            context.startActivity(Intent(context,FieldSizingActivity::class.java)
+                .putExtra("toolTab","Troubleshooting"))
+        }
+        MWHubCard("Find any electrical tool", "Search bending, motors, transformers, relays and more") {
+            onSelected(MobileTab.Workbench)
+        }
+        Text("Your work",color=MobileText,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            OutlinedButton(onClick={onOpenMore(MoreArea.PROJECTS)},modifier=Modifier.weight(1f)){
+                Text("Projects")
+            }
+            OutlinedButton(onClick={onSelected(MobileTab.Safety)},modifier=Modifier.weight(1f)){
+                Text("Safety")
+            }
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            OutlinedButton(onClick={onOpenMore(MoreArea.LEARN)},modifier=Modifier.weight(1f)){
+                Text("Study")
+            }
+            OutlinedButton(onClick={onOpenWeb("/news.html")},modifier=Modifier.weight(1f)){
+                Text("Code updates")
+            }
+        }
+        Text("Check CEC/OESC rules and equipment ratings before installation.",
+            color=MobileMuted,fontSize=12.sp)
     }
 }
 
