@@ -97,11 +97,11 @@ private val Steel = EWColors.card
 private val Steel2 = EWColors.card
 private val ElectricCyan = EWColors.primary
 private val ElectricBlue = EWColors.secondary
-private val SafetyAmber = Color(0xFFF5B942)
+private val SafetyAmber = EWColors.warning
 private val TextPrimary = EWColors.text
 private val TextSecondary = EWColors.muted
 private val TextMuted = EWColors.muted
-private val Good = Color(0xFF5EEAD4)
+private val Good = EWColors.good
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -222,7 +222,7 @@ private fun LoginScreen(
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF030712), Navy, Color(0xFF0A3150))
+                    listOf(Color(0xFFF8FAFD), Navy, Color(0xFFE6EFFA))
                 )
             )
             .statusBarsPadding()
@@ -273,8 +273,8 @@ private fun LoginScreen(
             Spacer(Modifier.height(20.dp))
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF10263A)),
-                border = BorderStroke(1.dp, Color(0xFF29455E)),
+                colors = CardDefaults.cardColors(containerColor = EWColors.card),
+                border = BorderStroke(1.dp, EWColors.outline),
                 shape = RoundedCornerShape(22.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -314,14 +314,14 @@ private fun LoginScreen(
                     if (!error.isNullOrBlank()) {
                         Spacer(Modifier.height(12.dp))
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF451D2A)),
-                            border = BorderStroke(1.dp, Color(0xFF7F3548)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0EF)),
+                            border = BorderStroke(1.dp, Color(0xFFC65D52)),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 error,
-                                color = Color(0xFFFFCDD5),
+                                color = EWColors.danger,
                                 fontSize = 13.sp,
                                 lineHeight = 18.sp,
                                 modifier = Modifier.padding(11.dp)
@@ -336,8 +336,8 @@ private fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ElectricBlue,
                             contentColor = Color.White,
-                            disabledContainerColor = Color(0xFF334155),
-                            disabledContentColor = Color(0xFFD5DEE8)
+                            disabledContainerColor = Color(0xFFE2E8F0),
+                            disabledContentColor = Color(0xFF475569)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -405,14 +405,14 @@ private fun loginFieldColors() = OutlinedTextFieldDefaults.colors(
     disabledTextColor = TextSecondary,
     cursorColor = ElectricCyan,
     focusedBorderColor = ElectricCyan,
-    unfocusedBorderColor = Color(0xFF71869C),
-    disabledBorderColor = Color(0xFF516579),
+    unfocusedBorderColor = EWColors.outline,
+    disabledBorderColor = Color(0xFFBCC9D6),
     focusedLabelColor = ElectricCyan,
-    unfocusedLabelColor = Color(0xFFD6E0EA),
+    unfocusedLabelColor = EWColors.muted,
     disabledLabelColor = TextSecondary,
-    focusedContainerColor = Color(0xFF0A1928),
-    unfocusedContainerColor = Color(0xFF0A1928),
-    disabledContainerColor = Color(0xFF0D1B29)
+    focusedContainerColor = EWColors.raised,
+    unfocusedContainerColor = EWColors.raised,
+    disabledContainerColor = Color(0xFFF0F3F7)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -494,7 +494,7 @@ private fun MainShell(
 
 @Composable
 private fun navColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = Navy,
+    selectedIconColor = EWColors.onPrimary,
     selectedTextColor = ElectricCyan,
     indicatorColor = ElectricCyan,
     unselectedIconColor = TextSecondary,
