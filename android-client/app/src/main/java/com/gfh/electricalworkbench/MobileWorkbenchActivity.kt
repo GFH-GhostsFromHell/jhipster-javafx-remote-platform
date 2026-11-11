@@ -377,7 +377,7 @@ private fun mobileLoginColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = MobileCyan,
     unfocusedLabelColor = EWColors.muted,
     focusedContainerColor = EWColors.raised,
-    unfocusedContainerColor = EWColors.raised)
+    unfocusedContainerColor = EWColors.raised
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
