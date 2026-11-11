@@ -242,7 +242,7 @@ private fun UpdateGateScreen(
             .fillMaxSize()
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF020711), GateNavy, Color(0xFF0B3657))
+                    listOf(Color(0xFFF8FAFD), GateNavy, Color(0xFFE6EFFA))
                 )
             )
             .statusBarsPadding()
@@ -268,7 +268,7 @@ private fun UpdateGateScreen(
                     Icon(
                         Icons.Default.ElectricBolt,
                         contentDescription = null,
-                        tint = GateNavy,
+                        tint = EWColors.onPrimary,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -314,7 +314,7 @@ private fun UpdateGateScreen(
                             Spacer(Modifier.height(14.dp))
                             CircularProgressIndicator(
                                 color = GateCyan,
-                                trackColor = Color(0xFF29475F),
+                                trackColor = Color(0xFFCBD5E1),
                                 strokeWidth = 3.dp,
                                 modifier = Modifier.size(38.dp)
                             )
