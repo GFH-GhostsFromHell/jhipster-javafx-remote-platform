@@ -25,8 +25,8 @@ class FieldSizingActivity : ComponentActivity() {
         setContent {
             ElectricalUiTheme {
                 var tab by remember { mutableStateOf(intent.getStringExtra("toolTab") ?: "Pull box") }
-                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text("Electrical Workbench · Field Tools",style=MaterialTheme.typography.headlineSmall)
+                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(12.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
+                    Text("Field tools · Offline",style=MaterialTheme.typography.titleLarge)
                     FieldDropdown(
                         "Choose a field tool", tab,
                         listOf("Pull box", "Bender", "Fabrication", "Calibration", "Troubleshooting")
@@ -241,14 +241,19 @@ private fun pullBoxMath(entries:List<PipeEntry>,type:String,u:String,od:Double):
             "Confirm the shoe's physical ARROW/STAR/NOTCH alignment before bending."
         )
     }
+    var showMeasureSteps by remember(type) { mutableStateOf(false) }
     OutlinedCard(modifier=Modifier.fillMaxWidth()) {
         Column(Modifier.padding(11.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-            Text("HOW TO MEASURE • BEFORE YOU MARK",color=Color(0xFF91EEE4),fontSize=13.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
-            Text(datum,color=Color(0xFFF1F5F9),fontSize=14.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
-            steps.forEachIndexed { index, item ->
-                Text("${index+1}. $item",color=Color(0xFFD5E6F2),fontSize=13.sp,lineHeight=18.sp)
+            Text("MEASUREMENT DATUM",color=EWColors.primary,fontSize=12.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(datum,color=EWColors.text,fontSize=14.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)
+            OutlinedButton(onClick={showMeasureSteps=!showMeasureSteps},
+                modifier=Modifier.fillMaxWidth()) {
+                Text(if(showMeasureSteps) "Hide measurement steps" else "How to measure this bend ▾")
             }
-            Text("Job measurements ≠ physical shoe marks; sketch not to scale.",color=Color(0xFFF2C87F),fontSize=12.sp)
+            if(showMeasureSteps) steps.forEachIndexed { index,item ->
+                Text("${index+1}. $item",color=EWColors.muted,fontSize=13.sp,lineHeight=18.sp)
+            }
+            Text("Job measurements are not shoe marks. Verify the reference.",color=EWColors.warning,fontSize=12.sp)
         }
     }
 }

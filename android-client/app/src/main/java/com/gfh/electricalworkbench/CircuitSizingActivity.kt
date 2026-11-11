@@ -85,6 +85,7 @@ private fun CircuitSizingScreen(username:String) {
     var k by remember {mutableStateOf("12.9")}
     var dropLimit by remember {mutableStateOf("3")}
     var showVD by remember {mutableStateOf(false)}
+    var showArchive by remember {mutableStateOf(false)}
     var result by remember {mutableStateOf("Replace sample inputs with your actual circuit data, then calculate.")}
     fun currentInputs()=CircuitReviewMath.Input(
         load.toDouble(),multiplier.toDouble(),voltage.toDouble(),
@@ -189,7 +190,11 @@ private fun CircuitSizingScreen(username:String) {
         CircuitInputCard("3 · Worked result"){
             SelectionContainer {Text(result,style=MaterialTheme.typography.bodyMedium)}
         }
-        CircuitInputCard("4 · Project worksheet archive") {
+        OutlinedButton(onClick = { showArchive = !showArchive },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(if (showArchive) "Hide saved work and PDF options" else "Save result / open history / export PDF")
+        }
+        if (showArchive) CircuitInputCard("4 · Project worksheet archive") {
             Text("Saved revisions include full entered measurements, numeric results, code assumptions, timestamps and the worked explanation. Each save is a new revision, never an overwrite.",
                 style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
             CircuitNumber("Project",project,false){project=it}
@@ -321,7 +326,7 @@ private fun CircuitSizingScreen(username:String) {
 @Composable
 private fun CircuitInputCard(title:String,content:@Composable ColumnScope.()->Unit) {
     Card(modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(
-        containerColor=Color(0xFF10253A))) {
+        containerColor=EWColors.card)) {
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(9.dp)){
             Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
             content()
