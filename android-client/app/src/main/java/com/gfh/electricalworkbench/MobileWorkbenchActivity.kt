@@ -533,6 +533,14 @@ private fun MobileHome(
                 Text("Code updates")
             }
         }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            OutlinedButton(onClick={onOpenMore(MoreArea.FIELD)},modifier=Modifier.weight(1f)){
+                Text("Jobsite records")
+            }
+            OutlinedButton(onClick={onOpenMore(MoreArea.CAREER)},modifier=Modifier.weight(1f)){
+                Text("Trade & career")
+            }
+        }
         Text("Check CEC/OESC rules and equipment ratings before installation.",
             color=MobileMuted,fontSize=12.sp)
     }
