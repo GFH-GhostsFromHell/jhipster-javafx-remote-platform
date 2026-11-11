@@ -43,23 +43,14 @@ class AccountEntryActivity : ComponentActivity() {
 
     @Composable
     private fun AccountEntryScreen() {
-        val navy = Color(0xFF06111F)
-        val panel = Color(0xFF10263A)
-        val cyan = Color(0xFF22D3EE)
-        val text = Color(0xFFF1F5F9)
-        val muted = Color(0xFFB6C4D4)
-        val recoveryFill = Color(0xFF0B2032)
-        val recoveryBorder = Color(0xFF3F6178)
-        MaterialTheme(
-            colorScheme = darkColorScheme(
-                primary = cyan,
-                background = navy,
-                surface = panel,
-                onPrimary = navy,
-                onBackground = text,
-                onSurface = text
-            )
-        ) {
+        val navy = EWColors.background
+        val panel = EWColors.card
+        val cyan = EWColors.primary
+        val text = EWColors.text
+        val muted = EWColors.muted
+        val recoveryFill = EWColors.raised
+        val recoveryBorder = EWColors.outline
+        ElectricalUiTheme {
             Column(
                 Modifier
                     .fillMaxSize()
