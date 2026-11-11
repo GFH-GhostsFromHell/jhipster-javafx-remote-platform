@@ -297,7 +297,7 @@ private fun MobileLoginScreen(
     val context = LocalContext.current
     Box(
         Modifier.fillMaxSize()
-            .background(Brush.linearGradient(listOf(Color(0xFF030712), MobileNavy, Color(0xFF0A3150))))
+            .background(Brush.linearGradient(listOf(Color(0xFFF8FAFD), MobileNavy, Color(0xFFE6EFFA))))
             .statusBarsPadding().navigationBarsPadding().imePadding().padding(18.dp)
     ) {
         Column(
@@ -317,8 +317,8 @@ private fun MobileLoginScreen(
             Text("Calculators, study, field records, safety, projects and career tools in one app.", color = MobileMuted)
             Spacer(Modifier.height(18.dp))
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF10263A)),
-                border = BorderStroke(1.dp, Color(0xFF29455E)),
+                colors = CardDefaults.cardColors(containerColor = EWColors.card),
+                border = BorderStroke(1.dp, EWColors.outline),
                 shape = RoundedCornerShape(22.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -326,7 +326,7 @@ private fun MobileLoginScreen(
                     Text("Sign in", color = MobileText, fontSize = 25.sp, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Username") }, enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), enabled = !loggingIn, singleLine = true, colors = mobileLoginColors(), modifier = Modifier.fillMaxWidth())
-                    if (!error.isNullOrBlank()) Text(error, color = Color(0xFFFFCDD5), fontSize = 15.sp)
+                    if (!error.isNullOrBlank()) Text(error, color = EWColors.danger, fontSize = 15.sp)
                     Button(
                         onClick = { onLogin(username.trim(), password) },
                         enabled = !loggingIn && username.isNotBlank() && password.isNotBlank(),
@@ -373,11 +373,11 @@ private fun mobileLoginColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = MobileText,
     cursorColor = MobileCyan,
     focusedBorderColor = MobileCyan,
-    unfocusedBorderColor = Color(0xFF71869C),
+    unfocusedBorderColor = EWColors.outline,
     focusedLabelColor = MobileCyan,
-    unfocusedLabelColor = Color(0xFFD6E0EA),
-    focusedContainerColor = Color(0xFF0A1928),
-    unfocusedContainerColor = Color(0xFF0A1928)
+    unfocusedLabelColor = EWColors.muted,
+    focusedContainerColor = EWColors.raised,
+    unfocusedContainerColor = EWColors.raised)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -464,7 +464,7 @@ private fun MobileUpdateBanner(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
-            .background(Color(0xFF103F4A))
+            .background(Color(0xFFDFEAF6))
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -485,7 +485,7 @@ private fun MobileNavItem(selected: Boolean, onClick: () -> Unit, icon: androidx
         icon = { Icon(icon, null) },
         label = { Text(label, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = MobileNavy,
+            selectedIconColor = EWColors.onPrimary,
             selectedTextColor = MobileCyan,
             indicatorColor = MobileCyan,
             unselectedIconColor = MobileMuted,
