@@ -23,7 +23,7 @@ class FieldSizingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF22D3EE),background=Color(0xFF06111F),surface=Color(0xFF10253A))) {
+            ElectricalUiTheme {
                 var tab by remember { mutableStateOf(intent.getStringExtra("toolTab") ?: "Pull box") }
                 Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     Text("Electrical Workbench · Field Tools",style=MaterialTheme.typography.headlineSmall)

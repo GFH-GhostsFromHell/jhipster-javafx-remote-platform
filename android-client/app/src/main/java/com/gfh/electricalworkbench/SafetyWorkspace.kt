@@ -43,15 +43,7 @@ fun SafetyWorkspaceScreen(username: String) {
     val tabs = listOf("Dashboard", "Thunderstorm", "PPE", "Approach", "Unsafe", "Gloves", "Maintenance")
 
     Column(Modifier.fillMaxSize()) {
-        MWSectionHeader(
-            "Electrical Safety",
-            "Native Android planning and recordkeeping tools. Employer/site procedures and current hazard assessments remain authoritative."
-        )
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp, containerColor = MWCard2) {
-            tabs.forEachIndexed { index, title ->
-                Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) })
-            }
-        }
+        MWSectionPicker("Safety", tabs, tab) { tab = it }
         Box(Modifier.fillMaxSize()) {
             when (tab) {
                 0 -> SafetyDashboard(store, revision)

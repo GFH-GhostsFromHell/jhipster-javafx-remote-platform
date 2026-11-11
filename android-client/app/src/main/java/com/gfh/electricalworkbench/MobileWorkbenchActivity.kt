@@ -102,15 +102,15 @@ import java.util.Base64
 
 private const val MOBILE_PORTAL_URL = "https://remote-javafx-portal.onrender.com"
 private const val UPDATE_CHECK_INTERVAL_MS = 30L * 60L * 1000L
-private val MobileNavy = Color(0xFF06111F)
-private val MobileNavy2 = Color(0xFF0A1C2F)
-private val MobileSteel = Color(0xFF152A3D)
-private val MobileCyan = Color(0xFF22D3EE)
-private val MobileBlue = Color(0xFF3B82F6)
-private val MobileAmber = Color(0xFFF5B942)
-private val MobileText = Color(0xFFF1F5F9)
-private val MobileMuted = Color(0xFFB6C4D4)
-private val MobileGood = Color(0xFF5EEAD4)
+private val MobileNavy = EWColors.background
+private val MobileNavy2 = EWColors.raised
+private val MobileSteel = EWColors.card
+private val MobileCyan = EWColors.primary
+private val MobileBlue = EWColors.secondary
+private val MobileAmber = EWColors.warning
+private val MobileText = EWColors.text
+private val MobileMuted = EWColors.muted
+private val MobileGood = EWColors.good
 
 class MobileWorkbenchActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,25 +133,7 @@ private enum class MobileTab { Home, Workbench, Safety, ChatGPT, More, Profile }
 
 @Composable
 private fun MobileWorkbenchTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = MobileCyan,
-            secondary = MobileBlue,
-            tertiary = MobileAmber,
-            background = MobileNavy,
-            surface = MobileNavy2,
-            surfaceVariant = MobileSteel,
-            onPrimary = MobileNavy,
-            onSecondary = MobileText,
-            onBackground = MobileText,
-            onSurface = MobileText,
-            onSurfaceVariant = MobileMuted,
-            outline = Color(0xFF829BAF),
-            error = Color(0xFFFF9A9A),
-            onError = MobileNavy
-        ),
-        content = content
-    )
+    ElectricalUiTheme(content)
 }
 
 @Composable
@@ -348,7 +330,7 @@ private fun MobileLoginScreen(
                     Button(
                         onClick = { onLogin(username.trim(), password) },
                         enabled = !loggingIn && username.isNotBlank() && password.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MobileBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = MobileCyan, contentColor = EWColors.onPrimary),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                     ) {
                         if (loggingIn) {

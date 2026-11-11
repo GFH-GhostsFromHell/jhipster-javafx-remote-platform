@@ -44,11 +44,7 @@ class TransformerSizingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(
-                primary = Color(0xFF22D3EE),
-                background = Color(0xFF06111F),
-                surface = Color(0xFF10253A)
-            )) {
+            ElectricalUiTheme {
                 TransformerSizingScreen()
             }
         }

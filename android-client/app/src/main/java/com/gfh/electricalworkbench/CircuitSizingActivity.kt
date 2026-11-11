@@ -27,10 +27,7 @@ class CircuitSizingActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme=darkColorScheme(
-                primary=Color(0xFF22D3EE),background=Color(0xFF06111F),
-                surface=Color(0xFF10253A),onSurface=Color(0xFFF1F7FC)
-            )) { CircuitSizingScreen(intent.getStringExtra("accountUsername").orEmpty()) }
+            ElectricalUiTheme { CircuitSizingScreen(intent.getStringExtra("accountUsername").orEmpty()) }
         }
     }
 }
