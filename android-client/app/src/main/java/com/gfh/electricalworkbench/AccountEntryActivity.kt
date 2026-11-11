@@ -54,7 +54,7 @@ class AccountEntryActivity : ComponentActivity() {
             Column(
                 Modifier
                     .fillMaxSize()
-                    .background(Brush.linearGradient(listOf(Color(0xFF030712), navy, Color(0xFF0A3150))))
+                    .background(Brush.linearGradient(listOf(Color(0xFFF8FAFD), navy, Color(0xFFE6EFFA))))
                     .statusBarsPadding()
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
