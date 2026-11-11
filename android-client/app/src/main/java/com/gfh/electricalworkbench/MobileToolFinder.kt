@@ -5,10 +5,15 @@ import android.content.Intent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,6 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,111 +67,119 @@ private val allTasks = listOf(
 )
 
 @Composable
-internal fun MobileToolFinder(
-    username: String,
-    onOpenWeb: (String) -> Unit,
-    onOpenMore: (MoreArea) -> Unit,
-    onOpenSafety: () -> Unit
-) {
-    val context = LocalContext.current
-    val preferences = remember(username) {
-        context.getSharedPreferences("ewb.tool.shortcuts.v1." + username, Context.MODE_PRIVATE)
+internal fun MobileToolFinder(username:String,onOpenWeb:(String)->Unit,
+    onOpenMore:(MoreArea)->Unit,onOpenSafety:()->Unit) {
+    val context=LocalContext.current
+    val preferences=remember(username) {
+        context.getSharedPreferences("ewb.tool.shortcuts.v1."+username,Context.MODE_PRIVATE)
     }
-    var query by remember(username) { mutableStateOf("") }
-    var group by remember(username) { mutableStateOf("All") }
+    var query by remember(username){mutableStateOf("")}
+    var group by remember(username){mutableStateOf("All")}
+    var menu by remember{mutableStateOf(false)}
+    var offlineOnly by remember{mutableStateOf(false)}
+    var showAll by remember{mutableStateOf(false)}
     var favourites by remember(username) {
-        mutableStateOf(preferences.getStringSet("favourites", emptySet())?.toSet() ?: emptySet())
+        mutableStateOf(preferences.getStringSet("favourites",emptySet())?.toSet()?:emptySet())
     }
     var recent by remember(username) {
-        mutableStateOf(preferences.getString("recent", "")?.split("|")?.filter { it.isNotBlank() } ?: emptyList())
+        mutableStateOf(preferences.getString("recent","")?.split("|")?.filter{it.isNotBlank()}?:emptyList())
     }
-
-    fun open(task: MobileTask) {
-        recent = (listOf(task.id) + recent.filter { it != task.id }).take(8)
-        preferences.edit().putString("recent", recent.joinToString("|")).apply()
-        when (task.destination) {
-            "native:pull" -> context.startActivity(Intent(context, FieldSizingActivity::class.java))
-            "native:circuit" -> context.startActivity(Intent(context, CircuitSizingActivity::class.java).putExtra("accountUsername", username))
-            "native:transformer" -> context.startActivity(Intent(context, TransformerSizingActivity::class.java))
-            "native:relay" -> context.startActivity(Intent(context, IndustrialFieldActivity::class.java))
-            "native:power" -> context.startActivity(Intent(context, EngineeringPowerActivity::class.java))
-            "native:fault" -> context.startActivity(Intent(context, FieldSizingActivity::class.java).putExtra("toolTab", "Troubleshooting"))
-            "native:field" -> onOpenMore(MoreArea.FIELD)
-            "native:projects" -> onOpenMore(MoreArea.PROJECTS)
-            "native:learn" -> onOpenMore(MoreArea.LEARN)
-            "native:career" -> onOpenMore(MoreArea.CAREER)
-            "native:safety" -> onOpenSafety()
-            else -> onOpenWeb(task.destination)
+    fun open(task:MobileTask) {
+        recent=(listOf(task.id)+recent.filter{it!=task.id}).take(8)
+        preferences.edit().putString("recent",recent.joinToString("|")).apply()
+        when(task.destination) {
+            "native:pull"->context.startActivity(Intent(context,FieldSizingActivity::class.java))
+            "native:circuit"->context.startActivity(Intent(context,CircuitSizingActivity::class.java).putExtra("accountUsername",username))
+            "native:transformer"->context.startActivity(Intent(context,TransformerSizingActivity::class.java))
+            "native:relay"->context.startActivity(Intent(context,IndustrialFieldActivity::class.java))
+            "native:power"->context.startActivity(Intent(context,EngineeringPowerActivity::class.java))
+            "native:fault"->context.startActivity(Intent(context,FieldSizingActivity::class.java).putExtra("toolTab","Troubleshooting"))
+            "native:field"->onOpenMore(MoreArea.FIELD)
+            "native:projects"->onOpenMore(MoreArea.PROJECTS)
+            "native:learn"->onOpenMore(MoreArea.LEARN)
+            "native:career"->onOpenMore(MoreArea.CAREER)
+            "native:safety"->onOpenSafety()
+            else->onOpenWeb(task.destination)
         }
     }
+    val categories=listOf("All","Installation","Calculations","Power & Protection","Troubleshooting","Projects & Learning")
+    val filtered=allTasks.filter{ task->
+        (group=="All"||group==task.group)&&(!offlineOnly||task.offline)&&
+            query.trim().lowercase().split(Regex("\\s+")).all{word->
+                word.isBlank()||(task.title+" "+task.detail+" "+task.search).lowercase().contains(word)
+            }
+    }.sortedWith(compareBy<MobileTask>{if(favourites.contains(it.id))0 else 1}
+        .thenBy{val n=recent.indexOf(it.id);if(n<0)1000 else n}.thenBy{it.title})
+    val featured=setOf("conduit-marks","conductor-drop","pull-box","motor","fault-offline","jobsite")
+    val compact=query.isBlank()&&group=="All"&&!offlineOnly&&!showAll
+    val visibleTasks=if(compact)filtered.filter{it.id in featured||it.id in favourites}.take(8) else filtered
+    val pinned=if(compact)favourites.mapNotNull{id->allTasks.find{it.id==id}}.take(3) else emptyList()
+    val recentlyUsed=if(compact)recent.firstNotNullOfOrNull{id->allTasks.find{it.id==id}} else null
 
-    val matches = allTasks.filter { task ->
-        (group == "All" || group == task.group) &&
-            query.trim().lowercase().split(Regex("\\s+")).all { word ->
-                word.isBlank() || (task.title + " " + task.detail + " " + task.search).lowercase().contains(word)
-            }
-    }.sortedWith(
-        compareBy<MobileTask> { if (favourites.contains(it.id)) 0 else 1 }
-            .thenBy { val n = recent.indexOf(it.id); if (n < 0) 1000 else n }
-            .thenBy { it.title }
-    )
-    MWPage("Find an Electrical Tool", "1. Find the task  ·  2. Enter values  ·  3. Verify  ·  4. Save or export") {
-        OutlinedTextField(
-            value = query, onValueChange = { query = it },
-            label = { Text("Search tools by job or calculation") },
-            placeholder = { Text("Motor fuse, offset bend, voltage drop") },
-            modifier = Modifier.fillMaxWidth(), singleLine = true
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("All", "Installation", "Calculations", "Power & Protection", "Troubleshooting", "Projects & Learning").forEach { item ->
-                OutlinedButton(onClick = { group = item }) {
-                    Text((if (group == item) "✓ " else "") + item)
+    MWPage("Find a tool","Search by task, then tap the result.") {
+        OutlinedTextField(value=query,onValueChange={query=it},singleLine=true,
+            label={Text("Search tools by job or calculation")},
+            placeholder={Text("Offset, motor fuse, voltage drop")},
+            modifier=Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Box(Modifier.weight(1f)){
+                OutlinedButton(onClick={menu=true},modifier=Modifier.fillMaxWidth()) {
+                    Text(group+" ▾",maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
-            }
-        }
-        if (query.isBlank() && group == "All") {
-            MWCard("★ Favourite tools") {
-                val chosen = favourites.mapNotNull { id -> allTasks.find { it.id == id } }.take(4)
-                if (chosen.isEmpty()) Text("Select ☆ Favourite on a tool to pin it here.", color = MWMuted)
-                chosen.forEach { task ->
-                    OutlinedButton(onClick = { open(task) }, modifier = Modifier.fillMaxWidth()) { Text(task.title) }
-                }
-            }
-            if (recent.isNotEmpty()) {
-                MWCard("Recently opened") {
-                    recent.take(3).mapNotNull { id -> allTasks.find { it.id == id } }.forEach { task ->
-                        OutlinedButton(onClick = { open(task) }, modifier = Modifier.fillMaxWidth()) { Text(task.title) }
+                DropdownMenu(expanded=menu,onDismissRequest={menu=false}){
+                    categories.forEach{item->
+                        DropdownMenuItem(text={Text(item)},onClick={group=item;menu=false})
                     }
-                    OutlinedButton(onClick = {
-                        recent = emptyList()
-                        preferences.edit().remove("recent").apply()
-                    }, modifier = Modifier.fillMaxWidth()) { Text("Clear recently opened") }
+                }
+            }
+            FilterChip(selected=offlineOnly,onClick={offlineOnly=!offlineOnly},label={Text("Offline")})
+        }
+        if(pinned.isNotEmpty()){
+            Text("★ Favourites",color=MWText,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
+            pinned.forEach{task->MWHubCard(task.title,task.detail){open(task)}}
+        }
+        if(recentlyUsed!=null&&recentlyUsed.id !in favourites) {
+            Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                Text("Recent",color=MWMuted,fontSize=12.sp)
+                OutlinedButton(onClick={open(recentlyUsed)},modifier=Modifier.weight(1f)){
+                    Text(recentlyUsed.title,maxLines=1,overflow=TextOverflow.Ellipsis)
                 }
             }
         }
-        Text(matches.size.toString() + " tools found", color = MWMuted, fontSize = 13.sp)
-        if (matches.isEmpty()) {
-            MWCard("No matching tools") { Text("Try fewer words or choose All tools.", color = MWMuted) }
+        Text(if(compact)"Common tasks" else "Matching tools",color=MWText,
+            fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+        if(visibleTasks.isEmpty())MWCard("No results"){
+            Text("Try a shorter search, All categories or disable Offline.",color=MWMuted)
         }
-        matches.forEach { task ->
-            MWCard(task.title) {
-                Text(task.detail, color = MWMuted, fontSize = 13.sp)
-                Text(task.group + " · " + (if (task.offline) "Offline" else "Web / cloud"), color = MWCyan, fontSize = 12.sp)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { open(task) }, modifier = Modifier.weight(1f)) { Text("Open tool") }
-                    OutlinedButton(onClick = {
-                        favourites = if (favourites.contains(task.id)) favourites - task.id else favourites + task.id
-                        preferences.edit().putStringSet("favourites", favourites.toSet()).apply()
-                    }) { Text(if (favourites.contains(task.id)) "★ Saved" else "☆ Favourite") }
+        visibleTasks.forEach{task->
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(7.dp)) {
+                Column(Modifier.weight(1f)){
+                    MWHubCard(task.title,task.detail+(if(task.offline)" · Offline" else " · Online")){open(task)}
                 }
+                OutlinedButton(onClick={
+                    favourites=if(favourites.contains(task.id))favourites-task.id else favourites+task.id
+                    preferences.edit().putStringSet("favourites",favourites.toSet()).apply()
+                },modifier=Modifier.semantics{
+                    contentDescription=if(favourites.contains(task.id))
+                        "Remove "+task.title+" from favourites" else "Add "+task.title+" to favourites"
+                }) {Text(if(favourites.contains(task.id))"★" else "☆",fontSize=19.sp)}
             }
         }
-        Text(
-            "Favourites and recent tools stay on this Android device for this account, separate from cloud projects. Verify the CEC/OESC rules and equipment data before field use.",
-            color = MWMuted, fontSize = 12.sp
-        )
+        if(compact) OutlinedButton(onClick={showAll=true},modifier=Modifier.fillMaxWidth()){
+            Text("Show all "+allTasks.size+" tools")
+        } else if(query.isBlank()&&group=="All"&&!offlineOnly)
+            OutlinedButton(onClick={showAll=false},modifier=Modifier.fillMaxWidth()){
+                Text("Show common tasks only")
+            }
+        Text(visibleTasks.size.toString()+" of "+filtered.size+" tools · Shortcuts stay on this device.",
+            color=MWMuted,fontSize=12.sp)
+        if(!compact&&recent.isNotEmpty())
+            OutlinedButton(onClick={
+                recent=emptyList()
+                preferences.edit().remove("recent").apply()
+            },modifier=Modifier.fillMaxWidth()){Text("Clear recent tools")}
+        Text("Verify applicable CEC/OESC rules and equipment data before field use.",color=MWMuted,fontSize=12.sp)
     }
 }
