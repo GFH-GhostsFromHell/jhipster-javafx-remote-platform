@@ -86,6 +86,7 @@ private fun CircuitSizingScreen(username:String) {
     var dropLimit by remember {mutableStateOf("3")}
     var showVD by remember {mutableStateOf(false)}
     var showArchive by remember {mutableStateOf(false)}
+    var currentStep by remember { mutableIntStateOf(0) }
     var result by remember {mutableStateOf("Replace sample inputs with your actual circuit data, then calculate.")}
     fun currentInputs()=CircuitReviewMath.Input(
         load.toDouble(),multiplier.toDouble(),voltage.toDouble(),
@@ -101,6 +102,17 @@ private fun CircuitSizingScreen(username:String) {
             fontWeight=FontWeight.Bold)
         Text("OFFLINE · Enter one circuit; review corrected conductor ampacity, voltage drop, a conservative device screen and maximum one-way run.",
             color=Color(0xFFB6C4D4))
+        Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Text("Step "+(currentStep+1)+" of 3 · "+
+                listOf("Circuit","Conductor","Result")[currentStep],
+                color=EWColors.primary,fontWeight=FontWeight.Bold,
+                modifier=Modifier.weight(1f))
+            if(currentStep>0) OutlinedButton(onClick={currentStep--;showArchive=false}){
+                Text("← Back")
+            }
+        }
+        if(currentStep==0) {
         CircuitInputCard("1 · Circuit") {
             Text("Quick system presets · only voltage and phase change",
                 style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
@@ -127,6 +139,11 @@ private fun CircuitSizingScreen(username:String) {
             CircuitSelect("General load-sizing multiplier (assumption)",multiplier,
                 listOf("1.00","1.25")){multiplier=it}
         }
+        Button(onClick={currentStep=1},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){
+            Text("Next · Conductor settings")
+        }
+        }
+        if(currentStep==1) {
         CircuitInputCard("2 · Conductor and conditions") {
             Text("Use the equipment TERMINATION-temperature column, not automatically the wire's 90°C insulation column.",
                 style=MaterialTheme.typography.bodySmall,color=Color(0xFFFFCF75))
@@ -151,6 +168,11 @@ private fun CircuitSizingScreen(username:String) {
                     style=MaterialTheme.typography.bodySmall,color=Color(0xFFB6C4D4))
             }
         }
+        Button(onClick={currentStep=2},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){
+            Text("Next · Calculate and review")
+        }
+        }
+        if(currentStep==2) {
         Button(onClick={
             lastInputs=null;lastResults=null
             result=runCatching {
@@ -317,6 +339,7 @@ private fun CircuitSizingScreen(username:String) {
             ){Text("Export selected revision PDF")}
             Text(pdfStatus,style=MaterialTheme.typography.bodySmall,
                 color=Color(0xFFFFCF75))
+        }
         }
         Text("Sample numbers are placeholders. Use verified equipment and conductor data. Special motor, transformer or other exceptions need a separate Code assessment.",
             color=Color(0xFFFFCF75),style=MaterialTheme.typography.bodySmall)
