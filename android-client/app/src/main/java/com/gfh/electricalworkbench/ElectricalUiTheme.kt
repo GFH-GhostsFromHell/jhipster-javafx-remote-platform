@@ -7,18 +7,18 @@ import androidx.compose.ui.graphics.Color
 
 /** Readable Daylight palette for the electrical tools; calculations are unchanged. */
 internal object EWColors {
-    val background = Color(0xFFF3F6FB)
-    val raised = Color(0xFFFFFFFF)
-    val card = Color(0xFFFFFFFF)
-    val outline = Color(0xFF91A4B9)
-    val primary = Color(0xFF124A7A)
-    val onPrimary = Color.White
-    val secondary = Color(0xFF1D4ED8)
-    val warning = Color(0xFF874300)
-    val text = Color(0xFF14263D)
-    val muted = Color(0xFF465870)
-    val good = Color(0xFF166534)
-    val danger = Color(0xFFB42318)
+    val background=Color(0xFFF3F6FB)
+    val raised=Color(0xFFFFFFFF)
+    val card=Color(0xFFFFFFFF)
+    val outline=Color(0xFF91A4B9)
+    val primary=Color(0xFF124A7A)
+    val onPrimary=Color(0xFFFFFFFF)
+    val secondary=Color(0xFF1D4ED8)
+    val warning=Color(0xFF874300)
+    val text=Color(0xFF14263D)
+    val muted=Color(0xFF465870)
+    val good=Color(0xFF166534)
+    val danger=Color(0xFFB42318)
 }
 @Composable
 internal fun ElectricalUiTheme(content: @Composable () -> Unit) {
