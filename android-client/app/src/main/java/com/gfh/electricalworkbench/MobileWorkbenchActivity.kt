@@ -309,7 +309,7 @@ private fun MobileLoginScreen(
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text("ELECTRICAL WORKBENCH", color = MobileText, fontWeight = FontWeight.Black)
-                    Text("CEC 2024 · FULL ANDROID WORKSPACE", color = MobileCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("TOOLS FOR THE JOBSITE", color = MobileMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(Modifier.height(22.dp))
@@ -408,7 +408,7 @@ private fun MobileShell(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text("Electrical Workbench", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text("CEC 2024 mobile", color = MobileCyan, fontSize = 10.sp)
+                            Text("Field tools & calculations", color = MobileMuted, fontSize = 11.sp)
                         }
                     }
                 },

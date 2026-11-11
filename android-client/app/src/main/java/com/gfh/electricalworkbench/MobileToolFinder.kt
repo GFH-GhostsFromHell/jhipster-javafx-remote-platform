@@ -114,7 +114,7 @@ internal fun MobileToolFinder(username:String,onOpenWeb:(String)->Unit,
         .thenBy{val n=recent.indexOf(it.id);if(n<0)1000 else n}.thenBy{it.title})
     val featured=setOf("quick-bender-offline","conductor-drop","pull-box","motor","fault-offline","jobsite")
     val compact=query.isBlank()&&group=="All"&&!offlineOnly&&!showAll
-    val visibleTasks=if(compact)filtered.filter{it.id in featured||it.id in favourites}.take(8) else filtered
+    val visibleTasks=if(compact)filtered.filter{it.id in featured && it.id !in favourites}.take(6) else filtered
     val pinned=if(compact)favourites.mapNotNull{id->allTasks.find{it.id==id}}.take(3) else emptyList()
     val recentlyUsed=if(compact)recent.firstNotNullOfOrNull{id->allTasks.find{it.id==id}} else null
 
