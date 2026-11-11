@@ -67,15 +67,15 @@ private const val PREFS_NAME = "electrical_workbench_updates"
 private const val PREF_PENDING_DOWNLOAD = "pending_download_id"
 internal const val UPDATE_FROM_WORKSPACE = "update_from_workspace"
 
-private val GateNavy = Color(0xFF06111F)
-private val GatePanel = Color(0xFF0D2438)
-private val GatePanelStrong = Color(0xFF102D45)
-private val GateCyan = Color(0xFF22D3EE)
-private val GateBlue = Color(0xFF3B82F6)
-private val GateText = Color(0xFFF8FBFF)
-private val GateSecondary = Color(0xFFD6E3EE)
-private val GateMuted = Color(0xFFB8C9D8)
-private val GateBorder = Color(0xFF365A75)
+private val GateNavy = EWColors.background
+private val GatePanel = EWColors.raised
+private val GatePanelStrong = EWColors.card
+private val GateCyan = EWColors.primary
+private val GateBlue = EWColors.secondary
+private val GateText = EWColors.text
+private val GateSecondary = EWColors.muted
+private val GateMuted = EWColors.muted
+private val GateBorder = EWColors.outline
 
 class UpdateGateActivity : ComponentActivity() {
     private val downloadReceiver = object : BroadcastReceiver() {
@@ -202,18 +202,7 @@ private sealed interface UpdateState {
 
 @Composable
 private fun UpdateGateTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = GateCyan,
-            secondary = GateBlue,
-            background = GateNavy,
-            surface = GatePanel,
-            onPrimary = GateNavy,
-            onBackground = GateText,
-            onSurface = GateText
-        ),
-        content = content
-    )
+    ElectricalUiTheme(content)
 }
 
 @Composable

@@ -56,6 +56,9 @@ jobs:
             echo "UPDATE_CHANNEL=stable" >> "$GITHUB_ENV"
           fi
 
+      - name: Check accessible UI colours, short paths and navigation parity
+        run: node ../scripts/validate-android-usability.cjs
+
       - name: Run offline transformer and conductor arithmetic unit tests
         run: gradle :app:testDebugUnitTest --stacktrace
 

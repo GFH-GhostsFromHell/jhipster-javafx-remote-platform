@@ -22,10 +22,7 @@ class IndustrialFieldActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme=darkColorScheme(
-                primary=Color(0xFF29D4E9),background=Color(0xFF071725),
-                surface=Color(0xFF112E40),onSurface=Color(0xFFF2F9FF)
-            )) { IndustrialFieldScreen() }
+            ElectricalUiTheme { IndustrialFieldScreen() }
         }
     }
 }

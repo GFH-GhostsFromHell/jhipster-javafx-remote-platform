@@ -91,16 +91,16 @@ import java.util.Base64
 
 private const val PORTAL_BASE_URL = "https://remote-javafx-portal.onrender.com"
 
-private val Navy = Color(0xFF06111F)
-private val Navy2 = Color(0xFF0A1C2F)
-private val Steel = Color(0xFF152A3D)
-private val Steel2 = Color(0xFF20384D)
-private val ElectricCyan = Color(0xFF22D3EE)
-private val ElectricBlue = Color(0xFF3B82F6)
+private val Navy = EWColors.background
+private val Navy2 = EWColors.raised
+private val Steel = EWColors.card
+private val Steel2 = EWColors.card
+private val ElectricCyan = EWColors.primary
+private val ElectricBlue = EWColors.secondary
 private val SafetyAmber = Color(0xFFF5B942)
-private val TextPrimary = Color(0xFFF1F5F9)
-private val TextSecondary = Color(0xFFB6C4D4)
-private val TextMuted = Color(0xFFA6B6C8)
+private val TextPrimary = EWColors.text
+private val TextSecondary = EWColors.muted
+private val TextMuted = EWColors.muted
 private val Good = Color(0xFF5EEAD4)
 
 class MainActivity : ComponentActivity() {
@@ -128,21 +128,7 @@ private enum class AppTab { Dashboard, Calculators, Business, Profile }
 
 @Composable
 private fun WorkbenchTheme(content: @Composable () -> Unit) {
-    val scheme = darkColorScheme(
-        primary = ElectricCyan,
-        secondary = ElectricBlue,
-        tertiary = SafetyAmber,
-        background = Navy,
-        surface = Navy2,
-        surfaceVariant = Steel,
-        outline = Color(0xFF71869C),
-        onPrimary = Navy,
-        onSecondary = TextPrimary,
-        onBackground = TextPrimary,
-        onSurface = TextPrimary,
-        onSurfaceVariant = TextSecondary
-    )
-    MaterialTheme(colorScheme = scheme, content = content)
+    ElectricalUiTheme(content)
 }
 
 @Composable

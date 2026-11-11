@@ -48,6 +48,12 @@ internal fun applyMobileWebStyle(webView: WebView) {
             .stepnav { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
             .hint { max-width: 80%; font-size: 12px !important; }
         }
+        @media (min-width: 390px) and (max-width: 520px) {
+            .actions > button, .advanced-actions > button, .quick-actions > button {
+                flex: 1 1 155px !important;
+                width: auto !important;
+            }
+        }
         @media (max-width: 520px) {
             .fields, .quick-fields, .inputs, .marklist, .cues, .ops,
             .workspace, .grid, .refgrid, .welder-row {
@@ -55,8 +61,7 @@ internal fun applyMobileWebStyle(webView: WebView) {
             }
             .ops button, .quick-fields .field:first-child { grid-column: auto !important; }
             .actions > button, .advanced-actions > button, .quick-actions > button {
-                flex: 1 1 100% !important;
-                width: 100% !important;
+                flex: 1 1 155px !important; width: auto !important;
             }
             .top, .backrow { flex-wrap: wrap !important; }
             .card { padding: 12px !important; }

@@ -71,10 +71,7 @@ private fun LearnWorkspace(username: String) {
     var tab by remember { mutableIntStateOf(0) }
     val names = listOf("Daily 25", "CEC Navigator", "Formulas", "Controls", "Province")
     Column(Modifier.fillMaxSize()) {
-        MWSectionHeader("Learn", "Red Seal / C of Q study and CEC reference workflows.")
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp, containerColor = MWCard2) {
-            names.forEachIndexed { index, name -> Tab(selected = tab == index, onClick = { tab = index }, text = { Text(name) }) }
-        }
+        MWSectionPicker("Study", names, tab) { tab = it }
         when (tab) {
             0 -> DailyQuiz(username, store)
             1 -> CecNavigator()
@@ -271,10 +268,7 @@ private fun FieldWorkspace(username: String) {
     var tab by remember { mutableIntStateOf(0) }
     val names = listOf("Troubleshoot", "Nameplate", "Commission", "Inspect", "Blueprint", "Fault", "Ground/Bond")
     Column(Modifier.fillMaxSize()) {
-        MWSectionHeader("Field", "Native field tools and offline records.")
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp, containerColor = MWCard2) {
-            names.forEachIndexed { index, name -> Tab(selected = tab == index, onClick = { tab = index }, text = { Text(name) }) }
-        }
+        MWSectionPicker("Field", names, tab) { tab = it }
         when (tab) {
             0 -> TroubleshootingTool()
             1 -> NameplateTool(store)
@@ -493,10 +487,7 @@ private fun ProjectsWorkspace(username: String) {
     var tab by remember { mutableIntStateOf(0) }
     val names = listOf("Project Log", "Takeoff", "Records", "Cable Plan")
     Column(Modifier.fillMaxSize()) {
-        MWSectionHeader("Projects", "Offline project, material and cable-planning records.")
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp, containerColor = MWCard2) {
-            names.forEachIndexed { index, name -> Tab(selected = tab == index, onClick = { tab = index }, text = { Text(name) }) }
-        }
+        MWSectionPicker("Projects", names, tab) { tab = it }
         when (tab) {
             0 -> ProjectLog(store)
             1 -> MaterialTakeoff(store)
@@ -617,10 +608,7 @@ private fun CareerWorkspace(username: String) {
     var tab by remember { mutableIntStateOf(0) }
     val names = listOf("Hours", "Credentials", "Wage", "Jobs")
     Column(Modifier.fillMaxSize()) {
-        MWSectionHeader("Career & Apprenticeship", "Track hours, credentials, wages and official trade resources.")
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp, containerColor = MWCard2) {
-            names.forEachIndexed { index, name -> Tab(selected = tab == index, onClick = { tab = index }, text = { Text(name) }) }
-        }
+        MWSectionPicker("Career", names, tab) { tab = it }
         when (tab) {
             0 -> HoursTracker(store)
             1 -> CredentialWallet(store)

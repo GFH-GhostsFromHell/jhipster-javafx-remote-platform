@@ -44,11 +44,7 @@ class TransformerSizingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(
-                primary = Color(0xFF22D3EE),
-                background = Color(0xFF06111F),
-                surface = Color(0xFF10253A)
-            )) {
+            ElectricalUiTheme {
                 TransformerSizingScreen()
             }
         }
@@ -94,6 +90,7 @@ private fun TransformerSizingScreen() {
     var secondary by remember { mutableStateOf("208") }
     var spare by remember { mutableStateOf("20") }
     var latest by remember { mutableStateOf("Enter the loads served by the transformer, then calculate.") }
+    var showLoadExamples by remember { mutableStateOf(false) }
     var idCounter by remember { mutableLongStateOf(4L) }
     val rows = remember {
         mutableStateListOf(
@@ -129,15 +126,20 @@ private fun TransformerSizingScreen() {
                 onDelete = { rows.removeAt(index) }
             )
         }
-        Button(onClick = { rows.add(TxLoad(idCounter++)) }, modifier = Modifier.fillMaxWidth()) {
-            Text("+ Add equipment load")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { rows.add(TxLoad(idCounter++)) }, modifier = Modifier.weight(1f)) {
+                Text("+ Equipment")
+            }
+            Button(onClick = {
+                rows.add(TxLoad(idCounter++, "Calculated service load", txServiceTypes[0],
+                    "1", "100", "kVA", "1.00", "100", false))
+            }, modifier = Modifier.weight(1f)) { Text("+ Service load") }
         }
-        Button(onClick = {
-            rows.add(TxLoad(idCounter++, "Calculated service load", txServiceTypes[0],
-                "1", "100", "kVA", "1.00", "100", false))
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text("+ Add service demand")
+        OutlinedButton(onClick = { showLoadExamples = !showLoadExamples },
+            modifier = Modifier.fillMaxWidth()) {
+            Text(if (showLoadExamples) "Hide examples & reset" else "Examples & reset")
         }
+        if (showLoadExamples) {
         OutlinedButton(onClick = {
             rows.clear()
             rows.add(TxLoad(idCounter++, "Calculated commercial service demand", txServiceTypes[3],
@@ -150,7 +152,7 @@ private fun TransformerSizingScreen() {
             rows.clear()
             latest = "No loads. Add equipment loads or a calculated service demand."
         }, modifier = Modifier.fillMaxWidth()) { Text("Clear loads") }
-
+        }
         Button(
             onClick = {
                 latest = runCatching {
@@ -173,11 +175,24 @@ private fun TransformerSizingScreen() {
 
 @Composable
 private fun TxLoadCard(load: TxLoad, onChange: (TxLoad) -> Unit, onDelete: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF10253A))) {
+    var editing by remember(load.id) { mutableStateOf(load.name == "New load") }
+    Card(colors = CardDefaults.cardColors(containerColor = EWColors.card)) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(if (load.isService) "Calculated service load" else "Equipment load", fontWeight = FontWeight.Bold)
-                OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) { Text("Remove load") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(load.name, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                    Text(load.quantity + " × " + load.amount + " " + load.unit +
+                        (if (load.isService) " · service" else " · " + load.demand + "% demand"),
+                        color = EWColors.muted, style = MaterialTheme.typography.bodySmall)
+                }
+                OutlinedButton(onClick = { editing = !editing }) {
+                    Text(if (editing) "Done" else "Edit")
+                }
+            }
+            if (editing) {
+            OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                Text("Remove this load")
             }
             TxInput("Description", load.name) { onChange(load.copy(name = it)) }
             TxDropDown("Load type", load.type, txEquipmentTypes + txServiceTypes) { type ->
@@ -202,6 +217,7 @@ private fun TxLoadCard(load: TxLoad, onChange: (TxLoad) -> Unit, onDelete: () ->
                     Checkbox(checked = load.continuous, onCheckedChange = { onChange(load.copy(continuous = it)) })
                     Text("Apply 125% continuous-load design factor", modifier = Modifier.padding(top = 11.dp))
                 }
+            }
             }
         }
     }
