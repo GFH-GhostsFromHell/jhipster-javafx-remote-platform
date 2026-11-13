@@ -1,0 +1,30 @@
+name: Validate Device Security Web UI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'portal/src/main/resources/static/device-security*.js'
+      - 'portal/src/main/resources/static/device-security.html'
+      - '.github/workflows/validate-device-security-web.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify browser JavaScript syntax
+        run: |
+          node --check portal/src/main/resources/static/device-security-chat.js
+          node --check portal/src/main/resources/static/device-security-escrow.js
+      - name: Verify authenticated portal UI includes support and escrow controls
+        shell: bash
+        run: |
+          grep -q 'id="supportHistory"' portal/src/main/resources/static/device-security.html
+          grep -q 'id="escrowOperatorList"' portal/src/main/resources/static/device-security.html
+          grep -q 'id="supportRequests"' portal/src/main/resources/static/device-security.html
