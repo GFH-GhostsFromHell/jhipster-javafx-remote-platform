@@ -24,8 +24,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.prefs.Preferences;
 
 /**
- * Third Electrical Workbench app: read-only device encryption status + voluntary
- * owner-scoped cloud reporting. No encryption, lockout, or key collection.
+ * Third Electrical Workbench app: voluntary single-file AES-256-GCM copies,
+ * offline recovery, device status reporting and encrypted owner-operator chat.
+ * Never encrypts operating-system drives, removes originals or issues remote lockouts.
  */
 public final class DeviceSecurityDesktop extends Application {
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -62,7 +63,7 @@ public final class DeviceSecurityDesktop extends Application {
         heading.setStyle("-fx-background-color:#FFFFFF;-fx-border-color:#D3DEEA;-fx-border-width:0 0 1 0;");
         Label title = new Label("Device Security Center");
         title.setStyle("-fx-text-fill:#14263D;-fx-font-size:27px;-fx-font-weight:bold;");
-        Label description = new Label("Check your Windows system drive and optionally report encryption status to your cloud account.");
+        Label description = new Label("Check drive status, protect a selected data file, and contact cloud support.");
         description.setWrapText(true);
         description.setStyle("-fx-text-fill:#465870;-fx-font-size:14px;");
         heading.getChildren().addAll(title, description);
@@ -96,7 +97,7 @@ public final class DeviceSecurityDesktop extends Application {
 
         VBox recoveryCard = card();
         Label recoveryTitle = sectionTitle("Recovery stays under your control");
-        Label recovery = new Label("This application cannot encrypt or decrypt a computer. If you already use BitLocker, retain an independent recovery-key backup with your OS-approved recovery process. Cloud status reporting is optional.");
+        Label recovery = new Label("Only user-selected data-file copies are encrypted; Windows, boot files and your original data remain untouched. Keep your offline recovery key separately. No operator can revoke your independently retained recovery key.");
         recovery.setWrapText(true);
         recovery.setStyle("-fx-text-fill:#465870;");
         Hyperlink portalLink = new Hyperlink("Open Device Security Center in web portal");
@@ -108,7 +109,8 @@ public final class DeviceSecurityDesktop extends Application {
             }
         });
         recoveryCard.getChildren().addAll(recoveryTitle, recovery, portalLink);
-        content.getChildren().addAll(statusCard, cloudCard, recoveryCard);
+        content.getChildren().addAll(statusCard, new SelectedFilePanel().view(), cloudCard,
+            new SupportChatPanel(usernameField, passwordField, cloudUrl()).view(), recoveryCard);
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
