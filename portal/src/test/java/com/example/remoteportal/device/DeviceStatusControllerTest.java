@@ -14,7 +14,7 @@ class DeviceStatusControllerTest {
     private final DeviceStatusController controller = new DeviceStatusController(repository);
 
     @Test void rejectsUnrecognizedKeyOrTokenFieldsAsStatus() {
-        var auth = new UsernamePasswordAuthenticationToken("owner", "test");
+        var auth = new UsernamePasswordAuthenticationToken("owner", "test", List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CLIENT")));
         var request = new DeviceStatusController.ReportRequest(UUID.randomUUID().toString(),
             "Owner laptop", "Windows", "C:", "RECOVERY_TOKEN");
         var exception = assertThrows(ResponseStatusException.class, () -> controller.report(auth, request));
@@ -23,7 +23,7 @@ class DeviceStatusControllerTest {
     }
 
     @Test void returnsOnlyCurrentUsersReports() {
-        var auth = new UsernamePasswordAuthenticationToken("owner", "test");
+        var auth = new UsernamePasswordAuthenticationToken("owner", "test", List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CLIENT")));
         when(repository.findAllByOwnerUsernameOrderByReportedAtDesc("owner")).thenReturn(List.of());
         assertTrue(controller.list(auth).isEmpty());
         verify(repository).findAllByOwnerUsernameOrderByReportedAtDesc("owner");
