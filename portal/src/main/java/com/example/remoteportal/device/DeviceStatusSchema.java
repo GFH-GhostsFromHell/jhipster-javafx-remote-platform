@@ -29,5 +29,26 @@ public class DeviceStatusSchema implements ApplicationRunner {
                 CONSTRAINT device_security_owner_device UNIQUE(owner_username, device_id)
             )
             """);
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS device_security_chat (
+                id VARCHAR(36) PRIMARY KEY,
+                owner_username VARCHAR(255) NOT NULL,
+                sender_role VARCHAR(12) NOT NULL,
+                ciphertext VARCHAR(9000) NOT NULL,
+                sent_at TIMESTAMP WITH TIME ZONE NOT NULL
+            )
+            """);
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS device_security_recovery_requests (
+                id VARCHAR(36) PRIMARY KEY,
+                owner_username VARCHAR(255) NOT NULL,
+                file_label VARCHAR(120) NOT NULL,
+                reason VARCHAR(500) NOT NULL,
+                state VARCHAR(12) NOT NULL,
+                requested_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                decided_at TIMESTAMP WITH TIME ZONE,
+                decided_by VARCHAR(255)
+            )
+            """);
     }
 }
