@@ -78,7 +78,7 @@ public final class DeviceSecurityDesktop extends Application {
 
         VBox cloudCard = card();
         Label cloudTitle = sectionTitle("3 · Voluntary cloud status report");
-        Label privacy = new Label("Only device alias, operating system, volume, status and report time are shared. No recovery keys, decryption tokens, passwords or files are uploaded.");
+        Label privacy = new Label("Device-status reports contain only the alias, operating system, volume, status and report time. Optional encrypted recovery backups are managed separately under Cloud recovery; plaintext recovery keys are never uploaded.");
         privacy.setWrapText(true);
         privacy.setStyle("-fx-text-fill:#465870;");
         aliasField.setPromptText("Device alias (max 64 characters)");
