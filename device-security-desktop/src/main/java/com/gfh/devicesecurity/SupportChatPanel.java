@@ -43,7 +43,7 @@ public final class SupportChatPanel {
         this.baseUrl = baseUrl;
         root.setPadding(new Insets(18));
         root.setStyle("-fx-background-color:white;-fx-border-color:#B4C5D7;-fx-border-radius:12;-fx-background-radius:12;");
-        Label title = new Label("4 · Encrypted support chat & operator review");
+        Label title = new Label("5 · Encrypted support chat & operator review");
         title.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#14263D;");
         Label hint = new Label("Log in using the cloud credentials above. Set a strong chat passphrase and share it with your operator through a separate trusted channel. The portal stores encrypted messages only; it never receives this passphrase.");
         hint.setWrapText(true);
@@ -77,7 +77,7 @@ public final class SupportChatPanel {
         String plain = newMessage.getText();
         char[] password = chatPassphrase.getText().toCharArray();
         if (username.getText().isBlank() || accountPassword.getText().isBlank()) {
-            status.setText("Enter cloud account credentials in the section above.");
+            status.setText("Enter cloud account credentials in the Device status tab.");
             Arrays.fill(password, '\0');
             return;
         }
