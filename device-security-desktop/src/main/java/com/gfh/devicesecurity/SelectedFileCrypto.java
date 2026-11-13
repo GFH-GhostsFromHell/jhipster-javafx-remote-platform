@@ -24,7 +24,7 @@ public final class SelectedFileCrypto {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int NONCE_SIZE = 12;
     private static final int TAG_BITS = 128;
-    private static final long MAX_FILE_BYTES = 4L * 1024 * 1024 * 1024; // bounded GCM message
+    private static final long MAX_FILE_BYTES = 64L * 1024 * 1024; // bounded memory for provider GCM verification
     private SelectedFileCrypto() { }
 
     public interface Progress {
@@ -56,7 +56,7 @@ public final class SelectedFileCrypto {
         validateSelectedRegularFile(selectedFile);
         if (key == null || key.length != 32) throw new IllegalArgumentException("Invalid AES-256 key");
         long total = Files.size(selectedFile);
-        if (total > MAX_FILE_BYTES) throw new IllegalArgumentException("Files larger than 4 GiB are not supported");
+        if (total > MAX_FILE_BYTES) throw new IllegalArgumentException("This first version supports selected files up to 64 MiB");
         Path output = selectedFile.resolveSibling(selectedFile.getFileName() + ".gfhenc");
         if (Files.exists(output)) throw new FileAlreadyExistsException(output.toString());
         byte[] iv = new byte[NONCE_SIZE];
