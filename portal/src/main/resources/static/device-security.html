@@ -58,7 +58,24 @@ label{display:block;font-weight:700;margin:10px 0 6px}
 <section class="card">
 <h2>Recovery and owner controls</h2>
 <p class="hint"><strong>Important:</strong> Your ability to recover your computer must never depend exclusively on this portal. Use your operating system's supported recovery process, keep an independently accessible copy of the recovery key, and confirm backups before making any encryption changes.</p>
-<p>The desktop app can create a separately encrypted copy of a manually chosen file with AES-256-GCM. The owner saves an offline recovery key and can decrypt independently. This portal does not issue remote encryption, device locking or key-extraction commands. Cloud recovery-key escrow is not enabled in this version.</p>
+<p>The desktop app can create a separately encrypted copy of a manually chosen file with AES-256-GCM. The owner saves an offline recovery key and can decrypt independently. This portal does not issue remote encryption, device locking or key-extraction commands. Optional cloud escrow stores only a separate, password-wrapped recovery backup. The owner retains an independent offline key.</p>
+</section>
+<section class="card" aria-labelledby="escrowTitle">
+  <h2 id="escrowTitle">Encrypted recovery-key backups</h2>
+  <p class="small">A desktop owner may optionally back up a recovery code wrapped with a separate strong passphrase. The portal stores encrypted ciphertext only. Operator approval permits a one-time retrieval for 15 minutes; the owner unwraps it locally and may recover independently using the offline key.</p>
+  <button type="button" id="escrowRefresh">Refresh encrypted backup requests</button>
+  <div id="escrowOwnerArea" hidden>
+    <label for="escrowOwnerEntries">My cloud recovery backups</label>
+    <select id="escrowOwnerEntries" style="width:100%;max-width:550px;padding:10px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d"></select>
+    <button type="button" id="escrowOwnerRequest">Request one-time cloud backup release</button>
+    <div id="escrowOwnerRequests"></div>
+  </div>
+  <div id="escrowOperatorArea" hidden>
+    <h3>Operator approvals</h3>
+    <p class="small">Approval grants the owner one retrieval of encrypted recovery material, not access to the computer or the plaintext recovery key.</p>
+    <div id="escrowOperatorList"></div>
+  </div>
+  <p class="small" role="status" aria-live="polite" id="escrowStatus"></p>
 </section>
 <section class="card" aria-labelledby="supportTitle">
   <h2 id="supportTitle">Encrypted support chat</h2>
@@ -125,5 +142,6 @@ document.getElementById('refresh').addEventListener('click',refresh);
 refresh();
 </script>
 <script src="/device-security-chat.js?v=1" defer></script>
+<script src="/device-security-escrow.js?v=1" defer></script>
 </body>
 </html>
