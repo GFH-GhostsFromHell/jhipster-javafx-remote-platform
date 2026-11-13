@@ -27,6 +27,10 @@ th,td{text-align:left;border-bottom:1px solid #d7e0ea;padding:12px;vertical-alig
 th{font-size:12px;letter-spacing:.03em;color:#465870}
 .status{font-weight:800;color:#124a7a}
 #message{margin-top:12px}
+.chat-message,.request-row{border:1px solid #d3deea;background:#f8fafc;padding:12px;margin:9px 0;border-radius:9px}
+.chat-message p{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0 0}
+.request-row button{margin:8px 8px 0 0}
+label{display:block;font-weight:700;margin:10px 0 6px}
 @media(max-width:600px){.card{padding:15px}main{padding:14px}}
 </style>
 </head>
@@ -36,9 +40,9 @@ th{font-size:12px;letter-spacing:.03em;color:#465870}
 <nav><a href="/portal.html">Cloud workspace</a><a href="/start.html">Find a tool</a></nav>
 </header>
 <main>
-<div class="small">THIRD APP · READ-ONLY DEVICE MANAGEMENT</div>
-<h1>Your device-encryption overview</h1>
-<p>See encryption status reported from a computer you own or administer. This portal is not a remote encryption or lockout service.</p>
+<div class="small">THIRD APP · DEVICE PROTECTION & SUPPORT</div>
+<h1>Device encryption and support</h1>
+<p>Review your devices, contact an operator through password-encrypted support chat, and request recovery assistance. Selected-file encryption runs locally and preserves originals.</p>
 <section class="card" aria-labelledby="devicesTitle">
 <h2 id="devicesTitle">Enrolled device reports</h2>
 <p class="small">Reports appear only for your signed-in account. No recovery keys, drive contents or decryption tokens are collected.</p>
@@ -54,7 +58,38 @@ th{font-size:12px;letter-spacing:.03em;color:#465870}
 <section class="card">
 <h2>Recovery and owner controls</h2>
 <p class="hint"><strong>Important:</strong> Your ability to recover your computer must never depend exclusively on this portal. Use your operating system's supported recovery process, keep an independently accessible copy of the recovery key, and confirm backups before making any encryption changes.</p>
-<p>This initial version intentionally excludes remote commands, automatic encryption, drive locking, key extraction and cloud escrow. Future managed recovery would require verified enrollment, owner approval, encrypted key storage and audited access.</p>
+<p>The desktop app can create a separately encrypted copy of a manually chosen file with AES-256-GCM. The owner saves an offline recovery key and can decrypt independently. This portal does not issue remote encryption, device locking or key-extraction commands. Cloud recovery-key escrow is not enabled in this version.</p>
+</section>
+<section class="card" aria-labelledby="supportTitle">
+  <h2 id="supportTitle">Encrypted support chat</h2>
+  <p class="small">Messages are encrypted in your browser or desktop application using AES-256-GCM and a shared passphrase. The portal stores ciphertext only. Share the passphrase with your operator via an independent trusted channel, not in this chat. This is a first-version passphrase protocol, not an audited enterprise messenger.</p>
+  <p class="small">Current role: <strong id="chatRole">Checking…</strong>. Chat messages are loaded when you press Refresh; there are no push notifications.</p>
+  <div id="operatorChatTools" hidden>
+    <label for="operatorRecipient">Customer conversation</label>
+    <select id="operatorRecipient" style="width:100%;max-width:550px;padding:10px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d"></select>
+  </div>
+  <label for="chatPassphrase">Shared chat passphrase (never sent to server)</label>
+  <input type="password" id="chatPassphrase" minlength="12" autocomplete="off" placeholder="At least 12 characters" style="width:100%;max-width:550px;padding:11px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d">
+  <div style="margin:12px 0"><button type="button" id="loadSupport">Refresh conversation</button></div>
+  <div id="supportHistory" role="log" aria-live="polite" aria-label="Encrypted support conversation" style="min-height:110px;max-height:360px;overflow:auto;border:1px solid #d3deea;border-radius:10px;padding:10px">Enter the shared passphrase and refresh to read messages.</div>
+  <label for="supportMessage">Send a message</label>
+  <textarea id="supportMessage" rows="3" maxlength="3000" placeholder="Type your message…" style="width:100%;padding:10px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d"></textarea>
+  <button type="button" id="sendSupport">Send encrypted message</button>
+  <p class="small" id="supportStatus" role="status" aria-live="polite"></p>
+</section>
+<section class="card" aria-labelledby="requestTitle">
+  <h2 id="requestTitle">Operator recovery review</h2>
+  <p class="small">An approval is a tracked support decision, not a decryption command. The owner always retains independent offline recovery.</p>
+  <div id="clientRecoveryTools">
+    <label for="requestFile">File label</label>
+    <input id="requestFile" maxlength="120" placeholder="e.g., Project drawings backup" style="display:block;width:100%;max-width:550px;padding:10px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d">
+    <label for="requestReason">Reason for request</label>
+    <textarea id="requestReason" rows="2" maxlength="500" placeholder="Explain what assistance you need…" style="width:100%;padding:10px;border:1px solid #91a4b9;border-radius:8px;background:white;color:#14263d"></textarea>
+    <button type="button" id="sendRecoveryRequest">Request operator review</button>
+  </div>
+  <div style="margin:12px 0"><button type="button" id="loadRequests">Refresh review requests</button></div>
+  <div id="supportRequests" role="status" aria-live="polite"></div>
+  <p class="small" id="supportRequestsStatus"></p>
 </section>
 </main>
 <script>
@@ -89,5 +124,6 @@ async function refresh(){
 document.getElementById('refresh').addEventListener('click',refresh);
 refresh();
 </script>
+<script src="/device-security-chat.js?v=1" defer></script>
 </body>
 </html>
