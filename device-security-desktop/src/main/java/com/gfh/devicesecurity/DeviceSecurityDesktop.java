@@ -78,7 +78,7 @@ public final class DeviceSecurityDesktop extends Application {
         statusCard.getChildren().addAll(statusTitle, stateLabel, details, checkButton);
 
         VBox cloudCard = card();
-        Label cloudTitle = sectionTitle("2 · Voluntary cloud status report");
+        Label cloudTitle = sectionTitle("3 · Voluntary cloud status report");
         Label privacy = new Label("Only device alias, operating system, volume, status and report time are shared. No recovery keys, decryption tokens, passwords or files are uploaded.");
         privacy.setWrapText(true);
         privacy.setStyle("-fx-text-fill:#465870;");
@@ -110,6 +110,7 @@ public final class DeviceSecurityDesktop extends Application {
         });
         recoveryCard.getChildren().addAll(recoveryTitle, recovery, portalLink);
         content.getChildren().addAll(statusCard, new SelectedFilePanel().view(), cloudCard,
+            new CloudRecoveryPanel(usernameField, passwordField, cloudUrl()).view(),
             new SupportChatPanel(usernameField, passwordField, cloudUrl()).view(), recoveryCard);
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
