@@ -21,7 +21,7 @@ class SelectedFileCryptoTest {
         Path encrypted = SelectedFileCrypto.encrypt(file, key, (n, total) -> { });
         assertTrue(Files.exists(file));
         assertArrayEquals(original, Files.readAllBytes(file));
-        assertNotEquals(new String(original), Files.readString(encrypted));
+        assertFalse(Arrays.equals(original, Files.readAllBytes(encrypted)));
         Path restored = SelectedFileCrypto.decrypt(encrypted,
             SelectedFileCrypto.readRecoveryText(offlineRecovery), (n, total) -> { });
         assertArrayEquals(original, Files.readAllBytes(restored));
