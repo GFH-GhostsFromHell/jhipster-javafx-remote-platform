@@ -6,6 +6,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -69,8 +70,6 @@ public final class DeviceSecurityDesktop extends Application {
         heading.getChildren().addAll(title, description);
         shell.setTop(heading);
 
-        VBox content = new VBox(16);
-        content.setPadding(new Insets(20));
         VBox statusCard = card();
         Label statusTitle = sectionTitle("1 · Read-only Windows check");
         details.setWrapText(true);
@@ -109,14 +108,16 @@ public final class DeviceSecurityDesktop extends Application {
             }
         });
         recoveryCard.getChildren().addAll(recoveryTitle, recovery, portalLink);
-        content.getChildren().addAll(statusCard, new SelectedFilePanel().view(), cloudCard,
-            new CloudRecoveryPanel(usernameField, passwordField, cloudUrl()).view(),
-            new SupportChatPanel(usernameField, passwordField, cloudUrl()).view(), recoveryCard);
-        ScrollPane scroll = new ScrollPane(content);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background:#F3F6FB;-fx-background-color:transparent;");
-        shell.setCenter(scroll);
+        TabPane tabs = new TabPane();
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabs.getTabs().addAll(
+            workspaceTab("Device status", statusCard, cloudCard),
+            workspaceTab("Encrypt file", new SelectedFilePanel().view()),
+            workspaceTab("Cloud recovery",
+                new CloudRecoveryPanel(usernameField, passwordField, cloudUrl()).view(), recoveryCard),
+            workspaceTab("Support chat",
+                new SupportChatPanel(usernameField, passwordField, cloudUrl()).view()));
+        shell.setCenter(tabs);
 
         checkButton.setOnAction(e -> checkStatus());
         consent.selectedProperty().addListener((o, prev, selected) -> updateReportButton());
@@ -125,7 +126,7 @@ public final class DeviceSecurityDesktop extends Application {
         passwordField.textProperty().addListener((o, prev, next) -> updateReportButton());
         reportButton.setOnAction(e -> reportStatus());
 
-        stage.setScene(new Scene(shell, 660, 820));
+        stage.setScene(new Scene(shell, 760, 760));
         stage.setMinWidth(480);
         stage.setMinHeight(620);
         stage.show();
@@ -206,6 +207,18 @@ public final class DeviceSecurityDesktop extends Application {
             throw new IllegalArgumentException("Cloud portal must use HTTPS.");
         }
         return raw;
+    }
+
+    private static Tab workspaceTab(String label, Node... contents) {
+        VBox layout = new VBox(14);
+        layout.setPadding(new Insets(18));
+        layout.setStyle("-fx-background-color:#F3F6FB;");
+        layout.getChildren().addAll(contents);
+        ScrollPane scroll = new ScrollPane(layout);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setStyle("-fx-background:#F3F6FB;-fx-background-color:transparent;");
+        return new Tab(label, scroll);
     }
 
     private static VBox card() {
