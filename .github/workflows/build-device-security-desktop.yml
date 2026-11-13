@@ -1,0 +1,49 @@
+name: Build Device Security Center (Windows)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'device-security-desktop/**'
+      - '.github/workflows/build-device-security-desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-portable:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build and test JavaFX desktop
+        run: mvn -B -f device-security-desktop/pom.xml clean verify
+      - name: Copy runtime libraries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path device-security-desktop/target/jpackage-input | Out-Null
+          mvn -B -f device-security-desktop/pom.xml dependency:copy-dependencies "-DoutputDirectory=target/jpackage-input"
+          Copy-Item device-security-desktop/target/device-security-desktop-0.1.0-SNAPSHOT.jar device-security-desktop/target/jpackage-input/
+      - name: Package portable Windows application
+        shell: pwsh
+        run: |
+          jpackage --type app-image `
+            --input device-security-desktop/target/jpackage-input `
+            --dest device-security-desktop/target/package `
+            --name DeviceSecurityCenter `
+            --main-jar device-security-desktop-0.1.0-SNAPSHOT.jar `
+            --main-class com.gfh.devicesecurity.Launcher `
+            --app-version 0.1.0
+          Compress-Archive -Path device-security-desktop/target/package/DeviceSecurityCenter -DestinationPath device-security-desktop/target/DeviceSecurityCenter-Windows-Portable.zip
+      - name: Upload unsigned portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeviceSecurityCenter-Windows-Portable
+          path: device-security-desktop/target/DeviceSecurityCenter-Windows-Portable.zip
+          retention-days: 30
