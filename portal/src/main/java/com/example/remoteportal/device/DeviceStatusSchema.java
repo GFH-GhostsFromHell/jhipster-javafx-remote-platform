@@ -50,5 +50,28 @@ public class DeviceStatusSchema implements ApplicationRunner {
                 decided_by VARCHAR(255)
             )
             """);
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS device_security_escrow (
+                id VARCHAR(36) PRIMARY KEY,
+                owner_username VARCHAR(255) NOT NULL,
+                file_label VARCHAR(120) NOT NULL,
+                wrapped_recovery_key VARCHAR(1500) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE NOT NULL
+            )
+            """);
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS device_security_escrow_release (
+                id VARCHAR(36) PRIMARY KEY,
+                escrow_id VARCHAR(36) NOT NULL,
+                owner_username VARCHAR(255) NOT NULL,
+                state VARCHAR(12) NOT NULL,
+                requested_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                decided_at TIMESTAMP WITH TIME ZONE,
+                decided_by VARCHAR(255),
+                retrieved_at TIMESTAMP WITH TIME ZONE,
+                CONSTRAINT fk_device_escrow_release_escrow
+                   FOREIGN KEY (escrow_id) REFERENCES device_security_escrow(id)
+            )
+            """);
     }
 }
