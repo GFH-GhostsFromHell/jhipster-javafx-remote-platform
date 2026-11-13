@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device Security Center · Electrical Workbench</title>
+<style>
+:root{font-family:Inter,Segoe UI,system-ui,sans-serif;color:#14263d;background:#f3f6fb}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;min-height:100vh}
+header{background:#fff;border-bottom:1px solid #b4c5d7;padding:16px max(16px,calc((100vw - 1050px)/2))}
+header .brand{font-weight:850;font-size:17px;color:#124a7a}
+nav{display:flex;gap:15px;flex-wrap:wrap;margin-top:6px}
+a{color:#124a7a;text-decoration:underline;text-underline-offset:3px}
+main{max-width:1050px;margin:auto;padding:20px 16px 56px}
+h1{font-size:clamp(26px,4vw,36px);line-height:1.2;margin:8px 0}
+h2{font-size:20px;margin:0 0 10px}
+p{color:#465870;line-height:1.55}
+.card{border:1px solid #c0cfdf;background:#fff;border-radius:14px;padding:20px;margin:18px 0}
+button{background:#124a7a;color:white;border:1px solid #124a7a;border-radius:9px;min-height:45px;padding:10px 16px;font-size:15px;font-weight:700;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid #e69d31;outline-offset:3px}
+.small{font-size:13px;color:#465870}
+.hint{padding:12px 14px;border-left:4px solid #124a7a;background:#e7eff8}
+.tablewrap{overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th,td{text-align:left;border-bottom:1px solid #d7e0ea;padding:12px;vertical-align:top}
+th{font-size:12px;letter-spacing:.03em;color:#465870}
+.status{font-weight:800;color:#124a7a}
+#message{margin-top:12px}
+@media(max-width:600px){.card{padding:15px}main{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand">Electrical Workbench · Device Security Center</div>
+<nav><a href="/portal.html">Cloud workspace</a><a href="/start.html">Find a tool</a></nav>
+</header>
+<main>
+<div class="small">THIRD APP · READ-ONLY DEVICE MANAGEMENT</div>
+<h1>Your device-encryption overview</h1>
+<p>See encryption status reported from a computer you own or administer. This portal is not a remote encryption or lockout service.</p>
+<section class="card" aria-labelledby="devicesTitle">
+<h2 id="devicesTitle">Enrolled device reports</h2>
+<p class="small">Reports appear only for your signed-in account. No recovery keys, drive contents or decryption tokens are collected.</p>
+<button type="button" id="refresh">Refresh reports</button>
+<div id="message" role="status" aria-live="polite"></div>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Device</th><th>Operating system</th><th>Volume</th><th>Encryption</th><th>Reported (UTC)</th></tr></thead>
+<tbody id="devices"><tr><td colspan="5">Select Refresh reports to load your devices.</td></tr></tbody>
+</table>
+</div>
+</section>
+<section class="card">
+<h2>Recovery and owner controls</h2>
+<p class="hint"><strong>Important:</strong> Your ability to recover your computer must never depend exclusively on this portal. Use your operating system's supported recovery process, keep an independently accessible copy of the recovery key, and confirm backups before making any encryption changes.</p>
+<p>This initial version intentionally excludes remote commands, automatic encryption, drive locking, key extraction and cloud escrow. Future managed recovery would require verified enrollment, owner approval, encrypted key storage and audited access.</p>
+</section>
+</main>
+<script>
+'use strict';
+const rows=document.getElementById('devices');
+const message=document.getElementById('message');
+async function refresh(){
+  message.textContent='Loading your devices…';
+  try{
+    const response=await fetch('/api/device-security/devices',{credentials:'same-origin',cache:'no-store'});
+    if(!response.ok)throw new Error(response.status===401?'Sign in to view your devices.':'Unable to load device status (HTTP '+response.status+').');
+    const devices=await response.json();
+    rows.replaceChildren();
+    if(!devices.length){
+      const tr=document.createElement('tr'),td=document.createElement('td');
+      td.colSpan=5;td.textContent='No device reports yet. Run the desktop client and choose Report status to portal.';
+      tr.append(td);rows.append(tr);
+    }
+    for(const d of devices){
+      const tr=document.createElement('tr');
+      for(const key of ['alias','operatingSystem','volume','encryptionStatus','reportedAt']){
+        const td=document.createElement('td');
+        td.textContent=key==='reportedAt'?(d[key]?new Date(d[key]).toLocaleString():'Unknown'):String(d[key]??'Unknown');
+        if(key==='encryptionStatus')td.className='status';
+        tr.append(td);
+      }
+      rows.append(tr);
+    }
+    message.textContent=devices.length+' device report(s) found.';
+  }catch(e){message.textContent=e.message||'Could not load reports.';}
+}
+document.getElementById('refresh').addEventListener('click',refresh);
+refresh();
+</script>
+</body>
+</html>
