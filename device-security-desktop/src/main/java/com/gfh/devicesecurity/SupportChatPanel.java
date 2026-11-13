@@ -81,12 +81,13 @@ public final class SupportChatPanel {
             Arrays.fill(password, '\0');
             return;
         }
+        final String authorization = basicAuth();
         send.setDisable(true);
         status.setText("Encrypting and sending…");
         CompletableFuture.supplyAsync(() -> {
             try {
                 String sealed = SupportMessageCrypto.seal(plain, password);
-                return submit("/api/device-security/support/messages", Map.of("ciphertext", sealed));
+                return submit("/api/device-security/support/messages", Map.of("ciphertext", sealed), authorization);
             } catch (Exception e) {
                 return "Message not sent: " + e.getMessage();
             } finally {
@@ -101,12 +102,13 @@ public final class SupportChatPanel {
 
     private void refresh() {
         char[] password = chatPassphrase.getText().toCharArray();
+        final String authorization = basicAuth();
         refresh.setDisable(true);
         status.setText("Loading conversation…");
         CompletableFuture.supplyAsync(() -> {
             try {
                 if (password.length < 12) throw new IllegalArgumentException("Enter the shared chat passphrase");
-                HttpResponse<String> response = get("/api/device-security/support/messages");
+                HttpResponse<String> response = get("/api/device-security/support/messages", authorization);
                 if (response.statusCode() != 200) throw new IllegalArgumentException("Cloud returned HTTP " + response.statusCode());
                 StringBuilder out = new StringBuilder();
                 JsonNode list = JSON.readTree(response.body());
@@ -134,12 +136,13 @@ public final class SupportChatPanel {
     private void requestRecovery() {
         String label = recoveryLabel.getText().strip();
         String reason = recoveryReason.getText().strip();
+        final String authorization = basicAuth();
         request.setDisable(true);
         requestStatus.setText("Submitting review request…");
         CompletableFuture.supplyAsync(() -> {
             try {
                 return submit("/api/device-security/support/recovery",
-                    Map.of("fileLabel", label, "reason", reason));
+                    Map.of("fileLabel", label, "reason", reason), authorization);
             } catch (Exception e) { return "Could not submit: " + e.getMessage(); }
         }).thenAccept(result -> Platform.runLater(() -> {
             request.setDisable(false);
@@ -148,10 +151,11 @@ public final class SupportChatPanel {
     }
 
     private void checkRequests() {
+        final String authorization = basicAuth();
         checkRequests.setDisable(true);
         CompletableFuture.supplyAsync(() -> {
             try {
-                HttpResponse<String> response = get("/api/device-security/support/recovery");
+                HttpResponse<String> response = get("/api/device-security/support/recovery", authorization);
                 if (response.statusCode() != 200) return "Cloud returned HTTP " + response.statusCode();
                 JsonNode results = JSON.readTree(response.body());
                 StringBuilder out = new StringBuilder();
@@ -173,8 +177,8 @@ public final class SupportChatPanel {
         return "";
     }
 
-    private String submit(String path, Object body) throws Exception {
-        HttpRequest req = request(path).header("Content-Type", "application/json")
+    private String submit(String path, Object body, String authorization) throws Exception {
+        HttpRequest req = request(path, authorization).header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build();
         HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
         if (res.statusCode() < 200 || res.statusCode() >= 300)
@@ -182,15 +186,19 @@ public final class SupportChatPanel {
         return "Submitted successfully.";
     }
 
-    private HttpResponse<String> get(String path) throws Exception {
-        return client.send(request(path).GET().build(), HttpResponse.BodyHandlers.ofString());
+    private HttpResponse<String> get(String path, String authorization) throws Exception {
+        return client.send(request(path, authorization).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private HttpRequest.Builder request(String path) {
-        String raw = (username.getText().strip() + ":" + accountPassword.getText());
-        String basic = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    /** Capture JavaFX input values on the UI thread, not from an I/O worker. */
+    private String basicAuth() {
+        String raw = username.getText().strip() + ":" + accountPassword.getText();
+        return "Basic " + Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private HttpRequest.Builder request(String path, String authorization) {
         return HttpRequest.newBuilder(URI.create(baseUrl + path))
             .timeout(Duration.ofSeconds(25))
-            .header("Authorization", "Basic " + basic);
+            .header("Authorization", authorization);
     }
 }
